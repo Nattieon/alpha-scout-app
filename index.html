@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Alpha Scout Lock-In</title>
+<meta name="description" content="Lock or pass? Live Sleeper Lock-In calls for your matchup.">
+<meta name="theme-color" content="#14171b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lock-In">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column, scoreboard band on top, decisions before detail. */
+:root {
+  --bg: #14171b; --surface: #1c2025; --raised: #242a31; --line: #2e353d;
+  --fg: #e9ecef; --muted: #8d969f; --faint: #5f6871;
+  --accent: #ff8a3d;            /* hardwood orange */
+  --lock: #35d0a0; --pass: #f1b84b; --risk: #ff6b6b; --live: #7aa7ff;
+  --lock-ink: #062a1f; --pass-ink: #2f2105;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root { --bg: #f4f5f2; --surface: #ffffff; --raised: #eef0ec; --line: #dde1dc; --fg: #15191d; --muted: #5d666e; --faint: #8b939a;
+          --accent: #d9631c; --lock: #0f9a72; --pass: #b77c06; --risk: #d23b3b; --live: #2f63d6; --lock-ink: #fff; --pass-ink: #fff; color-scheme: light; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.45 var(--body); -webkit-font-smoothing: antialiased;
+  padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) calc(32px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+[hidden] { display: none !important; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: .01em; margin: 0; text-wrap: balance; }
+h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+
+/* top bar */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px 4px; }
+.brand { display: flex; align-items: baseline; gap: 8px; text-decoration: none; color: var(--fg); white-space: nowrap; }
+@media (max-width: 380px) { .brand b { font-size: 19px; } .brand span { font-size: 11px; } }
+.brand b { font: 700 22px/1 var(--display); letter-spacing: .06em; }
+.brand span { font: 600 13px/1 var(--display); letter-spacing: .14em; color: var(--accent); text-transform: uppercase; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+.chip:hover { border-color: var(--faint); }
+
+/* onboarding */
+.hero { padding-block: 40px 8px; display: grid; gap: 14px; max-width: 560px; }
+.hero h1 { font-size: clamp(38px, 9vw, 64px); line-height: .95; font-weight: 700; text-transform: uppercase; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero p { margin: 0; color: var(--muted); max-width: 46ch; }
+form.find { display: flex; gap: 8px; flex-wrap: wrap; }
+form.find input { flex: 1 1 220px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 17px; }
+.btn { border: 0; border-radius: 10px; padding: 12px 18px; font-weight: 600; background: var(--accent); color: #1a0d03; }
+.btn.ghost { background: var(--raised); color: var(--fg); }
+.leagues { display: grid; gap: 10px; }
+.league { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.league:hover { border-color: var(--accent); }
+.league b { font: 600 20px/1.1 var(--display); }
+.err { color: var(--risk); }
+
+/* scoreboard */
+.board { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 14px; }
+.board-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.teams { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+.team { min-width: 0; }
+.team.r { text-align: right; }
+.team .who { font: 600 16px/1.2 var(--display); text-transform: uppercase; letter-spacing: .04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team .pts { font: 700 clamp(30px, 8vw, 44px)/1 var(--display); }
+.team .proj { font-size: 13px; color: var(--muted); }
+.vs { font: 600 13px var(--display); color: var(--faint); letter-spacing: .1em; }
+.winbar { display: grid; gap: 6px; }
+.winbar .track { height: 10px; border-radius: 99px; background: var(--raised); overflow: hidden; display: flex; }
+.winbar .me { background: var(--accent); }
+.winbar .lbl { display: flex; justify-content: space-between; font-size: 13px; }
+.winbar .lbl b { font: 700 20px/1 var(--display); }
+
+/* decision cards */
+.section { display: grid; gap: 10px; }
+.cards { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.card.lock { border-color: color-mix(in srgb, var(--lock) 55%, var(--line)); }
+.card.pass { border-color: color-mix(in srgb, var(--pass) 45%, var(--line)); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pname { font: 600 19px/1.1 var(--display); min-width: 0; }
+.pmeta { font-size: 12.5px; color: var(--muted); }
+.pill { font: 700 14px/1 var(--display); letter-spacing: .08em; padding: 7px 11px; border-radius: 8px; white-space: nowrap; }
+.pill.lock { background: var(--lock); color: var(--lock-ink); }
+.pill.pass { background: var(--pass); color: var(--pass-ink); }
+.pill.soft { background: var(--raised); color: var(--muted); }
+.duel { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { background: var(--raised); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.stat small { display: block; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.stat b { font: 700 24px/1.05 var(--display); }
+.why { font-size: 13.5px; color: var(--muted); display: grid; gap: 3px; }
+.why .warn { color: var(--risk); }
+.flip { font-size: 13px; border-left: 3px solid var(--accent); padding-left: 8px; }
+.whatif { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13.5px; }
+.whatif input { width: 76px; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+
+/* lineup table */
+.tabs { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 3px; }
+.tabs button { border: 0; background: none; padding: 7px 12px; border-radius: 8px; font-weight: 600; color: var(--muted); }
+.tabs button[aria-selected="true"] { background: var(--raised); color: var(--fg); }
+.lineup { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+.slot { font: 600 13px var(--display); color: var(--faint); letter-spacing: .06em; }
+.games { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.g { font-size: 11.5px; border-radius: 6px; padding: 2px 6px; background: var(--raised); color: var(--muted); white-space: nowrap; }
+.g.counts { background: color-mix(in srgb, var(--lock) 22%, var(--raised)); color: var(--fg); }
+.g.live { background: color-mix(in srgb, var(--live) 25%, var(--raised)); color: var(--fg); }
+.g.out { text-decoration: line-through; }
+.val { text-align: right; }
+.val b { font: 700 20px/1 var(--display); }
+.val small { display: block; font-size: 11.5px; color: var(--muted); }
+.state { font: 600 11px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; }
+.state.locked { color: var(--lock); } .state.pending { color: var(--accent); } .state.live { color: var(--live); } .state.final, .state.open, .state.none, .state.empty { color: var(--muted); }
+
+/* footer & settings */
+details.settings { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+details.settings summary { cursor: pointer; font-weight: 600; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
+label.f { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+label.f input, label.f select { background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 8px; color: var(--fg); }
+.foot { font-size: 12.5px; color: var(--faint); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.empty-note { background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; padding: 14px; color: var(--muted); font-size: 14px; }
+.skeleton { height: 120px; border-radius: 14px; background: linear-gradient(90deg, var(--surface), var(--raised), var(--surface)); background-size: 200% 100%; animation: sh 1.4s infinite; }
+@keyframes sh { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+@media (max-width: 420px) { .duel { grid-template-columns: 1fr 1fr; } .stat b { font-size: 21px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <a class="brand" href="./" id="home"><b>ALPHA SCOUT</b><span>Lock-In</span></a>
+    <button class="chip" id="who" hidden></button>
+  </header>
+
+  <main id="onboard" hidden>
+    <section class="hero">
+      <h1>Lock it or <em>let it ride</em></h1>
+      <p>Enter your Sleeper username. Alpha Scout pulls your Lock-In matchup and tells you which games to lock, using your league's own scoring and your opponent's locked scores.</p>
+      <form class="find" id="find">
+        <input id="username" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Sleeper username" required>
+        <button class="btn" type="submit">Find my leagues</button>
+      </form>
+      <div id="find-msg" class="muted" role="status"></div>
+      <div class="leagues" id="leagues"></div>
+    </section>
+  </main>
+
+  <main id="dash" hidden>
+    <section class="board" id="board"><div class="skeleton"></div></section>
+    <section class="section" id="decide"></section>
+    <section class="section" id="tonight"></section>
+    <section class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h2>Lineups</h2>
+        <div class="tabs" role="tablist">
+          <button role="tab" id="tab-me" aria-selected="true">You</button>
+          <button role="tab" id="tab-opp" aria-selected="false">Opponent</button>
+        </div>
+      </div>
+      <div class="lineup" id="lineup"></div>
+    </section>
+    <details class="settings" id="settings">
+      <summary>How the calls work &amp; settings</summary>
+      <div class="grid2">
+        <label class="f">Decide by
+          <select id="cfg-mode">
+            <option value="win">Win probability (uses opponent's locks)</option>
+            <option value="ev">Max points (ignore matchup)</option>
+          </select>
+        </label>
+        <label class="f">Chance any game is missed (%)
+          <input id="cfg-base" type="number" min="0" max="30" step="1">
+        </label>
+        <label class="f">Extra on 2nd night of a back-to-back (%)
+          <input id="cfg-b2b" type="number" min="0" max="50" step="1">
+        </label>
+      </div>
+      <p class="muted" style="font-size:13.5px;max-width:70ch">
+        <b>Bar</b> = what the slot is worth if you pass: his remaining games this week, each with its own projection
+        (Rotowire via Sleeper, calibrated to how he's actually played), played optimally, including the chance he sits.
+        An open slot takes his <i>last</i> game even if he doesn't play, so DNP risk on the final game lowers the bar most.
+        In <b>win probability</b> mode the call can flip: with a safe lead it locks a little early to remove risk; when behind it passes to chase upside.
+        Sleeper doesn't say whether a slot is locked until his next game starts, so mark your own locks; your opponent is assumed to lock any score above his bar.
+      </p>
+    </details>
+    <div class="foot"><span id="updated"></span><span><button class="chip" id="refresh">Refresh</button></span></div>
+  </main>
+</div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
