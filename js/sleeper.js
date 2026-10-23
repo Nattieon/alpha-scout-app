@@ -40,18 +40,23 @@ const LOG_KEYS = ["min", "pts", "reb", "ast", "stl", "blk", "to", "fgm", "fga", 
 /** Every game a player played in a season: [{date, stats}] with only the stats scoring needs.
  *  Completed seasons never change, so they're kept in this browser's storage. */
 export async function playerSeasonLog(pid, season, { final = false } = {}) {
-  const key = `as.log.${season}.${pid}`;
+  const key = `as.log2.${season}.${pid}`;
   if (final) { try { const hit = localStorage.getItem(key); if (hit) return JSON.parse(hit); } catch { /* ignore */ } }
   let byWeek;
   try { byWeek = await getJSON(`${API}/stats/nba/player/${pid}?season_type=regular&season=${season}&grouping=week`); }
   catch { return []; }
   const games = [];
   for (const rows of Object.values(byWeek || {})) for (const r of rows || []) {
-    if (!r || !r.stats || !(r.stats.min > 0)) continue;
-    games.push({ date: r.date, stats: Object.fromEntries(LOG_KEYS.filter((k) => r.stats[k] !== undefined).map((k) => [k, r.stats[k]])) });
+    if (!r || !r.stats) continue;
+    // Older seasons record playing time as seconds ("sp") instead of minutes.
+    const min = r.stats.min ?? (r.stats.sp ? r.stats.sp / 60 : 0);
+    if (!(min > 0)) continue;
+    const stats = Object.fromEntries(LOG_KEYS.filter((k) => r.stats[k] !== undefined).map((k) => [k, r.stats[k]]));
+    stats.min = Math.round(min * 10) / 10;
+    games.push({ date: r.date, stats });
   }
   games.sort((a, b) => a.date.localeCompare(b.date));
-  if (final) { try { localStorage.setItem(key, JSON.stringify(games)); } catch { /* storage full: fine */ } }
+  if (final && games.length) { try { localStorage.setItem(key, JSON.stringify(games)); } catch { /* storage full: fine */ } }
   return games;
 }
 
