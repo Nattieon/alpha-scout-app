@@ -1,5 +1,5 @@
-import * as S from "./sleeper.js";
-import { buildModel, DEFAULTS, dow, md, todayET } from "./model.js";
+import * as S from "./sleeper.js?v=__V__";
+import { buildModel, DEFAULTS, dow, md, todayET } from "./model.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

@@ -1,5 +1,5 @@
 // Turns raw Sleeper data into slot states, per-game projections and lock calls.
-import { gameRisks, lockCall, slotMoments, slotValue, winProbability } from "./lockmath.js";
+import { gameRisks, lockCall, slotMoments, slotValue, winProbability } from "./lockmath.js?v=__V__";
 
 export const DEFAULTS = { baseDnp: 0.04, b2bDnp: 0.08, injuryDecay: 0.7, mode: "win", cvPrior: 0.30 };
 
