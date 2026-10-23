@@ -77,3 +77,50 @@ test("risk model matches Python (b2b + questionable, decaying)", () => {
   close(r[1].p, 0.3424, 1e-9, "game 2");
   assert.ok(r[0].b2b && !r[1].b2b);
 });
+
+// ------------------------------------------------------------------ player-shaped distributions
+import { buildShape, percentileOf, normalQuantile, slotValue as sv, slotMoments as sm, pFinishBelow as pfb, lockBars as lb } from "../js/lockmath.js";
+
+test("a shape drawn from a normal reproduces the normal results", () => {
+  const ratios = Array.from({ length: 400 }, (_, k) => 1 + 0.3 * normalQuantile((k + 0.5) / 400));
+  const shape = buildShape(ratios, { q: 101 });
+  const normal = [{ mu: 40, sigma: 12, p: 0.04 }, { mu: 40, sigma: 12, p: 0.12 }, { mu: 40, sigma: 12, p: 0.04 }];
+  const shaped = normal.map((g) => ({ mu: g.mu, shape, p: g.p }));
+  close(sv(shaped), sv(normal), 0.35, "value");
+  close(sm(shaped).variance, sm(normal).variance, 8, "variance");
+  close(pfb(45, shaped), pfb(45, normal), 0.02, "pBelow");
+});
+
+test("shaped moments agree with brute force", () => {
+  const shape = buildShape([0.3, 0.6, 0.8, 0.9, 1.0, 1.0, 1.1, 1.2, 1.4, 1.9, 2.2]);   // boom-or-bust
+  const games = [{ mu: 35, shape, p: 0.04 }, { mu: 42, shape, p: 0.12 }, { mu: 30, shape, p: 0.3 }];
+  const bars = lb(games), m = sm(games);
+  close(m.mean, sv(games), 1e-9, "mean == value");
+  let seed = 11; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  let s1 = 0, s2 = 0, below = 0; const N = 200000;
+  for (let n = 0; n < N; n++) for (let i = 0; i < games.length; i++) {
+    const g = games[i];
+    const x = rnd() < g.p ? 0 : g.mu * shape[Math.floor(rnd() * shape.length)];
+    if (i === games.length - 1 || x >= bars[i]) { s1 += x; s2 += x * x; below += x < 40 ? 1 : 0; break; }
+  }
+  close(m.mean, s1 / N, 0.15, "sim mean");
+  close(m.variance, s2 / N - (s1 / N) ** 2, 8, "sim variance");
+  close(pfb(40, games), below / N, 0.006, "sim pBelow");
+});
+
+test("a volatile player gets a higher bar than a steady one with the same average", () => {
+  const steady = buildShape(Array.from({ length: 60 }, (_, k) => 1 + 0.12 * normalQuantile((k + 0.5) / 60)));
+  const volatile = buildShape(Array.from({ length: 60 }, (_, k) => 1 + 0.45 * normalQuantile((k + 0.5) / 60)));
+  const games = (shape) => [{ mu: 40, shape, p: 0.04 }, { mu: 40, shape, p: 0.04 }];
+  assert.ok(sv(games(volatile)) > sv(games(steady)) + 4);
+});
+
+test("shape and percentile helpers", () => {
+  const sh = buildShape([0.5, 1, 1.5]);
+  close(sh.reduce((s, x) => s + x, 0) / sh.length, 1, 1e-12, "mean 1");
+  const prior = buildShape([]);                                  // no games -> pure prior
+  assert.ok(prior[0] < 0.6 && prior.at(-1) > 1.4);
+  assert.equal(percentileOf(30, [10, 20, 30, 40]), 0.625);
+  assert.equal(percentileOf(5, []), null);
+  close(normalQuantile(0.975), 1.959964, 1e-5, "z 97.5");
+});

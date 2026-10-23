@@ -27,13 +27,47 @@ export function emax(mu, sigma, v) {
   return v * Phi(a) + mu * (1 - Phi(a)) + sigma * phi(a);
 }
 
+// ---------------------------------------------------------------- one game's score distribution
+// A game is either normal {mu, sigma} or player-shaped {mu, shape}: shape is the player's own
+// game-to-game pattern as equally likely ratios to his average (mean 1), so X = mu * ratio.
+const vals = (g) => g.shape.map((r) => g.mu * r);
+
+/** E[max(X, v)] for one game. */
+export function gameEmax(g, v) {
+  if (!g.shape) return emax(g.mu, g.sigma, v);
+  const xs = vals(g);
+  return xs.reduce((s, x) => s + Math.max(x, v), 0) / xs.length;
+}
+
+/** P(X < z) for one game. */
+export function gameCdf(g, z) {
+  if (!g.shape) return g.sigma > 0 ? Phi((z - g.mu) / g.sigma) : (g.mu < z ? 1 : 0);
+  const xs = vals(g);
+  return xs.filter((x) => x < z).length / xs.length;
+}
+
+/** {below: P(X < t), m1: E[X; X >= t], m2: E[X^2; X >= t]} for one game. */
+function gameUpper(g, t) {
+  if (!g.shape) {
+    const { mu, sigma } = g;
+    if (!(sigma > 0)) { const b = mu < t ? 1 : 0; return { below: b, m1: (1 - b) * mu, m2: (1 - b) * mu * mu }; }
+    const a = (t - mu) / sigma, below = Phi(a);
+    return { below, m1: mu * (1 - below) + sigma * phi(a), m2: (mu ** 2 + sigma ** 2) * (1 - below) + sigma * (mu + t) * phi(a) };
+  }
+  const xs = vals(g), n = xs.length;
+  let below = 0, m1 = 0, m2 = 0;
+  for (const x of xs) { if (x < t) below++; else { m1 += x; m2 += x * x; } }
+  return { below: below / n, m1: m1 / n, m2: m2 / n };
+}
+
+const gameMean2 = (g) => (g.shape ? vals(g).reduce((s, x) => s + x * x, 0) / g.shape.length : g.mu ** 2 + g.sigma ** 2);
+
 /** Expected final score of an open slot facing these games (in order). */
 export function slotValue(games) {
   let v = null;
   for (let i = games.length - 1; i >= 0; i--) {
-    const { mu, sigma } = games[i];
-    const p = clamp01(games[i].p);
-    v = v === null ? (1 - p) * mu : p * Math.max(v, 0) + (1 - p) * emax(mu, sigma, v);
+    const g = games[i], p = clamp01(g.p);
+    v = v === null ? (1 - p) * g.mu : p * Math.max(v, 0) + (1 - p) * gameEmax(g, v);
   }
   return v === null ? 0 : v;
 }
@@ -49,24 +83,13 @@ export function slotMoments(games) {
   const last = games[games.length - 1];
   let p = clamp01(last.p);
   let m1 = (1 - p) * last.mu;
-  let m2 = (1 - p) * (last.mu ** 2 + last.sigma ** 2);
+  let m2 = (1 - p) * gameMean2(last);
   for (let i = games.length - 2; i >= 0; i--) {
-    const { mu, sigma } = games[i];
-    p = clamp01(games[i].p);
-    const t = m1;                                   // lock iff X >= value of continuing
-    let take1, take2, below;
-    if (sigma > 0) {
-      const a = (t - mu) / sigma;
-      below = Phi(a);
-      take1 = mu * (1 - below) + sigma * phi(a);
-      take2 = (mu ** 2 + sigma ** 2) * (1 - below) + sigma * (mu + t) * phi(a);
-    } else {
-      below = mu < t ? 1 : 0;
-      take1 = (1 - below) * mu;
-      take2 = (1 - below) * mu * mu;
-    }
-    const n1 = p * m1 + (1 - p) * (take1 + below * m1);
-    const n2 = p * m2 + (1 - p) * (take2 + below * m2);
+    const g = games[i];
+    p = clamp01(g.p);
+    const u = gameUpper(g, m1);                     // lock iff X >= value of continuing
+    const n1 = p * m1 + (1 - p) * (u.m1 + u.below * m1);
+    const n2 = p * m2 + (1 - p) * (u.m2 + u.below * m2);
     m1 = n1; m2 = n2;
   }
   return { mean: m1, variance: Math.max(m2 - m1 * m1, 0) };
@@ -76,18 +99,57 @@ export function slotMoments(games) {
 export function pFinishBelow(x, games) {
   if (!games.length) return 0;
   const bars = lockBars(games);
-  const cdf = (g, z) => (g.sigma > 0 ? Phi((z - g.mu) / g.sigma) : (g.mu < z ? 1 : 0));
   const last = games[games.length - 1];
   let p = clamp01(last.p);
-  let f = p * (x > 0 ? 1 : 0) + (1 - p) * cdf(last, x);
+  let f = p * (x > 0 ? 1 : 0) + (1 - p) * gameCdf(last, x);
   for (let i = games.length - 2; i >= 0; i--) {
     const g = games[i];
     p = clamp01(g.p);
     const t = bars[i];
-    const tookBelow = Math.max(cdf(g, x) - cdf(g, t), 0);
-    f = p * f + (1 - p) * (tookBelow + cdf(g, t) * f);
+    const tookBelow = Math.max(gameCdf(g, x) - gameCdf(g, t), 0);
+    f = p * f + (1 - p) * (tookBelow + gameCdf(g, t) * f);
   }
   return Math.min(Math.max(f, 0), 1);
+}
+
+// ---------------------------------------------------------------- player shape & percentiles
+/**
+ * A player's score shape from his own games: ratios to his average, blended with
+ * `pseudo` prior games from N(1, cvPrior) so a short log can't produce a wild shape.
+ * Returns `q` equally likely ratios with mean exactly 1.
+ */
+export function buildShape(ratios, { cvPrior = 0.3, pseudo = 8, q = 41 } = {}) {
+  const prior = Array.from({ length: pseudo }, (_, k) => 1 + cvPrior * normalQuantile((k + 0.5) / pseudo));
+  const xs = [...ratios.filter((r) => Number.isFinite(r)), ...prior].sort((a, b) => a - b);
+  const out = [];
+  for (let k = 0; k < q; k++) {
+    const pos = ((k + 0.5) / q) * xs.length - 0.5;
+    const lo = Math.max(0, Math.floor(pos)), hi = Math.min(xs.length - 1, lo + 1), w = Math.min(Math.max(pos - lo, 0), 1);
+    out.push(xs[lo] * (1 - w) + xs[hi] * w);
+  }
+  const m = out.reduce((s, x) => s + x, 0) / out.length;
+  return out.map((x) => x / m);
+}
+
+/** Share of `values` below x (ties count half), 0..1. */
+export function percentileOf(x, values) {
+  if (!values.length) return null;
+  let below = 0;
+  for (const v of values) below += v < x ? 1 : v === x ? 0.5 : 0;
+  return below / values.length;
+}
+
+/** Inverse standard normal CDF (Acklam's approximation, |error| < 1.2e-9). */
+export function normalQuantile(p) {
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
+  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const lo = 0.02425;
+  if (p < lo) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  if (p > 1 - lo) { const q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  const q = p - 0.5, r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
 }
 
 /** P(my total > opponent total) for independent normal slots: [{mean, variance}]. */

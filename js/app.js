@@ -5,6 +5,8 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const f1 = (x) => (x === null || x === undefined || Number.isNaN(x) ? "–" : (Math.round(x * 10) / 10).toFixed(1));
 const pct = (x) => `${Math.round(x * 100)}%`;
+const ord = (q) => { const n = Math.min(99, Math.max(1, Math.round(q * 100))); const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+const pctLabel = (q, p) => (q === null || q === undefined ? "" : `${ord(q)} pct of his last ${p.nHistory}`);
 
 // ------------------------------------------------------------------ storage (best effort)
 const store = {
@@ -95,17 +97,60 @@ async function load(fresh) {
   const known = new Set([...raw.stats, ...raw.projections].map((r) => r.player_id));
   const needed = matchups.flatMap((m) => m.starters || []).filter((p) => p && p !== "0" && !known.has(p));
   if (needed.length) raw.players = await S.allPlayers();
+  // Each starter's own game log (last season cached on this device + this season so far).
+  const starters = [...new Set(matchups.filter((m) => m.matchup_id && (m.roster_id === myRosterId(rosters) || m.matchup_id === myMatchupId(rosters, matchups))).flatMap((m) => m.starters || []).filter((p) => p && p !== "0"))];
+  raw.logs = await loadLogs(starters, season, fresh);
   ctx.raw = raw;
   rebuild();
   $("updated").textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · data from Sleeper`;
 }
 
+function myRosterId(rosters) {
+  const r = rosters.find((x) => x.owner_id === ctx.user.user_id || (x.co_owners || []).includes(ctx.user.user_id));
+  return r && r.roster_id;
+}
+function myMatchupId(rosters, matchups) {
+  const rid = myRosterId(rosters);
+  const m = matchups.find((x) => x.roster_id === rid);
+  return m && m.matchup_id;
+}
+
+const logCache = new Map();
+async function loadLogs(pids, season, fresh) {
+  const prev = String(Number(season) - 1);
+  const out = {};
+  const queue = [...pids];
+  async function worker() {
+    while (queue.length) {
+      const pid = queue.shift();
+      const key = `${season}:${pid}`;
+      if (!fresh && logCache.has(key)) { out[pid] = logCache.get(key); continue; }
+      const [a, b] = await Promise.all([S.playerSeasonLog(pid, prev, { final: true }), S.playerSeasonLog(pid, season)]);
+      out[pid] = [...a, ...b];
+      logCache.set(key, out[pid]);
+    }
+  }
+  await Promise.all(Array.from({ length: 6 }, worker));
+  return out;
+}
+
 function cfg() { return { ...DEFAULTS, ...store.get("cfg", {}) }; }
-function lockKey() { return `locks.${ctx.leagueId}.${ctx.raw.week}`; }
+function marksKey() { return `marks.${ctx.leagueId}.${ctx.raw.week}`; }
+function getMarks() {
+  const marks = store.get(marksKey(), null);
+  if (marks) return marks;
+  // carry over the older "I locked this" list
+  return Object.fromEntries(store.get(`locks.${ctx.leagueId}.${ctx.raw.week}`, []).map((k) => [k, "locked"]));
+}
+function setMark(key, value) {
+  const marks = getMarks();
+  if (value) marks[key] = value; else delete marks[key];
+  store.set(marksKey(), marks);
+  rebuild();
+}
 
 function rebuild() {
-  const locks = new Set(store.get(lockKey(), []));
-  model = buildModel(ctx.raw, ctx.user.user_id, cfg(), locks);
+  model = buildModel(ctx.raw, ctx.user.user_id, cfg(), getMarks());
   render();
 }
 
@@ -123,7 +168,6 @@ function render() {
 
 function renderBoard(m) {
   const range = m.weekDates.length ? `${md(m.weekDates[0])} – ${md(m.weekDates.at(-1))}` : "";
-  const lockedCount = (side) => side.slots.filter((s) => s.kind === "locked" || s.kind === "final").length;
   if (!m.opp) {
     $("board").innerHTML = `<div class="board-top"><span>${esc(ctx.raw.league.name)} · Week ${m.week} · ${range}</span></div>
       <div class="team"><div class="who">${esc(m.me.name)}</div><div class="pts num">${f1(m.me.points)}</div><div class="proj num">Projected finish ${f1(m.me.proj)}</div></div>
@@ -134,9 +178,9 @@ function renderBoard(m) {
   $("board").innerHTML = `
     <div class="board-top"><span>${esc(ctx.raw.league.name)} · Week ${m.week} · ${range}</span><span>${m.mode === "win" ? "Calls play to win this matchup" : "Calls maximize points"}</span></div>
     <div class="teams">
-      <div class="team"><div class="who">${esc(m.me.name)}</div><div class="pts num">${f1(m.me.points)}</div><div class="proj num">Proj ${f1(m.me.proj)} · ${lockedCount(m.me)}/${m.me.slots.length} done</div></div>
+      <div class="team"><div class="who">${esc(m.me.name)}</div><div class="pts num">${f1(m.me.points)}</div><div class="proj num">Banked ${f1(m.me.banked)} · Proj ${f1(m.me.proj)}</div></div>
       <div class="vs">VS</div>
-      <div class="team r"><div class="who">${esc(m.opp.name)}</div><div class="pts num">${f1(m.opp.points)}</div><div class="proj num">Proj ${f1(m.opp.proj)} · ${lockedCount(m.opp)}/${m.opp.slots.length} done</div></div>
+      <div class="team r"><div class="who">${esc(m.opp.name)}</div><div class="pts num">${f1(m.opp.points)}</div><div class="proj num">Banked ${f1(m.opp.banked)} · Proj ${f1(m.opp.proj)}</div></div>
     </div>
     <div class="winbar" aria-label="Win probability">
       <div class="lbl"><span><b class="num">${pct(w)}</b> to win</span><span class="muted num">${pct(1 - w)}</span></div>
@@ -172,8 +216,8 @@ function renderDecide(m) {
         <span class="pill ${lock ? "lock" : "pass"}">${c.verdict}</span>
       </div>
       <div class="duel">
-        <div class="stat"><small>${dow(g.date)} ${g.home ? "vs" : "@"} ${esc(g.opp)}</small><b class="num">${f1(s.score)}</b></div>
-        <div class="stat"><small>Bar · ${s.games.length} left</small><b class="num">${f1(c.bar)}</b></div>
+        <div class="stat"><small>${dow(g.date)} ${g.home ? "vs" : "@"} ${esc(g.opp)}</small><b class="num">${f1(s.score)}</b>${s.pctScore != null ? `<span class="pct">${pctLabel(s.pctScore, s.p)}</span>` : ""}</div>
+        <div class="stat"><small>Bar · ${s.games.length} left</small><b class="num">${f1(c.bar)}</b>${s.pctBar != null ? `<span class="pct">≈ his ${ord(s.pctBar)} pct</span>` : ""}</div>
       </div>
       ${winRow}${flip}
       <div class="why">${whyLines(s.games).map((x) => `<div>${x}</div>`).join("")}
@@ -181,11 +225,7 @@ function renderDecide(m) {
       <label class="toggle"><input type="checkbox" data-mark="${esc(s.markKey)}"> I already locked this game</label>
     </article>`;
   }).join("")}</div>`;
-  el.querySelectorAll("[data-mark]").forEach((cb) => cb.addEventListener("change", () => {
-    const set = new Set(store.get(lockKey(), []));
-    cb.checked ? set.add(cb.dataset.mark) : set.delete(cb.dataset.mark);
-    store.set(lockKey(), [...set]); rebuild();
-  }));
+  el.querySelectorAll("[data-mark]").forEach((cb) => cb.addEventListener("change", () => setMark(cb.dataset.mark, cb.checked ? "locked" : null)));
 }
 
 function renderTonight(m) {
@@ -198,7 +238,8 @@ function renderTonight(m) {
     const live = s.kind === "live";
     const head = `<div class="card-head">
         <div><div class="pname">${esc(s.p.name)}</div><div class="pmeta">${esc(s.label)} · ${esc(s.p.team || "")} ${live ? "·" : (s.games?.[0]?.home === false ? "@" : "vs")} ${live ? `<span class="state live">live</span>` : esc(t.opp)}${s.p.injury ? ` · <span class="warn">${esc(s.p.injury)}</span>` : ""}</div>
-        ${s.kind === "pending" ? `<div class="pmeta">If you pass on ${dow(s.lastDone.date)}'s ${f1(s.score)}</div>` : ""}</div>
+        ${s.kind === "pending" ? `<div class="pmeta">If you pass on ${dow(s.lastDone.date)}'s ${f1(s.score)}</div>` : ""}
+        ${!t.final && t.pctBar != null ? `<div class="pmeta">Bar ≈ his ${ord(t.pctBar)}-percentile game</div>` : ""}</div>
         ${t.final ? '<span class="pill soft">FINAL GAME</span>' : `<span class="pill soft num">LOCK ≥ ${f1(t.bar)}</span>`}
       </div>`;
     if (t.final) {
@@ -219,12 +260,21 @@ function renderTonight(m) {
     const x = parseFloat(inp.value);
     if (Number.isNaN(x)) { out.textContent = "→ type a score"; out.className = "muted"; return; }
     const c = model.whatIf(s, x);
-    out.innerHTML = `→ <span class="pill ${c.verdict === "LOCK" ? "lock" : "pass"}">${c.verdict}</span>${c.winIfLock !== undefined ? ` <span class="muted num">win ${pct(c.winIfLock)} vs ${pct(c.winIfPass)}</span>` : ""}`;
+    const q = s.p.pct(x);
+    out.innerHTML = `→ <span class="pill ${c.verdict === "LOCK" ? "lock" : "pass"}">${c.verdict}</span>${c.winIfLock !== undefined ? ` <span class="muted num">win ${pct(c.winIfLock)} vs ${pct(c.winIfPass)}</span>` : ""}${q != null ? ` <span class="muted">· ${ord(q)} pct game</span>` : ""}`;
     out.className = "";
   }));
 }
 
-const STATE_LABEL = { locked: "Locked", final: "Final", pending: "Your call", live: "Live", open: "Open", none: "No games", empty: "Empty", "assumed-locked": "Likely locked", "assumed-open": "Likely open" };
+const STATE_LABEL = { locked: "Locked", final: "Final", pending: "Your call", live: "Live", open: "Open", none: "No games", empty: "Empty", "assumed-locked": "Guess: locked", "assumed-open": "Guess: open" };
+
+function markControl(s, mine) {
+  if (!s.ambiguous) return "";
+  const cur = s.mark || "auto";
+  const opts = mine ? [["auto", "Not locked"], ["locked", "Locked"]] : [["auto", "Guess"], ["locked", "Locked"], ["open", "Open"]];
+  return `<div class="seg" role="group" aria-label="Lock state for ${esc(s.p.name)}">${opts.map(([v, l]) =>
+    `<button type="button" data-k="${esc(s.markKey)}" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div>`;
+}
 
 function gameChips(s) {
   if (!s.p) return "";
@@ -253,10 +303,12 @@ function renderLineup(m) {
       <div style="min-width:0">
         <div class="pname" style="font-size:16.5px">${esc(s.p.name)} <span class="pmeta">${esc(s.p.team || "FA")}${s.p.injury ? ` · <span class="warn">${esc(s.p.injury)}</span>` : ""}</span></div>
         <div class="games">${gameChips(s)}</div>
+        ${s.ambiguous ? `<div class="markrow"><span class="pmeta">${f1(s.score)} on ${dow(s.lastDone.date)}${s.pctScore != null ? ` · ${ord(s.pctScore)} pct` : ""} · locked?</span>${markControl(s, view === "me")}</div>` : ""}
       </div>
       <div class="val"><span class="state ${kind}">${STATE_LABEL[s.kind]}${s.manual ? " (you)" : ""}</span><b class="num">${f1(s.value.mean)}</b><small class="num">${sd > 0.5 ? `± ${f1(sd)}` : "&nbsp;"}</small></div>
     </div>`;
   }).join("");
+  $("lineup").querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => setMark(b.dataset.k, b.dataset.v === "auto" ? null : b.dataset.v)));
 }
 
 $("tab-me").addEventListener("click", () => { view = "me"; renderLineup(model); });

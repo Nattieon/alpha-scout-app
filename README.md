@@ -36,7 +36,10 @@ V_i    = p_i · max(0, V_{i+1}) + (1 - p_i) · E[max(X_i, V_{i+1})],   X_i ~ N(�
 
 - **μᵢ** is that game's projection, scaled by how he has actually played against his
   projections (shrunk, capped at ±25%).
-- **σᵢ** is his game-to-game spread (prior 30% of μ).
+- **His score shape** comes from his own game log: last season plus this one, scored with
+  your league's rules, as ratios to his average. It's blended with 8 prior games so a
+  short log can't go wild, which gives boom-or-bust players higher bars than steady ones.
+  Every score is also shown as a **percentile of his recent games**.
 - **pᵢ** is the chance he sits: 4% base, +8% on a back-to-back, plus Sleeper's injury
   tag (Questionable 45%, Out 97%…) fading 30% per game further out, and 85% if the
   projection has him sitting.
@@ -52,12 +55,15 @@ Sleeper reports each slot's current score, not whether it's locked:
 
 - If a slot shows an **earlier** game's score, it's locked. The app detects that.
 - If it shows his **latest** game, it's ambiguous until his next game starts.
-  - **Your slots:** tick "I already locked this game".
-  - **Opponent's slots:** the app assumes they lock any score above his bar.
+  - **Your slots:** tick "I already locked this game", or use Locked in the lineup.
+  - **Opponent's slots:** use Guess / Locked / Open in the Opponent lineup. Sleeper's
+    app shows their locks with a lock icon. On Guess, a score above his bar is
+    assumed locked.
+- **Banked** counts only certain locks and the ones you marked.
 
 ## Development
 ```bash
-node --test tests/*.test.mjs        # 10 tests, no dependencies
+node --test tests/*.test.mjs        # 16 tests, no dependencies
 python3 -m http.server              # then open http://localhost:8000
 ```
 Every push to `main` runs the tests and deploys to GitHub Pages.

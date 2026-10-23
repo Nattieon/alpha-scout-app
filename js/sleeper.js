@@ -34,6 +34,27 @@ export const schedule = (season, fresh) => getJSON(`${API}/schedule/nba/regular/
 export const weekStats = (season, week, fresh) => getJSON(`${API}/stats/nba/${season}/${week}?season_type=regular`, { fresh });
 export const weekProjections = (season, week, fresh) => getJSON(`${API}/projections/nba/${season}/${week}?season_type=regular`, { fresh });
 
+// ------------------------------------------------------------------ per-player game logs
+const LOG_KEYS = ["min", "pts", "reb", "ast", "stl", "blk", "to", "fgm", "fga", "ftm", "fta", "tpm", "tpa", "dd", "td"];
+
+/** Every game a player played in a season: [{date, stats}] with only the stats scoring needs.
+ *  Completed seasons never change, so they're kept in this browser's storage. */
+export async function playerSeasonLog(pid, season, { final = false } = {}) {
+  const key = `as.log.${season}.${pid}`;
+  if (final) { try { const hit = localStorage.getItem(key); if (hit) return JSON.parse(hit); } catch { /* ignore */ } }
+  let byWeek;
+  try { byWeek = await getJSON(`${API}/stats/nba/player/${pid}?season_type=regular&season=${season}&grouping=week`); }
+  catch { return []; }
+  const games = [];
+  for (const rows of Object.values(byWeek || {})) for (const r of rows || []) {
+    if (!r || !r.stats || !(r.stats.min > 0)) continue;
+    games.push({ date: r.date, stats: Object.fromEntries(LOG_KEYS.filter((k) => r.stats[k] !== undefined).map((k) => [k, r.stats[k]])) });
+  }
+  games.sort((a, b) => a.date.localeCompare(b.date));
+  if (final) { try { localStorage.setItem(key, JSON.stringify(games)); } catch { /* storage full: fine */ } }
+  return games;
+}
+
 let playersDump = null;
 /** The full player list (~5 MB). Only loaded when a rostered player appears in no stats rows. */
 export function allPlayers() {

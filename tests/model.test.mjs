@@ -101,3 +101,36 @@ test("matchup bar is consistent with lockCall", () => {
   assert.equal(lockCall(bar + 0.1, games, others, theirs).verdict, "LOCK");
   assert.equal(lockCall(bar - 0.5, games, others, theirs).verdict, "PASS");
 });
+
+test("opponent lock marks override the rational-opponent guess", () => {
+  const auto = buildModel(raw, "me");
+  const hot = auto.opp.slots.find((s) => s.pid === "oppHot");
+  assert.equal(hot.kind, "assumed-locked");
+  assert.ok(hot.ambiguous && hot.markKey);
+  const cold = auto.opp.slots.find((s) => s.pid === "oppCold");
+
+  const marked = buildModel(raw, "me", {}, { [hot.markKey]: "open", [cold.markKey]: "locked" });
+  const hot2 = marked.opp.slots.find((s) => s.pid === "oppHot");
+  const cold2 = marked.opp.slots.find((s) => s.pid === "oppCold");
+  assert.equal(hot2.kind, "open");
+  assert.ok(hot2.value.variance > 0);
+  assert.equal(cold2.kind, "locked");
+  assert.equal(cold2.value.mean, cold.score);
+  assert.ok(marked.opp.banked >= cold.score);           // a marked lock is banked
+  assert.ok(marked.win !== auto.win);                   // and it moves the win probability
+});
+
+test("a player's own game log sets his percentiles and his bar", () => {
+  const steady = Array.from({ length: 70 }, (_, k) => ({ date: `2026-0${1 + (k % 3)}-${String(1 + (k % 28)).padStart(2, "0")}`, stats: line(24 + ((k % 5) - 2)) }));
+  const swingy = Array.from({ length: 70 }, (_, k) => ({ date: `2026-0${1 + (k % 3)}-${String(1 + (k % 28)).padStart(2, "0")}`, stats: line([8, 14, 24, 36, 40][k % 5]) }));
+  const base = buildModel(raw, "me");
+  const pend = base.me.slots.find((s) => s.pid === "pending");
+  const withLog = (log) => buildModel({ ...raw, logs: { pending: log } }, "me").me.slots.find((s) => s.pid === "pending");
+  const a = withLog(steady), b = withLog(swingy);
+  assert.equal(pend.pctScore, null);                   // no log -> no percentile shown
+  assert.ok(a.pctScore > 0.95);                         // 30-pt game is a ceiling game for a steady 24-pt guy
+  assert.ok(b.pctScore < a.pctScore);                   // ...but routine for a boom-or-bust guy
+  // One game left: the bar is just that game's expected score, so spread can't matter.
+  assert.ok(Math.abs(b.bar - a.bar) < 1e-6);
+  assert.ok(b.call.pBelow !== a.call.pBelow);            // ...but the odds of ending lower do
+});
