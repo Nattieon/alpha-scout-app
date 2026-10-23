@@ -197,7 +197,8 @@ function renderTonight(m) {
     const t = s.tonight;
     const live = s.kind === "live";
     const head = `<div class="card-head">
-        <div><div class="pname">${esc(s.p.name)}</div><div class="pmeta">${esc(s.label)} · ${esc(s.p.team || "")} ${live ? "·" : "vs"} ${live ? `<span class="state live">live</span>` : esc(t.opp)}${s.p.injury ? ` · <span class="warn">${esc(s.p.injury)}</span>` : ""}</div></div>
+        <div><div class="pname">${esc(s.p.name)}</div><div class="pmeta">${esc(s.label)} · ${esc(s.p.team || "")} ${live ? "·" : (s.games?.[0]?.home === false ? "@" : "vs")} ${live ? `<span class="state live">live</span>` : esc(t.opp)}${s.p.injury ? ` · <span class="warn">${esc(s.p.injury)}</span>` : ""}</div>
+        ${s.kind === "pending" ? `<div class="pmeta">If you pass on ${dow(s.lastDone.date)}'s ${f1(s.score)}</div>` : ""}</div>
         ${t.final ? '<span class="pill soft">FINAL GAME</span>' : `<span class="pill soft num">LOCK ≥ ${f1(t.bar)}</span>`}
       </div>`;
     if (t.final) {
