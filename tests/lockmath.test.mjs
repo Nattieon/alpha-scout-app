@@ -124,3 +124,50 @@ test("shape and percentile helpers", () => {
   assert.equal(percentileOf(5, []), null);
   close(normalQuantile(0.975), 1.959964, 1e-5, "z 97.5");
 });
+
+// ------------------------------------------------------------------ linked back-to-back nights
+test("linked nights reproduce the worked example from the outline", () => {
+  // 40-pt player; Fri = night 1, Sat = night 2 and his last game. Checked "sits B2Bs" (q=95%), night split 73%.
+  const q = 0.95, s = 0.73, base = 0.03;
+  const games = [
+    { mu: 40, sigma: 12, p: base + q * (1 - s) },
+    { mu: 40, sigma: 12, p: base + q * s, pIfPrevPlayed: base + (q * s) / (1 - q * (1 - s)), pIfPrevSat: base },
+  ];
+  close(lb(games)[0], 1.5, 0.05, "lock Fri if >=");
+  close(sv(games), 39.7, 0.05, "slot value now");
+});
+
+test("linked-night recursion agrees with brute force", () => {
+  const shape = buildShape([0.4, 0.7, 0.9, 1, 1.05, 1.2, 1.5, 1.9]);
+  // Thu (normal), Fri = night 1, Sat = night 2, Sun normal; Sun's risk also depends on Sat (3-in-4 style chain).
+  const games = [
+    { mu: 38, shape, p: 0.05 },
+    { mu: 42, shape, p: 0.09, pIfPrevPlayed: 0.12, pIfPrevSat: 0.04 },
+    { mu: 40, shape, p: 0.2, pIfPrevPlayed: 0.45, pIfPrevSat: 0.03 },
+    { mu: 35, shape, p: 0.06, pIfPrevPlayed: 0.08, pIfPrevSat: 0.04 },
+  ];
+  const bars = lb(games), m = sm(games);
+  close(m.mean, sv(games), 1e-9, "mean == value");
+  let seed = 3; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  let s1 = 0, s2 = 0, below = 0; const N = 300000;
+  for (let n = 0; n < N; n++) {
+    let prev = null;
+    for (let i = 0; i < games.length; i++) {
+      const g = games[i];
+      const p = prev === null || g.pIfPrevPlayed === undefined ? g.p : prev === "played" ? g.pIfPrevPlayed : g.pIfPrevSat;
+      const sat = rnd() < p;
+      const x = sat ? 0 : g.mu * shape[Math.floor(rnd() * shape.length)];
+      if (i === games.length - 1 || (!sat && x >= bars[i])) { s1 += x; s2 += x * x; below += x < 40 ? 1 : 0; break; }
+      prev = sat ? "sat" : "played";
+    }
+  }
+  close(m.mean, s1 / N, 0.15, "sim mean");
+  close(m.variance, s2 / N - (s1 / N) ** 2, 8, "sim variance");
+  close(pfb(40, games), below / N, 0.006, "sim pBelow");
+});
+
+test("once he has played night 1, a likely rest on night 2 lowers the bar for night 1", () => {
+  const unlinked = [{ mu: 40, sigma: 12, p: 0.04 }, { mu: 40, sigma: 12, p: 0.12 }];
+  const linked = [{ mu: 40, sigma: 12, p: 0.06 }, { mu: 40, sigma: 12, p: 0.55, pIfPrevPlayed: 0.57, pIfPrevSat: 0.03 }];
+  assert.ok(lb(linked)[0] < lb(unlinked)[0] - 15);
+});

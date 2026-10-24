@@ -196,3 +196,28 @@ test("an undecided slot the app says to LOCK counts its score, unless marked Not
   assert.equal(open.kind, "pending");                      // still your decision...
   assert.equal(open.shownProj, open.nextProj);              // ...but Proj now uses his next game
 });
+
+test("sit-risk profile from his log, and the 'sits back-to-backs' checkbox", () => {
+  // "fresh" (team FFF) plays Thu, Fri(today), Sat: Fri-Sat is a back-to-back that ends his week.
+  const base = buildModel(raw, "me");
+  const fresh = () => (m) => m.me.slots.find((x) => x.pid === "fresh");
+  const f0 = fresh()(base);
+  const sat0 = f0.games.find((g) => g.date === "2026-10-24");
+  assert.equal(sat0.b2b, 2);                                       // night 2 of Fri-Sat
+  assert.ok(sat0.pIfPrevPlayed > sat0.pIfPrevSat);
+
+  const flagged = buildModel(raw, "me", { b2bFlags: { fresh: true } });
+  const f1 = fresh()(flagged);
+  const sat1 = f1.games.find((g) => g.date === "2026-10-24");
+  assert.ok(sat1.pIfPrevPlayed > 0.9);
+  assert.ok(f1.tonight.evBar < f0.tonight.evBar - 10, `${f1.tonight.evBar} vs ${f0.tonight.evBar}`);   // lock tonight much more readily
+
+  // A log full of second-night rests raises his back-to-back risk without any checkbox.
+  const dates = []; let d = "2025-10-21";
+  for (let k = 0; k < 80; k++) { dates.push(d); d = new Date(Date.parse(d + "T12:00:00Z") + (k % 6 === 4 ? 1 : 2) * 86400000).toISOString().slice(0, 10); }
+  const log = dates.map((date, i) => ({ date, team: "FFF", stats: i > 0 && dates[i - 1] === new Date(Date.parse(date + "T12:00:00Z") - 86400000).toISOString().slice(0, 10) ? null : line(24) }));
+  const fromLog = buildModel({ ...raw, logs: { fresh: log } }, "me");
+  const f2 = fresh()(fromLog);
+  assert.ok(f2.p.avail.q > 0.5, `q ${f2.p.avail.q}`);
+  assert.ok(f2.games.find((g) => g.date === "2026-10-24").pIfPrevPlayed > sat0.pIfPrevPlayed + 0.3);
+});

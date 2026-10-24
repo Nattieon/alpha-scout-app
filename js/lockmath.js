@@ -62,54 +62,83 @@ function gameUpper(g, t) {
 
 const gameMean2 = (g) => (g.shape ? vals(g).reduce((s, x) => s + x * x, 0) / g.shape.length : g.mu ** 2 + g.sigma ** 2);
 
-/** Expected final score of an open slot facing these games (in order). */
-export function slotValue(games) {
-  let v = null;
-  for (let i = games.length - 1; i >= 0; i--) {
-    const g = games[i], p = clamp01(g.p);
-    v = v === null ? (1 - p) * g.mu : p * Math.max(v, 0) + (1 - p) * gameEmax(g, v);
-  }
-  return v === null ? 0 : v;
+// ---------------------------------------------------------------- linked games (back-to-backs)
+// A game's sit chance can depend on whether he played the game before it: after he plays
+// night 1 of a back-to-back the rest is still to come; after he sits it, the rest is used up.
+// Such a game carries {pIfPrevPlayed, pIfPrevSat}; the first game's `p` already reflects what
+// is known. Games without those fields use `p` either way, which is the classic model.
+const PLAYED = 0, SAT = 1;
+function pOf(g, prev) {
+  if (prev === null || g.pIfPrevPlayed === undefined) return clamp01(g.p);
+  return clamp01(prev === PLAYED ? g.pIfPrevPlayed : g.pIfPrevSat);
 }
 
-/** bars[i] = score that makes game i worth locking (the last game has none). */
+/** V[i][state]: value of an open slot facing games i.. given how game i-1 went. */
+function valueTable(games) {
+  const n = games.length;
+  const V = Array.from({ length: n + 1 }, () => [0, 0]);
+  for (let i = n - 1; i >= 0; i--) {
+    for (const st of [PLAYED, SAT]) {
+      const g = games[i], p = pOf(g, i === 0 ? null : st);
+      V[i][st] = i === n - 1
+        ? (1 - p) * g.mu
+        : p * Math.max(V[i + 1][SAT], 0) + (1 - p) * gameEmax(g, V[i + 1][PLAYED]);
+    }
+  }
+  return V;
+}
+
+/** Expected final score of an open slot facing these games (in order). */
+export function slotValue(games) {
+  return games.length ? valueTable(games)[0][PLAYED] : 0;
+}
+
+/** bars[i] = score that makes game i worth locking, once he has played it (the last game has none). */
 export function lockBars(games) {
-  return games.slice(0, -1).map((_, i) => slotValue(games.slice(i + 1)));
+  if (games.length < 2) return [];
+  const V = valueTable(games);
+  return games.slice(0, -1).map((_, i) => V[i + 1][PLAYED]);
 }
 
 /** Mean and variance of the slot's final score when played optimally from here. */
 export function slotMoments(games) {
-  if (!games.length) return { mean: 0, variance: 0 };
-  const last = games[games.length - 1];
-  let p = clamp01(last.p);
-  let m1 = (1 - p) * last.mu;
-  let m2 = (1 - p) * gameMean2(last);
-  for (let i = games.length - 2; i >= 0; i--) {
-    const g = games[i];
-    p = clamp01(g.p);
-    const u = gameUpper(g, m1);                     // lock iff X >= value of continuing
-    const n1 = p * m1 + (1 - p) * (u.m1 + u.below * m1);
-    const n2 = p * m2 + (1 - p) * (u.m2 + u.below * m2);
-    m1 = n1; m2 = n2;
+  const n = games.length;
+  if (!n) return { mean: 0, variance: 0 };
+  const V = valueTable(games);
+  let next = null;                                   // [m1, m2] per state for games i+1..
+  for (let i = n - 1; i >= 0; i--) {
+    const cur = [[0, 0], [0, 0]];
+    for (const st of [PLAYED, SAT]) {
+      const g = games[i], p = pOf(g, i === 0 ? null : st);
+      if (i === n - 1) { cur[st] = [(1 - p) * g.mu, (1 - p) * gameMean2(g)]; continue; }
+      const u = gameUpper(g, V[i + 1][PLAYED]);      // lock iff X >= value of continuing
+      const [a1, a2] = next[PLAYED], [b1, b2] = next[SAT];
+      cur[st] = [p * b1 + (1 - p) * (u.m1 + u.below * a1), p * b2 + (1 - p) * (u.m2 + u.below * a2)];
+    }
+    next = cur;
   }
+  const [m1, m2] = next[PLAYED];
   return { mean: m1, variance: Math.max(m2 - m1 * m1, 0) };
 }
 
 /** P(final slot score < x) if you pass now and play the remaining games optimally. */
 export function pFinishBelow(x, games) {
-  if (!games.length) return 0;
-  const bars = lockBars(games);
-  const last = games[games.length - 1];
-  let p = clamp01(last.p);
-  let f = p * (x > 0 ? 1 : 0) + (1 - p) * gameCdf(last, x);
-  for (let i = games.length - 2; i >= 0; i--) {
-    const g = games[i];
-    p = clamp01(g.p);
-    const t = bars[i];
-    const tookBelow = Math.max(gameCdf(g, x) - gameCdf(g, t), 0);
-    f = p * f + (1 - p) * (tookBelow + gameCdf(g, t) * f);
+  const n = games.length;
+  if (!n) return 0;
+  const V = valueTable(games);
+  let next = null;                                   // F per state for games i+1..
+  for (let i = n - 1; i >= 0; i--) {
+    const cur = [0, 0];
+    for (const st of [PLAYED, SAT]) {
+      const g = games[i], p = pOf(g, i === 0 ? null : st);
+      if (i === n - 1) { cur[st] = p * (x > 0 ? 1 : 0) + (1 - p) * gameCdf(g, x); continue; }
+      const t = V[i + 1][PLAYED];
+      const tookBelow = Math.max(gameCdf(g, x) - gameCdf(g, t), 0);
+      cur[st] = p * next[SAT] + (1 - p) * (tookBelow + gameCdf(g, t) * next[PLAYED]);
+    }
+    next = cur;
   }
-  return Math.min(Math.max(f, 0), 1);
+  return Math.min(Math.max(next[PLAYED], 0), 1);
 }
 
 // ---------------------------------------------------------------- player shape & percentiles

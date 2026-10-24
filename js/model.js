@@ -1,7 +1,8 @@
 // Turns raw Sleeper data into slot states, per-game projections and lock calls.
-import { buildShape, gameRisks, lockCall, percentileOf, slotMoments, slotValue, winProbability } from "./lockmath.js?v=__V__";
+import { buildShape, lockCall, percentileOf, slotMoments, slotValue, winProbability } from "./lockmath.js?v=__V__";
+import { availabilityProfile, gameSitRisks, shiftDay } from "./availability.js?v=__V__";
 
-export const DEFAULTS = { baseDnp: 0.04, b2bDnp: 0.08, injuryDecay: 0.7, mode: "win", cvPrior: 0.30, projBasis: "next" };
+export const DEFAULTS = { baseDnp: 0.04, pairRest: 0.19, injuryDecay: 0.7, mode: "win", cvPrior: 0.30, projBasis: "next", b2bFlags: {} };
 
 // ------------------------------------------------------------------ scoring
 const BONUS = {
@@ -46,6 +47,7 @@ export const md = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-U
  */
 export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   const c = { ...DEFAULTS, ...cfg };
+  const availCfg = { normalPrior: c.baseDnp, pairPrior: c.pairRest, injuryDecay: c.injuryDecay };
   marks = normalizeMarks(marks);
   const scoring = raw.league.scoring_settings || {};
   const today = raw.today || todayET();
@@ -108,6 +110,15 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     const shape = buildShape(shapeRatios, { cvPrior: c.cvPrior });
     const cv = Math.sqrt(shape.reduce((t, r) => t + (r - 1) ** 2, 0) / shape.length);
     const histFps = history.map((g) => g.fp);
+
+    // Availability: every completed team game in his log, played or not.
+    const seasonStart = raw.schedule.reduce((m, g) => (g.date < m ? g.date : m), "9999-12-31");
+    const completed = new Set(raw.schedule.filter((g) => g.status === "complete").flatMap((g) => [`${g.home?.team}@${g.date}`, `${g.away?.team}@${g.date}`]));
+    const availRows = (raw.logs?.[pid] || [])
+      .filter((g) => g.date < seasonStart || completed.has(`${g.team}@${g.date}`))
+      .map((g) => ({ date: g.date, team: g.team, played: !!(g.stats && (g.stats.min || 0) > 0) }));
+    const avail = availRows.length ? availabilityProfile(availRows, seasonStart, availCfg) : null;
+    const playedOn = new Map(availRows.map((g) => [g.date, g.played]));
     const pct = (x) => (histFps.length >= 5 ? percentileOf(x, histFps) : null);
     const actualAvg = (() => {
       const v = Object.values(actual[pid] || {}).filter((r) => (r.stats?.min || 0) > 0).map((r) => fantasyPoints(r.stats, scoring));
@@ -125,24 +136,30 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     });
 
     const p = { pid, name, team, injury, pos: (meta.fantasy_positions || [meta.position]).filter(Boolean).join("/"),
-      ratio, cv, shape, pct, nHistory: histFps.length, actualAvg, pBar, games, teamDates, n };
+      ratio, cv, shape, pct, nHistory: histFps.length, actualAvg, pBar, games, teamDates, n,
+      avail, playedOn, flagged: !!c.b2bFlags?.[pid] };
     playerCache[pid] = p;
     return p;
   }
 
-  /** Remaining games as {mu, sigma, p, date, opp, why[]} for the stopping model. */
+  /** Remaining games as {mu, shape, p (+ linked-night fields), date, opp, why[]} for the stopping model. */
   function futureGames(p, afterDate, offset = 0) {
     const fut = p.games.filter((g) => g.date > afterDate && g.status === "pre_game");
-    const risks = gameRisks(fut.map((g) => g.date), p.teamDates, p.injury, c, offset);
+    if (!fut.length) return [];
+    // Did he play the day before the first remaining game? (matters if that was night 1 of a back-to-back)
+    const dayBefore = shiftDay(fut[0].date, -1);
+    const wk = p.games.find((g) => g.date === dayBefore);
+    let prevPlayed;
+    if (wk) prevPlayed = wk.status === "complete" ? wk.played : wk.live ? true : undefined;
+    else if (p.playedOn.has(dayBefore)) prevPlayed = p.playedOn.get(dayBefore);
+    const risks = gameSitRisks(p.avail, fut.map((g) => g.date), p.teamDates, {
+      prevPlayed, flagged: p.flagged, injury: p.injury, offset, cfg: availCfg,
+      extra: fut.map((g) => (g.projectedOut ? 0.85 : 0)),
+    });
     return fut.map((g, i) => {
       const base = g.projFp ?? (p.pBar || p.actualAvg);
       const mu = Math.max(base * p.ratio, 0);
-      let prob = risks[i].p;
-      const why = [];
-      if (risks[i].b2b) why.push("back-to-back");
-      if (risks[i].injury) why.push(`listed ${risks[i].injury}`);
-      if (g.projectedOut) { prob = Math.max(prob, 0.85); why.push("projected to sit"); }
-      return { mu, sigma: Math.max(p.cv * mu, 4), shape: p.shape, p: prob, date: g.date, opp: g.opp, home: g.home, why };
+      return { mu, sigma: Math.max(p.cv * mu, 4), shape: p.shape, ...risks[i], date: g.date, opp: g.opp, home: g.home };
     });
   }
 

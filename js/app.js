@@ -134,7 +134,18 @@ async function loadLogs(pids, season, fresh) {
   return out;
 }
 
-function cfg() { return { ...DEFAULTS, ...store.get("cfg", {}) }; }
+function cfg() {
+  const c = { ...DEFAULTS, ...store.get("cfg", {}) };
+  c.b2bFlags = ctx ? store.get(`b2bflags.${ctx.leagueId}`, {}) : {};
+  return c;
+}
+function toggleB2b(pid) {
+  const key = `b2bflags.${ctx.leagueId}`;
+  const flags = store.get(key, {});
+  if (flags[pid]) delete flags[pid]; else flags[pid] = true;
+  store.set(key, flags);
+  rebuild();
+}
 function marksKey() { return `marks3.${ctx.leagueId}.${ctx.raw.week}`; }
 function getMarks() {
   const marks = store.get(marksKey(), null);
@@ -165,7 +176,7 @@ function render() {
   }
   renderBoard(m); renderDecide(m); renderTonight(m); renderLineup(m);
   const c = cfg();
-  $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.b2bDnp * 100);
+  $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.pairRest * 100);
 }
 
 function renderBoard(m) {
@@ -195,7 +206,13 @@ function whyLines(games) {
   if (!games?.length) return out;
   const next = games[0];
   out.push(`Next: ${dow(next.date)} ${next.home ? "vs" : "@"} ${esc(next.opp)} · proj ${f1(next.mu)}`);
-  games.forEach((g) => { if (g.why.length) out.push(`<span class="warn">${dow(g.date)}: ${esc(g.why.join(", "))} (${pct(g.p)} sit risk)</span>`); });
+  games.forEach((g, i) => {
+    if (!g.why.length && g.p < 0.1) return;
+    const prev = games[i - 1];
+    const linked = g.pIfPrevPlayed !== undefined && prev
+      ? ` (${pct(g.pIfPrevPlayed)} if he plays ${dow(prev.date)}, ${pct(g.pIfPrevSat)} if he sits it)` : "";
+    out.push(`<span class="${g.p >= 0.2 || (g.pIfPrevPlayed || 0) >= 0.3 ? "warn" : ""}">${dow(g.date)}: ${pct(g.p)} sit risk${linked}${g.why.length ? ` · ${esc(g.why.join(", "))}` : ""}</span>`);
+  });
   return out;
 }
 
@@ -270,6 +287,19 @@ function renderTonight(m) {
 
 const STATE_LABEL = { locked: "Locked", final: "Final", pending: "Your call", live: "Live", open: "Open", none: "No games", empty: "Empty", "assumed-locked": "Guess: locked", "assumed-open": "Guess: open" };
 
+function availLine(p) {
+  const a = p.avail;
+  const bits = [];
+  if (a) {
+    bits.push(`rests ${pct(a.q)} of B2Bs${a.history.n1 + a.history.n2 >= 2 ? ` (night ${a.s >= 0.5 ? "2" : "1"} ${pct(a.s >= 0.5 ? a.s : 1 - a.s)})` : ""}`);
+    bits.push(`sits ${pct(a.normal)} of other games`);
+    if (a.durability >= 0.2) bits.push(`missed ${pct(a.durability)} of last ${Math.min(82, a.history.rows)}`);
+    if (a.ramp > 0.05) bits.push(`back ${a.gamesBack} g from a ${a.absence}-game absence`);
+  }
+  return `<div class="avail"><span class="pmeta">${bits.length ? esc(bits.join(" · ")) : "no availability history"}</span>
+    <button type="button" class="flag" data-b2b="${esc(p.pid)}" aria-pressed="${p.flagged}">${p.flagged ? "✓ Sits B2Bs" : "Sits B2Bs?"}</button></div>`;
+}
+
 function lockPicker(s) {
   if (!s.lockable?.length) return "";
   const autoText = s.kind === "locked" && s.auto ? `locked ${dow(s.lockedGame.date)}`
@@ -313,6 +343,7 @@ function renderLineup(m) {
       <div style="min-width:0">
         <div class="pname" style="font-size:16.5px">${esc(s.p.name)} <span class="pmeta">${esc(s.p.team || "FA")}${s.p.injury ? ` · <span class="warn">${esc(s.p.injury)}</span>` : ""}</span></div>
         <div class="games">${gameChips(s)}</div>
+        ${availLine(s.p)}
         ${lockPicker(s)}
       </div>
       <div class="val"><span class="state ${kind}">${STATE_LABEL[s.kind]}${s.manual ? " (you)" : ""}</span><b class="num">${f1(s.shownProj)}</b><small class="num">${sub}</small></div>
@@ -327,6 +358,7 @@ function renderLineup(m) {
       <div class="val"><span class="state open">Bench</span><b class="num">${b.nextProj != null ? f1(b.nextProj) : "–"}</b><small>next game</small></div>
     </div>`);
   $("lineup").innerHTML = rows.join("") + (bench.length ? `<div class="row benchhead"><div></div><div class="pmeta">Bench: not counted, shown for swaps</div><div></div></div>${bench.join("")}` : "");
+  $("lineup").querySelectorAll("button[data-b2b]").forEach((b) => b.addEventListener("click", () => toggleB2b(b.dataset.b2b)));
   $("lineup").querySelectorAll("select[data-pick]").forEach((sel) => sel.addEventListener("change", () => setMark(sel.dataset.pick, sel.value === "auto" ? null : sel.value)));
 }
 
@@ -334,11 +366,12 @@ $("tab-me").addEventListener("click", () => { view = "me"; renderLineup(model); 
 $("tab-opp").addEventListener("click", () => { view = "opp"; renderLineup(model); });
 $("refresh").addEventListener("click", async () => { $("refresh").textContent = "Refreshing…"; try { await load(true); } finally { $("refresh").textContent = "Refresh"; } });
 const saveCfg = () => {
-  const c = cfg();
+  const c = { ...DEFAULTS, ...store.get("cfg", {}) };
   c.mode = $("cfg-mode").value;
   c.projBasis = $("cfg-proj").value;
   c.baseDnp = Math.min(Math.max((parseFloat($("cfg-base").value) || 0) / 100, 0), 0.3);
-  c.b2bDnp = Math.min(Math.max((parseFloat($("cfg-b2b").value) || 0) / 100, 0), 0.5);
+  c.pairRest = Math.min(Math.max((parseFloat($("cfg-b2b").value) || 0) / 100, 0), 0.9);
+  delete c.b2bDnp; delete c.b2bFlags;
   store.set("cfg", c); rebuild();
 };
 ["cfg-mode", "cfg-proj", "cfg-base", "cfg-b2b"].forEach((id) => $(id).addEventListener("change", saveCfg));

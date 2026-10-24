@@ -110,6 +110,9 @@ form.find input { flex: 1 1 220px; min-width: 0; background: var(--surface); bor
 .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .pct { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .markrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.avail { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 5px; }
+.flag { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+.flag[aria-pressed="true"] { border-color: var(--risk); color: var(--risk); background: color-mix(in srgb, var(--risk) 10%, var(--surface)); }
 .picker { display: inline-block; margin-top: 6px; max-width: 100%; }
 .picker select { max-width: 100%; background: var(--raised); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font-size: 13px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -198,14 +201,18 @@ label.f input, label.f select { background: var(--raised); border: 1px solid var
             <option value="smart">Expected final (includes future locks and sit risk)</option>
           </select>
         </label>
-        <label class="f">Chance any game is missed (%)
+        <label class="f">League default: sits an ordinary game (%)
           <input id="cfg-base" type="number" min="0" max="30" step="1">
         </label>
-        <label class="f">Extra on 2nd night of a back-to-back (%)
-          <input id="cfg-b2b" type="number" min="0" max="50" step="1">
+        <label class="f">League default: rests one night of a back-to-back (%)
+          <input id="cfg-b2b" type="number" min="0" max="90" step="1">
         </label>
       </div>
       <p class="muted" style="font-size:13.5px;max-width:70ch">
+        <b>Sit risk</b> is per player, from his own log (last season + this one): how often he sits ordinary games, how often he rests one night of a
+        back-to-back and which night, how much he has missed overall, and whether he's just back from a long absence. The two nights of a back-to-back are linked:
+        once he plays night 1, a rest becomes more likely on night 2; if he sits night 1, night 2 is safe. Tap <b>Sits B2Bs?</b> on any player to mark him as
+        resting back-to-backs (95%); it stays on until you turn it off. League defaults below fill in for players with little history.
         <b>Bar</b> = what the slot is worth if you pass: his remaining games this week, each with its own projection
         (Rotowire via Sleeper, calibrated to how he's actually played), played optimally, including the chance he sits.
         An open slot takes his <i>last</i> game even if he doesn't play, so DNP risk on the final game lowers the bar most.

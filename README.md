@@ -40,9 +40,23 @@ V_i    = p_i · max(0, V_{i+1}) + (1 - p_i) · E[max(X_i, V_{i+1})],   X_i ~ N(�
   your league's rules, as ratios to his average. It's blended with 8 prior games so a
   short log can't go wild, which gives boom-or-bust players higher bars than steady ones.
   Every score is also shown as a **percentile of his recent games**.
-- **pᵢ** is the chance he sits: 4% base, +8% on a back-to-back, plus Sleeper's injury
-  tag (Questionable 45%, Out 97%…) fading 30% per game further out, and 85% if the
-  projection has him sitting.
+- **pᵢ** is the chance he sits, built per player from his own log (`js/availability.js`).
+  The reasons combine as `1 − Π(1 − hᵢ)`:
+  - **Ordinary-game rate:** `(sat + 20 × 4%) / (games + 20)`. Injury stretches (5+ straight
+    missed games) and the 15 games after them are left out. This season counts double.
+  - **Back-to-back pairs:** `q = (rested one night + 8 × 19%) / (pairs + 8)`, and which night
+    `s = (night-2 rests + 6 × 73%) / (rests + 6)`. Night 1 gets `q·(1−s)`. Night 2 is linked
+    to night 1: `q·s / (1 − q·(1−s))` once he has played night 1, and ~0 extra if he sat it.
+    The league figures (19% / 73%) come from last season.
+  - **Durability:** `0.04 × share of his team's games missed in the last 82`.
+  - **Return ramp:** after a 10+ game absence, `+60% × (1 − games back / 15)` on back-to-back
+    rest (25 games after a 40+ game absence). Each back-to-back he plays both nights of
+    halves what's left. Also `+3% × ramp` on other games.
+  - **Sleeper injury tag** (Questionable 45%, Out 97%…) fading 30% per game, and 85% if the
+    projection has him sitting.
+  - **"Sits B2Bs?" checkbox:** sets his back-to-back rest chance to 95% until you uncheck it.
+  The lock recursion branches on night 1 (played vs sat), so the bar for night 1 uses the
+  raised night-2 risk.
 
 **Win-probability mode** (the default) also uses your opponent's slots. Locked
 scores count exactly; the rest are modeled the same way. The call picks whichever
@@ -69,7 +83,7 @@ Sleeper reports each slot's current score, not whether it's locked:
 
 ## Development
 ```bash
-node --test tests/*.test.mjs        # 20 tests, no dependencies
+node --test tests/*.test.mjs        # 32 tests, no dependencies
 python3 -m http.server              # then open http://localhost:8000
 ```
 Every push to `main` runs the tests and deploys to GitHub Pages.

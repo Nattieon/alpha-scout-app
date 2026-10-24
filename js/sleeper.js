@@ -37,26 +37,30 @@ export const weekProjections = (season, week, fresh) => getJSON(`${API}/projecti
 // ------------------------------------------------------------------ per-player game logs
 const LOG_KEYS = ["min", "pts", "reb", "ast", "stl", "blk", "to", "fgm", "fga", "ftm", "fta", "tpm", "tpa", "dd", "td"];
 
-/** Every game a player played in a season: [{date, stats}] with only the stats scoring needs.
- *  Completed seasons never change, so they're kept in this browser's storage. */
+/** Every team game in a season while he was on a roster: [{date, team, stats|null}].
+ *  stats is null when he didn't play. Completed seasons never change, so they're kept
+ *  in this browser's storage. */
 export async function playerSeasonLog(pid, season, { final = false } = {}) {
-  const key = `as.log2.${season}.${pid}`;
+  const key = `as.log3.${season}.${pid}`;
   if (final) { try { const hit = localStorage.getItem(key); if (hit) return JSON.parse(hit); } catch { /* ignore */ } }
   let byWeek;
   try { byWeek = await getJSON(`${API}/stats/nba/player/${pid}?season_type=regular&season=${season}&grouping=week`); }
   catch { return []; }
   const games = [];
   for (const rows of Object.values(byWeek || {})) for (const r of rows || []) {
-    if (!r || !r.stats) continue;
+    if (!r || !r.date) continue;
+    const st = r.stats || {};
     // Older seasons record playing time as seconds ("sp") instead of minutes.
-    const min = r.stats.min ?? (r.stats.sp ? r.stats.sp / 60 : 0);
-    if (!(min > 0)) continue;
-    const stats = Object.fromEntries(LOG_KEYS.filter((k) => r.stats[k] !== undefined).map((k) => [k, r.stats[k]]));
-    stats.min = Math.round(min * 10) / 10;
-    games.push({ date: r.date, stats });
+    const min = st.min ?? (st.sp ? st.sp / 60 : 0);
+    let stats = null;
+    if (min > 0) {
+      stats = Object.fromEntries(LOG_KEYS.filter((k) => st[k] !== undefined).map((k) => [k, st[k]]));
+      stats.min = Math.round(min * 10) / 10;
+    }
+    games.push({ date: r.date, team: r.team || null, stats });
   }
   games.sort((a, b) => a.date.localeCompare(b.date));
-  if (final && games.length) { try { localStorage.setItem(key, JSON.stringify(games)); } catch { /* storage full: fine */ } }
+  if (final && games.some((g) => g.stats)) { try { localStorage.setItem(key, JSON.stringify(games)); } catch { /* storage full: fine */ } }
   return games;
 }
 
