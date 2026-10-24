@@ -103,7 +103,12 @@ async function load(fresh) {
   const myMatch = matchups.find((x) => x.roster_id === myRosterId(rosters));
   const reserve = new Set(myRoster?.reserve || []);
   const myBench = (myMatch?.players || []).filter((p) => p && !(myMatch.starters || []).includes(p) && !reserve.has(p));
-  raw.logs = await loadLogs([...new Set([...starters, ...myBench])], season, fresh);
+  const myMid = myMatch?.matchup_id;
+  const oppMatch = matchups.find((x) => x.matchup_id === myMid && x.roster_id !== myMatch?.roster_id);
+  const oppRoster = oppMatch && rosters.find((x) => x.roster_id === oppMatch.roster_id);
+  const oppReserve = new Set(oppRoster?.reserve || []);
+  const oppBench = (oppMatch?.players || []).filter((p) => p && !(oppMatch.starters || []).includes(p) && !oppReserve.has(p));
+  raw.logs = await loadLogs([...new Set([...starters, ...myBench, ...oppBench])], season, fresh);
   ctx.raw = raw;
   rebuild();
   $("updated").textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · data from Sleeper`;
@@ -180,7 +185,7 @@ function render() {
   }
   renderBoard(m); renderDecide(m); renderSwaps(m); renderTonight(m); renderLineup(m);
   const c = cfg();
-  $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.pairRest * 100);
+  $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-opp").value = c.oppSwaps ? "on" : "off"; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.pairRest * 100);
 }
 
 function renderBoard(m) {
@@ -193,7 +198,7 @@ function renderBoard(m) {
   }
   const w = m.win;
   $("board").innerHTML = `
-    <div class="board-top"><span>${esc(ctx.raw.league.name)} · Week ${m.week} · ${range}</span><span>${m.mode === "win" ? "Calls play to win this matchup" : "Calls maximize points"} · Proj = ${m.projBasis === "smart" ? "expected final" : "next-game projections"}</span></div>
+    <div class="board-top"><span>${esc(ctx.raw.league.name)} · Week ${m.week} · ${range}</span><span>${m.mode === "win" ? "Calls play to win this matchup" : "Calls maximize points"} · Proj = ${m.projBasis === "smart" ? "expected final" : "next-game projections"}${m.oppSwapsModeled ? " · opponent swaps modeled" : ""}</span></div>
     <div class="teams">
       <div class="team"><div class="who">${esc(m.me.name)}</div><div class="pts num">${f1(m.me.points)}</div><div class="proj num">Banked ${f1(m.me.banked)} · Proj ${f1(m.me.proj)}</div></div>
       <div class="vs">VS</div>
@@ -246,7 +251,10 @@ function renderDecide(m) {
       ${winRow}${flip}${viaSwap}
       <div class="why">${whyLines(s.games).map((x) => `<div>${x}</div>`).join("")}
         <div>Passing: ${pct(c.pBelow)} chance he ends the week lower than ${f1(s.score)}.</div></div>
-      <label class="toggle"><input type="checkbox" data-mark="${esc(s.pid)}" data-date="${esc(g.date)}"> I already locked this game</label>
+      <div class="marks">
+        <label class="toggle"><input type="checkbox" data-mark="${esc(s.pid)}" data-date="${esc(g.date)}"> I already locked this game</label>
+        <label class="toggle"><input type="checkbox" data-mark="${esc(s.pid)}" data-date="after:${esc(g.date)}"> He wasn't in my starting lineup for it</label>
+      </div>
     </article>`;
   }).join("")}</div>`;
   el.querySelectorAll("[data-mark]").forEach((cb) => cb.addEventListener("change", () => setMark(cb.dataset.mark, cb.checked ? cb.dataset.date : null)));
@@ -332,15 +340,17 @@ function availLine(p) {
 }
 
 function lockPicker(s) {
-  if (!s.lockable?.length) return "";
+  const played = (s.completed || []).filter((g) => g.played);
+  if (!s.completed?.length) return "";
   const autoText = s.kind === "locked" && s.auto ? `locked ${dow(s.lockedGame.date)}`
     : s.kind === "assumed-locked" ? "guess: locked" : s.kind === "assumed-open" ? "guess: open"
     : s.kind === "final" ? "last game counts" : s.kind === "pending" ? "your call" : "not locked";
   const cur = s.mark || "auto";
   const opt = (v, label) => `<option value="${esc(v)}"${cur === v ? " selected" : ""}>${esc(label)}</option>`;
-  const games = s.lockable.map((g) => opt(g.date, `Locked ${dow(g.date)} · ${f1(g.fp)}${s.p.pct(g.fp) != null ? ` (${ord(s.p.pct(g.fp))} pct)` : ""}`));
+  const games = played.map((g) => opt(g.date, `Locked ${dow(g.date)} · ${f1(g.fp)}${s.p.pct(g.fp) != null ? ` (${ord(s.p.pct(g.fp))} pct)` : ""}`));
+  const benched = s.completed.map((g, k) => opt(`after:${g.date}`, `Not locked · on bench ${k ? `${dow(s.completed[0].date)}–` : ""}${dow(g.date)}`));
   return `<label class="picker"><span class="sr">Lock for ${esc(s.p.name)}</span>
-    <select data-pick="${esc(s.pid)}">${opt("auto", `Auto: ${autoText}`)}${opt("open", "Not locked")}${games.join("")}</select></label>`;
+    <select data-pick="${esc(s.pid)}">${opt("auto", `Auto: ${autoText}`)}${opt("open", "Not locked")}${games.join("")}${benched.join("")}</select></label>`;
 }
 
 function gameChips(s) {
@@ -348,6 +358,7 @@ function gameChips(s) {
   const countsDate = s.lockedGame?.date || (s.kind === "final" ? s.lastDone?.date : null);
   return s.p.games.map((g) => {
     if (g.status === "complete") {
+      if (s.benchedThrough && g.date <= s.benchedThrough) return `<span class="g out num" title="Played from your bench: doesn't count">${dow(g.date)} ${g.played ? f1(g.fp) : "DNP"} · bench</span>`;
       const cls = g.date === countsDate ? "g counts" : g.played ? "g" : "g out";
       return `<span class="${cls} num">${dow(g.date)} ${g.played ? f1(g.fp) : "DNP"}</span>`;
     }
@@ -400,11 +411,12 @@ const saveCfg = () => {
   const c = { ...DEFAULTS, ...store.get("cfg", {}) };
   c.mode = $("cfg-mode").value;
   c.projBasis = $("cfg-proj").value;
+  c.oppSwaps = $("cfg-opp").value === "on";
   c.baseDnp = Math.min(Math.max((parseFloat($("cfg-base").value) || 0) / 100, 0), 0.3);
   c.pairRest = Math.min(Math.max((parseFloat($("cfg-b2b").value) || 0) / 100, 0), 0.9);
   delete c.b2bDnp; delete c.b2bFlags;
   store.set("cfg", c); rebuild();
 };
-["cfg-mode", "cfg-proj", "cfg-base", "cfg-b2b"].forEach((id) => $(id).addEventListener("change", saveCfg));
+["cfg-mode", "cfg-proj", "cfg-opp", "cfg-base", "cfg-b2b"].forEach((id) => $(id).addEventListener("change", saveCfg));
 
 boot();

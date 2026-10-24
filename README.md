@@ -65,7 +65,9 @@ best player for each open slot for the rest of the week: positions respected (G 
 F = SF/PF, UTIL = anyone), each player used once, solved exactly with the Hungarian
 algorithm. A slot's lock bar is therefore what keeping it open is worth with your whole
 bench available. **Swaps before tip-off** lists the moves the calls assume you'll make.
-Your opponent's swaps aren't modeled.
+Your opponent's swaps are a setting (**Opponent's bench swaps**), off by default. When it's
+on, his open slots get the same treatment, which lowers your win probability against a
+deep bench.
 
 **Win-probability mode** (the default) also uses your opponent's slots. Locked
 scores count exactly; the rest are modeled the same way. The call picks whichever
@@ -82,6 +84,10 @@ Sleeper reports each slot's current score, not whether it's locked:
   **any** of his completed games this week as the locked one, **Not locked**, or
   **Auto**. Use it when you come back late, or copy your opponent's lock icons from
   Sleeper. On Auto, an opponent's score above his bar is assumed locked.
+- Sleeper doesn't keep past lineups either, so a game a player played **from your bench**
+  looks lockable. Pick **Not locked · on bench …** (or tick "He wasn't in my starting
+  lineup" on his card): those games drop out of his slot and can't be locked. That's
+  different from plain *Not locked*, which still lets the app lock his latest game.
 - **Banked** counts only certain locks and the ones you entered.
 - **Proj** (top) counts locked slots at their score. Every other slot counts
   Sleeper's projection for his next game, in your scoring. Settings can switch this
@@ -92,7 +98,7 @@ Sleeper reports each slot's current score, not whether it's locked:
 
 ## Development
 ```bash
-node --test tests/*.test.mjs        # 40 tests, no dependencies
+node --test tests/*.test.mjs        # 43 tests, no dependencies
 python3 -m http.server              # then open http://localhost:8000
 ```
 Every push to `main` runs the tests and deploys to GitHub Pages.

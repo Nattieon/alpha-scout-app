@@ -108,6 +108,7 @@ form.find input { flex: 1 1 220px; min-width: 0; background: var(--surface); bor
 .flip { font-size: 13px; border-left: 3px solid var(--accent); padding-left: 8px; }
 .whatif { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13.5px; }
 .whatif input { width: 76px; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.marks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
 .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .pct { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .markrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
@@ -203,6 +204,12 @@ label.f input, label.f select { background: var(--raised); border: 1px solid var
             <option value="smart">Expected final (includes future locks and sit risk)</option>
           </select>
         </label>
+        <label class="f">Opponent's bench swaps
+          <select id="cfg-opp">
+            <option value="off">Don't model them</option>
+            <option value="on">Assume he makes his best swaps</option>
+          </select>
+        </label>
         <label class="f">League default: sits an ordinary game (%)
           <input id="cfg-base" type="number" min="0" max="30" step="1">
         </label>
@@ -217,7 +224,9 @@ label.f input, label.f select { background: var(--raised); border: 1px solid var
         resting back-to-backs (95%); it stays on until you turn it off. League defaults below fill in for players with little history.
         <b>Bench swaps:</b> any open slot can go to a bench player before his next game. The app picks the best player for each open slot for the rest of the week
         (positions respected, each player used once), so a lock bar is what the slot is worth with your whole bench available, and <b>Swaps before tip-off</b>
-        lists the moves the calls assume you'll make.
+        lists the moves the calls assume you'll make. Your opponent's swaps are off by default; turn them on in the settings above.
+        If a player's game happened while he was on your <b>bench</b>, it can't be locked: tick "He wasn't in my starting lineup" on its card, or pick
+        "Not locked · on bench …" in the lineup.
         <b>Bar</b> = what the slot is worth if you pass: his remaining games this week, each with its own projection
         (Rotowire via Sleeper, calibrated to how he's actually played), played optimally, including the chance he sits.
         An open slot takes his <i>last</i> game even if he doesn't play, so DNP risk on the final game lowers the bar most.

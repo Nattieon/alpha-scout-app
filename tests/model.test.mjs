@@ -264,3 +264,37 @@ test("a swap whose bench player starts later keeps the current player in until t
   assert.ok(fresh.tonight && fresh.tonight.afterBy?.key === "benchF");                // tonight's bar counts the fallback
   assert.ok(fresh.tonight.bar > 0);
 });
+
+test("'benched through' marks: games played from the bench can't be locked", () => {
+  // "pending" (SG, team CCC): Tue 22, Wed 30, then Sun.
+  const base = buildModel(raw, "me").me.slots.find((x) => x.pid === "pending");
+  assert.equal(base.kind, "pending");
+  assert.equal(base.lastDone.date, "2026-10-21");
+  // Benched through Wed: nothing lockable this week, the slot rides on his Sun game.
+  const b = buildModel(raw, "me", {}, { pending: "after:2026-10-21" }).me.slots.find((x) => x.pid === "pending");
+  assert.equal(b.kind, "open");
+  assert.equal(b.call, undefined);
+  assert.equal(b.lockable.length, 0);
+  assert.ok(b.value.mean < base.score);
+  // Benched only on Tue: Wed's game is his and still the decision.
+  const c = buildModel(raw, "me", {}, { pending: "after:2026-10-20" }).me.slots.find((x) => x.pid === "pending");
+  assert.equal(c.kind, "pending");
+  assert.equal(c.lastDone.date, "2026-10-21");
+  assert.deepEqual(c.lockable.map((g) => g.date), ["2026-10-21"]);
+});
+
+test("opponent bench swaps are a setting", () => {
+  const withPos = (row, pos) => ({ ...row, player: { ...row.player, fantasy_positions: pos } });
+  // Opponent's oppCold (FFF) is weak; his bench has a big Sun game.
+  const r = {
+    ...raw,
+    matchups: raw.matchups.map((m) => (m.roster_id === 2 ? { ...m, players: [...m.starters, "oppBench"] } : m)),
+    projections: [...raw.projections, withPos(proj("oppBench", "CCC", 6, 50), ["PG", "SG", "SF", "PF", "C"])],
+  };
+  const off = buildModel(r, "me");
+  const on = buildModel(r, "me", { oppSwaps: true });
+  assert.equal(off.oppSwaps.length, 0);
+  assert.ok(on.oppSwaps.some((x) => x.into.key === "oppBench"));
+  assert.ok(on.opp.slots.some((x) => x.swapIn?.key === "oppBench"));
+  assert.ok(on.win < off.win);                               // his swap makes the matchup harder
+});
