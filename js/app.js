@@ -270,7 +270,7 @@ function renderSwaps(m) {
           <div class="stat"><small>Slot worth with him</small><b class="num">${f1(w.into.value)}</b></div>
           <div class="stat"><small>Gain</small><b class="num">+${f1(w.gain)}</b></div>
         </div>
-        ${w.keepFirst?.length ? `<div class="flip">No rush: keep ${esc(w.out.name)} in for ${w.keepFirst.map((x) => dow(x.date)).join("/")}. Lock him if he scores ${f1(w.into.value)}+; otherwise swap ${esc(w.into.p.name)} in before ${dow(w.deadline)}.</div>` : ""}
+        ${w.keepFirst?.length ? `<div class="flip">No rush: keep ${esc(w.out.name)} in for ${w.keepFirst.map((x) => dow(x.date)).join("/")}. Lock him if he scores ${f1(w.slot.tonight?.bar ?? w.into.value)}+; otherwise swap ${esc(w.into.p.name)} in before ${dow(w.deadline)}.</div>` : ""}
         <div class="why"><div>${w.into.games.map((x) => `${dow(x.date)} ${x.home ? "vs" : "@"} ${esc(x.opp)} · proj ${f1(x.mu)}`).join(" · ")}</div>
           ${whyLines(w.into.games).slice(1).map((x) => `<div>${x}</div>`).join("")}</div>
       </article>`;
