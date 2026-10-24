@@ -345,12 +345,18 @@ function lockPicker(s) {
   const autoText = s.kind === "locked" && s.auto ? `locked ${dow(s.lockedGame.date)}`
     : s.kind === "assumed-locked" ? "guess: locked" : s.kind === "assumed-open" ? "guess: open"
     : s.kind === "final" ? "last game counts" : s.kind === "pending" ? "your call" : "not locked";
-  const cur = s.mark || "auto";
+  // Two uses: recording a lock made at the time (any game, earlier ones included), or saying it isn't locked.
+  // An earlier game you didn't lock is dead by rule, so "not locked" is only ever about his latest game.
+  const latest = s.completed.at(-1);
+  let cur = s.mark || "auto";
+  if (cur.startsWith?.("after:") && cur !== `after:${latest.date}`) cur = "open";   // older bench marks on an earlier game
   const opt = (v, label) => `<option value="${esc(v)}"${cur === v ? " selected" : ""}>${esc(label)}</option>`;
-  const games = played.map((g) => opt(g.date, `Locked ${dow(g.date)} · ${f1(g.fp)}${s.p.pct(g.fp) != null ? ` (${ord(s.p.pct(g.fp))} pct)` : ""}`));
-  const benched = s.completed.map((g, k) => opt(`after:${g.date}`, `Not locked · on bench ${k ? `${dow(s.completed[0].date)}–` : ""}${dow(g.date)}`));
+  const games = played.map((g) => opt(g.date, `${dow(g.date)} · ${f1(g.fp)}${s.p.pct(g.fp) != null ? ` (${ord(s.p.pct(g.fp))} pct)` : ""}${g !== latest ? " · locked back then" : ""}`));
+  const open = latest.played
+    ? [opt("open", `${dow(latest.date)} still lockable (he started)`), opt(`after:${latest.date}`, `${dow(latest.date)} was on the bench: can't lock`)]
+    : [opt("open", "Not locked")];
   return `<label class="picker"><span class="sr">Lock for ${esc(s.p.name)}</span>
-    <select data-pick="${esc(s.pid)}">${opt("auto", `Auto: ${autoText}`)}${opt("open", "Not locked")}${games.join("")}${benched.join("")}</select></label>`;
+    <select data-pick="${esc(s.pid)}">${opt("auto", `Auto: ${autoText}`)}<optgroup label="Locked">${games.join("")}</optgroup><optgroup label="Not locked">${open.join("")}</optgroup></select></label>`;
 }
 
 function gameChips(s) {
@@ -358,7 +364,7 @@ function gameChips(s) {
   const countsDate = s.lockedGame?.date || (s.kind === "final" ? s.lastDone?.date : null);
   return s.p.games.map((g) => {
     if (g.status === "complete") {
-      if (s.benchedThrough && g.date <= s.benchedThrough) return `<span class="g out num" title="Played from your bench: doesn't count">${dow(g.date)} ${g.played ? f1(g.fp) : "DNP"} · bench</span>`;
+      if (s.benchedThrough && g.date === s.benchedThrough) return `<span class="g out num" title="Played from your bench: doesn't count">${dow(g.date)} ${g.played ? f1(g.fp) : "DNP"} · bench</span>`;
       const cls = g.date === countsDate ? "g counts" : g.played ? "g" : "g out";
       return `<span class="${cls} num">${dow(g.date)} ${g.played ? f1(g.fp) : "DNP"}</span>`;
     }

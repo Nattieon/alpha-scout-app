@@ -225,8 +225,9 @@ label.f input, label.f select { background: var(--raised); border: 1px solid var
         <b>Bench swaps:</b> any open slot can go to a bench player before his next game. The app picks the best player for each open slot for the rest of the week
         (positions respected, each player used once), so a lock bar is what the slot is worth with your whole bench available, and <b>Swaps before tip-off</b>
         lists the moves the calls assume you'll make. Your opponent's swaps are off by default; turn them on in the settings above.
-        If a player's game happened while he was on your <b>bench</b>, it can't be locked: tick "He wasn't in my starting lineup" on its card, or pick
-        "Not locked · on bench …" in the lineup.
+        By the rules, only a player's <b>latest</b> game can still be locked; an earlier game counts only if you locked it back then. So the lineup picker does two jobs:
+        record a lock you made at the time (any game, earlier ones included), or say his latest game isn't locked: either he started and it's still your call,
+        or it was played from your <b>bench</b> and can't count (same as ticking "He wasn't in my starting lineup" on his card).
         <b>Bar</b> = what the slot is worth if you pass: his remaining games this week, each with its own projection
         (Rotowire via Sleeper, calibrated to how he's actually played), played optimally, including the chance he sits.
         An open slot takes his <i>last</i> game even if he doesn't play, so DNP risk on the final game lowers the bar most.

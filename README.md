@@ -80,14 +80,17 @@ Sleeper reports each slot's current score, not whether it's locked:
 
 - If a slot shows an **earlier** game's score, it's locked. The app detects that.
 - If it shows his **latest** game, it's ambiguous until his next game starts.
-- Every slot on both lineups has a picker that overrides what the app infers. Pick
-  **any** of his completed games this week as the locked one, **Not locked**, or
-  **Auto**. Use it when you come back late, or copy your opponent's lock icons from
-  Sleeper. On Auto, an opponent's score above his bar is assumed locked.
-- Sleeper doesn't keep past lineups either, so a game a player played **from your bench**
-  looks lockable. Pick **Not locked · on bench …** (or tick "He wasn't in my starting
-  lineup" on his card): those games drop out of his slot and can't be locked. That's
-  different from plain *Not locked*, which still lets the app lock his latest game.
+- Every slot on both lineups has a picker. By the rules, only a player's **latest** game can
+  still be locked. An earlier game counts only if you locked it before his next game, so the
+  picker has two jobs:
+  - **Locked:** record a lock made at the time. Any completed game can be picked, which
+    lets you catch up after the fact, or copy your opponent's lock icons from Sleeper.
+  - **Not locked:** about his latest game. Either *he started, still lockable* (the app makes
+    the call), or *on my bench, can't lock*. Sleeper doesn't keep past lineups, so a game
+    played from your bench looks lockable until you say so. The "He wasn't in my starting
+    lineup" box on his card does the same.
+  - **Auto** uses what Sleeper's numbers imply. An opponent's score above his bar is
+    assumed locked.
 - **Banked** counts only certain locks and the ones you entered.
 - **Proj** (top) counts locked slots at their score. Every other slot counts
   Sleeper's projection for his next game, in your scoring. Settings can switch this
