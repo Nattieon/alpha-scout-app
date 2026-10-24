@@ -58,6 +58,15 @@ V_i    = p_i · max(0, V_{i+1}) + (1 - p_i) · E[max(X_i, V_{i+1})],   X_i ~ N(�
   The lock recursion branches on night 1 (played vs sat), so the bar for night 1 uses the
   raised night-2 risk.
 
+**Bench swaps** (`js/swaps.js`). Any open slot can go to a bench player, or another open
+starter, before his next game. Following Sleeper's rules, only starters' games count, and
+an open slot takes the final game of whoever is in it at week's end. The app picks the
+best player for each open slot for the rest of the week: positions respected (G = PG/SG,
+F = SF/PF, UTIL = anyone), each player used once, solved exactly with the Hungarian
+algorithm. A slot's lock bar is therefore what keeping it open is worth with your whole
+bench available. **Swaps before tip-off** lists the moves the calls assume you'll make.
+Your opponent's swaps aren't modeled.
+
 **Win-probability mode** (the default) also uses your opponent's slots. Locked
 scores count exactly; the rest are modeled the same way. The call picks whichever
 of LOCK and PASS gives the higher chance to win the week, so with a safe lead it
@@ -83,7 +92,7 @@ Sleeper reports each slot's current score, not whether it's locked:
 
 ## Development
 ```bash
-node --test tests/*.test.mjs        # 33 tests, no dependencies
+node --test tests/*.test.mjs        # 40 tests, no dependencies
 python3 -m http.server              # then open http://localhost:8000
 ```
 Every push to `main` runs the tests and deploys to GitHub Pages.

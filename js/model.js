@@ -1,6 +1,7 @@
 // Turns raw Sleeper data into slot states, per-game projections and lock calls.
 import { buildShape, lockCall, percentileOf, slotMoments, slotValue, winProbability } from "./lockmath.js?v=__V__";
 import { availabilityProfile, gameSitRisks, shiftDay } from "./availability.js?v=__V__";
+import { canFill, planSlots } from "./swaps.js?v=__V__";
 
 export const DEFAULTS = { baseDnp: 0.04, pairRest: 0.19, injuryDecay: 0.7, mode: "win", cvPrior: 0.30, projBasis: "next", b2bFlags: {} };
 
@@ -137,7 +138,8 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
 
     const p = { pid, name, team, injury, pos: (meta.fantasy_positions || [meta.position]).filter(Boolean).join("/"),
       ratio, cv, shape, pct, nHistory: histFps.length, actualAvg, pBar, games, teamDates, n,
-      avail, playedOn, flagged: !!c.b2bFlags?.[pid] };
+      avail, playedOn, flagged: !!c.b2bFlags?.[pid],
+      positions: (meta.fantasy_positions || [meta.position]).filter(Boolean) };
     playerCache[pid] = p;
     return p;
   }
@@ -264,21 +266,86 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   const theirs = oppSlots.map((s) => s.value);
   const useMatchup = c.mode === "win" && oppSlots.length > 0;
 
-  // My pending slots: default them to the points rule while evaluating each other.
-  for (const s of mySlots) if (s.kind === "pending") s.value = s.score >= s.bar ? { mean: s.score, variance: 0 } : slotMoments(s.games);
+  // ---------------------------------------------------------------- bench swaps (level 1)
+  // Every open slot can be handed to a bench player (or another open starter) before his
+  // next game. The plan picks one player per open slot for the rest of the week.
+  const OPEN = new Set(["pending", "open", "none", "final", "empty"]);
+  const reserve = new Set(myRoster?.reserve || []);
+  const yesterday = shiftDay(today, -1);
+  const candidates = [];
   for (const s of mySlots) {
+    if (!OPEN.has(s.kind) || !s.p) continue;
+    const games = s.games || futureGames(s.p, yesterday);
+    candidates.push({ key: s.pid, p: s.p, positions: s.p.positions, games, value: slotValue(games), from: s.label, starter: true });
+  }
+  for (const pid of myMatch ? (myMatch.players || []) : []) {
+    if (!pid || myMatch.starters.includes(pid) || reserve.has(pid)) continue;
+    const bp = player(pid);
+    const games = futureGames(bp, yesterday);
+    if (games.length) candidates.push({ key: pid, p: bp, positions: bp.positions, games, value: slotValue(games), from: "bench", starter: false });
+  }
+  const byKey = new Map(candidates.map((x) => [x.key, x]));
+  const planRows = (lockedKeys = new Set()) => mySlots.filter((s) => OPEN.has(s.kind) && !lockedKeys.has(s.i)).map((s) => ({
+    key: s.i, label: s.label, current: s.pid || null,
+    keepScore: s.kind === "pending" ? s.score : s.kind === "final" ? s.value.mean : null,
+  }));
+
+  // My pending slots: compare locking the score with keeping the slot open (bench included).
+  const firstPlan = planSlots(planRows(), candidates);
+  for (const s of mySlots) if (s.kind === "pending") {
+    const { assign } = firstPlan.openValue(s.i);
+    const occ = byKey.get(assign[s.i]);
+    s.contGames = occ ? (occ.key === s.pid ? s.games : occ.games) : [];
+    s.contBy = occ && occ.key !== s.pid ? occ : null;
+    s.value = s.score >= slotValue(s.contGames) ? { mean: s.score, variance: 0 } : slotMoments(s.contGames);
+  }
+  for (const s of mySlots) {
+    if (s.kind !== "pending") continue;
     const others = mySlots.filter((o) => o !== s).map((o) => o.value);
-    if (s.kind === "pending") {
-      s.call = lockCall(s.score, s.games, useMatchup ? others : null, useMatchup ? theirs : null);
-      s.value = s.call.verdict === "LOCK" ? { mean: s.score, variance: 0 } : slotMoments(s.games);
+    s.call = lockCall(s.score, s.contGames, useMatchup ? others : null, useMatchup ? theirs : null);
+    s.bar = s.call.bar;
+    s.value = s.call.verdict === "LOCK" ? { mean: s.score, variance: 0 } : slotMoments(s.contGames);
+  }
+
+  // Final plan, with the slots we're locking taken out.
+  const lockedNow = new Set(mySlots.filter((s) => s.kind === "pending" && s.call.verdict === "LOCK").map((s) => s.i));
+  const lockedPlayers = new Set(mySlots.filter((s) => lockedNow.has(s.i)).map((s) => s.pid));
+  const plan = planSlots(planRows(lockedNow), candidates.filter((x) => !lockedPlayers.has(x.key)));
+  const swaps = [];
+  for (const s of mySlots) {
+    if (!OPEN.has(s.kind) || lockedNow.has(s.i)) continue;
+    const occ = byKey.get(plan.assign[s.i]) || null;
+    const keepNow = plan.keep[s.i];
+    if (occ && occ.key !== s.pid) {
+      s.swapIn = occ;
+      s.value = slotMoments(occ.games);
+      const without = s.kind === "pending" ? slotValue(s.games) : s.kind === "final" ? s.value.mean : (byKey.get(s.pid)?.value ?? 0);
+      const stay = s.kind === "final" ? s.lastDone?.fp ?? 0 : s.kind === "pending" ? slotValue(s.games) : (byKey.get(s.pid)?.value ?? 0);
+      const gain = occ.value - Math.max(stay, 0);
+      if (gain >= 1) swaps.push({ slot: s, into: occ, out: s.p || null, gain, deadline: occ.games[0]?.date, without });
+    } else if (keepNow && s.kind === "final") {
+      s.value = { mean: s.lastDone?.fp ?? s.value.mean, variance: 0 };
+    } else if (!occ && s.kind !== "final") {
+      s.value = { mean: 0, variance: 0 };
     }
   }
+  swaps.sort((a, b) => (a.deadline || "").localeCompare(b.deadline || "") || b.gain - a.gain);
+
   // Tonight's bars: the score that should be locked when tonight's game ends.
+  // Passing keeps the slot open for his later games or for a free bench player.
+  const usedBench = new Set(Object.values(plan.assign).filter(Boolean));
   for (const s of mySlots) {
+    if (s.swapIn) continue;
     const tonight = s.kind === "live" ? s.liveGame : (s.kind === "open" || s.kind === "pending") && s.games?.[0]?.date === today ? s.games[0] : null;
     if (!tonight) continue;
-    const after = s.kind === "live" ? s.after : s.games.slice(1);
-    s.tonight = { date: today, opp: tonight.opp, after, final: after.length === 0 };
+    let after = s.kind === "live" ? s.after : s.games.slice(1);
+    let afterBy = null;
+    for (const x of candidates) {
+      if (x.starter || usedBench.has(x.key) || !canFill(s.label, x.positions)) continue;
+      const later = x.games.filter((g) => g.date > today);
+      if (later.length && slotValue(later) > slotValue(after)) { after = later; afterBy = x; }
+    }
+    s.tonight = { date: today, opp: tonight.opp, after, afterBy, final: after.length === 0 };
     if (!after.length) continue;
     s.tonight.evBar = slotValue(after);
     s.tonight.bar = s.tonight.evBar;
@@ -295,6 +362,7 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   // "next" basis: any slot not locked counts Sleeper's projection for his next game
   // (or the game he's playing now); locked and finished slots count their score.
   const slotShown = (x) => {
+    if (x.swapIn) return nextProjection(x.swapIn.p) ?? x.value.mean;
     if (x.kind === "locked" || x.kind === "final" || x.kind === "assumed-locked" || x.kind === "empty") return x.value.mean;
     if (x.kind === "none") return 0;
     // Your undecided slot: follow the call (locking it counts tonight's score) unless you said "Not locked".
@@ -308,10 +376,10 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     week, weekDates, today, scoring, mode: useMatchup ? "win" : "ev", projBasis: c.projBasis,
     me: myMatch && { rosterId: myMatch.roster_id, name: userName(myMatch.roster_id), points: myMatch.points, proj: projOf(mySlots), banked: banked(mySlots), slots: mySlots, bench: benchFor(myMatch) },
     opp: oppMatch && { rosterId: oppMatch.roster_id, name: userName(oppMatch.roster_id), points: oppMatch.points, proj: projOf(oppSlots), banked: banked(oppSlots), slots: oppSlots, bench: benchFor(oppMatch) },
-    win, missingRoster: !myRoster, noMatchup: !!myRoster && !oppMatch,
+    win, missingRoster: !myRoster, noMatchup: !!myRoster && !oppMatch, swaps,
     whatIf(slot, score) {
       const others = mySlots.filter((o) => o !== slot).map((o) => o.value);
-      return lockCall(score, slot.tonight?.after || slot.games || [], useMatchup ? others : null, useMatchup ? theirs : null);
+      return lockCall(score, slot.tonight?.after || slot.contGames || slot.games || [], useMatchup ? others : null, useMatchup ? theirs : null);
     },
   };
 }

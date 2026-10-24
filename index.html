@@ -91,6 +91,7 @@ form.find input { flex: 1 1 220px; min-width: 0; background: var(--surface); bor
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
 .card.lock { border-color: color-mix(in srgb, var(--lock) 55%, var(--line)); }
 .card.pass { border-color: color-mix(in srgb, var(--pass) 45%, var(--line)); }
+.card.swap { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .pname { font: 600 19px/1.1 var(--display); min-width: 0; }
 .pmeta { font-size: 12.5px; color: var(--muted); }
@@ -175,6 +176,7 @@ label.f input, label.f select { background: var(--raised); border: 1px solid var
   <main id="dash" hidden>
     <section class="board" id="board"><div class="skeleton"></div></section>
     <section class="section" id="decide"></section>
+    <section class="section" id="swaps"></section>
     <section class="section" id="tonight"></section>
     <section class="section">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
@@ -213,6 +215,9 @@ label.f input, label.f select { background: var(--raised); border: 1px solid var
         back-to-back and which night, how much he has missed overall, and whether he's just back from a long absence. The two nights of a back-to-back are linked:
         once he plays night 1, a rest becomes more likely on night 2; if he sits night 1, night 2 is safe. Tap <b>Sits B2Bs?</b> on any player to mark him as
         resting back-to-backs (95%); it stays on until you turn it off. League defaults below fill in for players with little history.
+        <b>Bench swaps:</b> any open slot can go to a bench player before his next game. The app picks the best player for each open slot for the rest of the week
+        (positions respected, each player used once), so a lock bar is what the slot is worth with your whole bench available, and <b>Swaps before tip-off</b>
+        lists the moves the calls assume you'll make.
         <b>Bar</b> = what the slot is worth if you pass: his remaining games this week, each with its own projection
         (Rotowire via Sleeper, calibrated to how he's actually played), played optimally, including the chance he sits.
         An open slot takes his <i>last</i> game even if he doesn't play, so DNP risk on the final game lowers the bar most.

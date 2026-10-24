@@ -99,7 +99,11 @@ async function load(fresh) {
   if (needed.length) raw.players = await S.allPlayers();
   // Each starter's own game log (last season cached on this device + this season so far).
   const starters = [...new Set(matchups.filter((m) => m.matchup_id && (m.roster_id === myRosterId(rosters) || m.matchup_id === myMatchupId(rosters, matchups))).flatMap((m) => m.starters || []).filter((p) => p && p !== "0"))];
-  raw.logs = await loadLogs(starters, season, fresh);
+  const myRoster = rosters.find((x) => x.roster_id === myRosterId(rosters));
+  const myMatch = matchups.find((x) => x.roster_id === myRosterId(rosters));
+  const reserve = new Set(myRoster?.reserve || []);
+  const myBench = (myMatch?.players || []).filter((p) => p && !(myMatch.starters || []).includes(p) && !reserve.has(p));
+  raw.logs = await loadLogs([...new Set([...starters, ...myBench])], season, fresh);
   ctx.raw = raw;
   rebuild();
   $("updated").textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · data from Sleeper`;
@@ -174,7 +178,7 @@ function render() {
     $("board").innerHTML = `<p class="muted">You don't own a team in <b>${esc(ctx.raw.league.name)}</b>.</p>`;
     return;
   }
-  renderBoard(m); renderDecide(m); renderTonight(m); renderLineup(m);
+  renderBoard(m); renderDecide(m); renderSwaps(m); renderTonight(m); renderLineup(m);
   const c = cfg();
   $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.pairRest * 100);
 }
@@ -223,6 +227,7 @@ function renderDecide(m) {
   el.innerHTML = `<h2>Decide before his next game</h2><div class="cards">${pend.map((s) => {
     const c = s.call, lock = c.verdict === "LOCK";
     const g = s.lastDone;
+    const viaSwap = !lock && s.contBy ? `<div class="flip">Pass and swap in <b>${esc(s.contBy.p.name)}</b> (${s.contBy.from === "bench" ? "bench" : `from ${esc(s.contBy.from)}`}, ${s.contBy.games.map((x) => dow(x.date)).join("/")}). The bar counts that swap.</div>` : "";
     const flip = c.matchupFlip ? `<div class="flip">${lock ? "Below his bar, but locking protects your lead." : "Above his bar, but you need upside to come back."}</div>` : "";
     const winRow = c.winIfLock !== undefined ? `
       <div class="duel">
@@ -238,13 +243,37 @@ function renderDecide(m) {
         <div class="stat"><small>${dow(g.date)} ${g.home ? "vs" : "@"} ${esc(g.opp)}</small><b class="num">${f1(s.score)}</b>${s.pctScore != null ? `<span class="pct">${pctLabel(s.pctScore, s.p)}</span>` : ""}</div>
         <div class="stat"><small>Bar · ${s.games.length} left</small><b class="num">${f1(c.bar)}</b>${s.pctBar != null ? `<span class="pct">≈ his ${ord(s.pctBar)} pct</span>` : ""}</div>
       </div>
-      ${winRow}${flip}
+      ${winRow}${flip}${viaSwap}
       <div class="why">${whyLines(s.games).map((x) => `<div>${x}</div>`).join("")}
         <div>Passing: ${pct(c.pBelow)} chance he ends the week lower than ${f1(s.score)}.</div></div>
       <label class="toggle"><input type="checkbox" data-mark="${esc(s.pid)}" data-date="${esc(g.date)}"> I already locked this game</label>
     </article>`;
   }).join("")}</div>`;
   el.querySelectorAll("[data-mark]").forEach((cb) => cb.addEventListener("change", () => setMark(cb.dataset.mark, cb.checked ? cb.dataset.date : null)));
+}
+
+function renderSwaps(m) {
+  const el = $("swaps");
+  if (!m.swaps?.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<h2>Swaps before tip-off</h2>
+    <p class="muted" style="margin:0;font-size:13.5px">The calls and projections above assume you make these swaps in Sleeper before each player's next game.</p>
+    <div class="cards">${m.swaps.map((w) => {
+      const g = w.into.games[0];
+      const outLine = w.out ? `for ${esc(w.out.name)}${w.slot.kind === "final" ? ` (his week is over: ${f1(w.slot.lastDone?.fp ?? 0)})` : w.slot.kind === "none" ? " (no games left)" : ""}` : "into an empty slot";
+      return `<article class="card swap">
+        <div class="card-head">
+          <div><div class="pname">${esc(w.into.p.name)} → ${esc(w.slot.label)}</div>
+            <div class="pmeta">${w.into.from === "bench" ? "From bench" : `Move from ${esc(w.into.from)}`} · ${outLine}</div></div>
+          <span class="pill soft">BY ${dow(w.deadline).toUpperCase()}</span>
+        </div>
+        <div class="duel">
+          <div class="stat"><small>Slot worth with him</small><b class="num">${f1(w.into.value)}</b></div>
+          <div class="stat"><small>Gain</small><b class="num">+${f1(w.gain)}</b></div>
+        </div>
+        <div class="why"><div>${w.into.games.map((x) => `${dow(x.date)} ${x.home ? "vs" : "@"} ${esc(x.opp)} · proj ${f1(x.mu)}`).join(" · ")}</div>
+          ${whyLines(w.into.games).slice(1).map((x) => `<div>${x}</div>`).join("")}</div>
+      </article>`;
+    }).join("")}</div>`;
 }
 
 function renderTonight(m) {
@@ -266,10 +295,11 @@ function renderTonight(m) {
         ${s.p.injury ? `<div class="warn">Listed ${esc(s.p.injury)}. If he sits, an open slot scores 0. Swap in a healthy starter.</div>` : ""}</div></article>`;
     }
     const liveLine = live ? `<div class="stat"><small>Live now</small><b class="num">${f1(s.liveFp)}</b></div>` : `<div class="stat"><small>Projected tonight</small><b class="num">${f1(s.games?.[0]?.mu)}</b></div>`;
+    const benchNote = t.afterBy ? `<div class="flip">If you pass, the slot goes to <b>${esc(t.afterBy.p.name)}</b> (bench) for ${t.after.map((x) => dow(x.date)).join("/")}.</div>` : "";
     const evNote = Math.abs(t.bar - t.evBar) >= 0.5 ? `<div class="flip">Points-only bar is ${f1(t.evBar)}; your matchup moves it to ${f1(t.bar)}.</div>` : "";
     return `<article class="card">${head}
       <div class="duel">${liveLine}<div class="stat"><small>Then ${t.after.length} more game${t.after.length > 1 ? "s" : ""}</small><b class="num">${f1(t.after.reduce((a, g) => a + g.mu, 0) / t.after.length)}</b></div></div>
-      ${evNote}
+      ${evNote}${benchNote}
       <div class="whatif"><label for="wi-${s.i}">If he finishes with</label><input id="wi-${s.i}" data-wi="${s.i}" type="number" inputmode="decimal" step="0.5" placeholder="${f1(t.bar)}"> <span id="wo-${s.i}" class="muted">→ type a score</span></div>
     </article>`;
   }).join("")}</div>`;
@@ -346,7 +376,7 @@ function renderLineup(m) {
         ${availLine(s.p)}
         ${lockPicker(s)}
       </div>
-      <div class="val"><span class="state ${kind}">${STATE_LABEL[s.kind]}${s.manual ? " (you)" : ""}</span><b class="num">${f1(s.shownProj)}</b><small class="num">${sub}</small></div>
+      <div class="val"><span class="state ${kind}">${s.swapIn ? `→ ${esc(s.swapIn.p.name.split(" ").slice(-1)[0])}` : STATE_LABEL[s.kind]}${s.manual ? " (you)" : ""}</span><b class="num">${f1(s.shownProj)}</b><small class="num">${sub}</small></div>
     </div>`;
   });
   const bench = (side.bench || []).map((b) => `<div class="row bench">

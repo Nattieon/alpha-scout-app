@@ -221,3 +221,27 @@ test("sit-risk profile from his log, and the 'sits back-to-backs' checkbox", () 
   assert.ok(f2.p.avail.q > 0.5, `q ${f2.p.avail.q}`);
   assert.ok(f2.games.find((g) => g.date === "2026-10-24").pIfPrevPlayed > sat0.pIfPrevPlayed + 0.3);
 });
+
+test("bench swaps: a stronger bench guard takes the G slot, a bench center fills the empty UTIL", () => {
+  const withPos = (row, pos) => ({ ...row, player: { ...row.player, fantasy_positions: pos } });
+  const bench = {
+    ...raw,
+    matchups: raw.matchups.map((m) => (m.roster_id === 1 ? { ...m, players: [...m.starters, "benchG", "benchC"] } : m)),
+    // benchG: guard, plays Sun (team CCC) with a big projection. benchC: center, plays Sat (team EEE).
+    projections: [...raw.projections, withPos(proj("benchG", "CCC", 6, 40), ["PG", "SG"]), withPos(proj("benchC", "EEE", 5, 30), ["C"])],
+  };
+  const m = buildModel(bench, "me");
+  const slot = (pid) => m.me.slots.find((x) => x.pid === pid);
+  const g = slot("final");                                  // G slot: Thu done, Fri (today) is his last game
+  assert.equal(g.kind, "pending");
+  assert.equal(g.call.verdict, "PASS");                     // passing + swapping in benchG beats keeping Thu
+  assert.equal(g.swapIn?.key, "benchG");
+  assert.ok(g.call.bar > g.score);
+  const util = m.me.slots.find((x) => x.label === "UTIL");
+  assert.equal(util.swapIn?.key, "benchC");                 // a C can't play G, but can fill UTIL
+  const moves = m.swaps.map((x) => `${x.into.key}->${x.slot.label}`);
+  assert.deepEqual(moves.sort(), ["benchC->UTIL", "benchG->G"]);
+  assert.ok(m.swaps.every((x) => x.deadline && x.gain >= 1));
+  // the plan's values feed the projection and win odds
+  assert.ok(m.me.proj > buildModel(raw, "me").me.proj);
+});
