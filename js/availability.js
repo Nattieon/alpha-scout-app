@@ -53,9 +53,17 @@ export function availabilityProfile(rows, currentSeasonStart, cfg = {}) {
     if (j - i >= c.stretch) { for (let k = i; k < j; k++) inStretch[k] = true; stretches.push({ start: i, end: j - 1, len: j - i }); }
     i = j;
   }
+  // An absence that ran into the offseason had a summer to heal: it only counts toward a
+  // return ramp if it was a genuine long-term injury (majorStretch+ games).
+  const gapDays = (a, b) => (Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / DAY;
+  for (const st of stretches) {
+    const nextRow = r[st.end + 1];
+    st.offseason = !!nextRow && gapDays(r[st.end].date, nextRow.date) > 60;
+    st.ramps = st.len >= c.longStretch && (!st.offseason || st.len >= c.majorStretch);
+  }
   // The games right after an injury belong to the return ramp, not to his normal habits.
   const inRamp = new Array(n).fill(false);
-  for (const st of stretches) for (let k = st.end + 1; k < Math.min(n, st.end + 1 + c.rampGames); k++) inRamp[k] = true;
+  for (const st of stretches) if (st.ramps) for (let k = st.end + 1; k < Math.min(n, st.end + 1 + c.rampGames); k++) inRamp[k] = true;
   const clean = (i) => !inStretch[i] && !inRamp[i];
 
   // Back-to-back pairs: consecutive-day games for the same team.
@@ -88,7 +96,8 @@ export function availabilityProfile(rows, currentSeasonStart, cfg = {}) {
 
   // Return ramp: the latest long absence that he has come back from.
   let ramp = 0, gamesBack = null, absence = null;
-  const lastLong = [...stretches].reverse().find((st) => st.len >= c.longStretch);
+  const lastLong = [...stretches].reverse().find((st) => st.len >= c.longStretch);   // most recent long absence
+  if (lastLong && !lastLong.ramps) return { normal, q, s, durability, ramp: 0, gamesBack: null, absence: null, history: { games, sat, pairs, n1, n2, both, rows: n } };
   if (lastLong && lastLong.end < n - 1) {
     const after = r.slice(lastLong.end + 1);
     gamesBack = after.filter((x) => x.played).length;

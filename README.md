@@ -49,7 +49,7 @@ V_i    = p_i · max(0, V_{i+1}) + (1 - p_i) · E[max(X_i, V_{i+1})],   X_i ~ N(�
     to night 1: `q·s / (1 − q·(1−s))` once he has played night 1, and ~0 extra if he sat it.
     The league figures (19% / 73%) come from last season.
   - **Durability:** `0.04 × share of his team's games missed in the last 82`.
-  - **Return ramp:** after a 10+ game absence, `+60% × (1 − games back / 15)` on back-to-back
+  - **Return ramp:** after a 10+ game absence (one that ran into the offseason only counts if it was 40+ games), `+60% × (1 − games back / 15)` on back-to-back
     rest (25 games after a 40+ game absence). Each back-to-back he plays both nights of
     halves what's left. Also `+3% × ramp` on other games.
   - **Sleeper injury tag** (Questionable 45%, Out 97%…) fading 30% per game, and 85% if the
@@ -83,7 +83,7 @@ Sleeper reports each slot's current score, not whether it's locked:
 
 ## Development
 ```bash
-node --test tests/*.test.mjs        # 32 tests, no dependencies
+node --test tests/*.test.mjs        # 33 tests, no dependencies
 python3 -m http.server              # then open http://localhost:8000
 ```
 Every push to `main` runs the tests and deploys to GitHub Pages.

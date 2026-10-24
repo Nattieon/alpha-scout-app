@@ -85,3 +85,16 @@ test("the 'sits back-to-backs' checkbox, the ramp and injury tags", () => {
   const [q1, q2] = gameSitRisks(plain, ["2026-10-21", "2026-10-25"], new Set(), { injury: "Questionable" });
   assert.ok(q1.p > 0.45 && q2.p < q1.p);                                // tag fades for later games
 });
+
+test("an absence that ran into the offseason: no ramp unless it was long-term", () => {
+  const endOfSeason = (missed) => {
+    const prev = season("2025-10-21", 82);
+    for (let i = 82 - missed; i < 82; i++) prev[i].played = false;
+    return [...prev, ...season("2026-10-20", 2)];
+  };
+  assert.equal(availabilityProfile(endOfSeason(15), "2026-10-20").ramp, 0);      // shut down for the stretch run
+  assert.equal(availabilityProfile(endOfSeason(30), "2026-10-20").ramp, 0);
+  const major = availabilityProfile(endOfSeason(45), "2026-10-20");               // genuine long-term injury
+  assert.ok(major.ramp > 0.8);
+  assert.equal(major.absence, 45);
+});
