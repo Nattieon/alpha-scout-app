@@ -1,7 +1,7 @@
 // Turns raw Sleeper data into slot states, per-game projections and lock calls.
 import { buildShape, gameRisks, lockCall, percentileOf, slotMoments, slotValue, winProbability } from "./lockmath.js?v=__V__";
 
-export const DEFAULTS = { baseDnp: 0.04, b2bDnp: 0.08, injuryDecay: 0.7, mode: "win", cvPrior: 0.30 };
+export const DEFAULTS = { baseDnp: 0.04, b2bDnp: 0.08, injuryDecay: 0.7, mode: "win", cvPrior: 0.30, projBasis: "next" };
 
 // ------------------------------------------------------------------ scoring
 const BONUS = {
@@ -41,11 +41,12 @@ export const md = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-U
  * raw: {league, rosters, users, matchups, schedule, stats: [...rows], projections: [...rows], week, players?,
  *       logs?: {pid: [{date, stats}]}  -- each starter's game log (last season + this season)}
  * myUserId: Sleeper user_id of the viewer.
- * marks: {"pid@date": "locked" | "open"} -- lock states the viewer entered (either team).
+ * marks: {pid: "YYYY-MM-DD" | "locked" | "open"} -- the viewer's lock overrides for this week (either
+ *        team): the date of the locked game ("locked" = his latest game), or "open" for not locked.
  */
 export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   const c = { ...DEFAULTS, ...cfg };
-  if (marks instanceof Set) marks = Object.fromEntries([...marks].map((k) => [k, "locked"]));
+  marks = normalizeMarks(marks);
   const scoring = raw.league.scoring_settings || {};
   const today = raw.today || todayET();
   const week = raw.week;
@@ -156,6 +157,14 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   };
   const slotLabels = (raw.league.roster_positions || []).filter((s) => !["BN", "IR", "TAXI"].includes(s));
 
+  /** Sleeper's own projection (in your scoring) for his next game that hasn't finished. */
+  function nextProjection(p) {
+    const g = p.games.find((x) => x.status !== "complete");
+    if (!g) return null;
+    if (g.projFp !== null && g.projFp !== undefined) return g.projFp;
+    return g.projectedOut ? 0 : (p.pBar || p.actualAvg || 0);
+  }
+
   function slotsFor(match, mine) {
     if (!match) return [];
     return match.starters.map((pid, i) => {
@@ -168,17 +177,24 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
       const liveGame = p.games.find((g) => g.live);
       const nextGame = p.games.find((g) => g.status === "pre_game");
       const near = (a, b) => a !== null && b !== null && Math.abs(a - b) < 0.011;
-      const s = { i, label, pid, p, shown, liveGame, nextGame, lastDone };
+      // The viewer's override for this slot this week: a game date (locked that game) or "open".
+      const mark = marks[pid];
+      const lockable = done.filter((g) => g.played);
+      const s = { i, label, pid, p, shown, liveGame, nextGame, lastDone, mark, markKey: pid, lockable, nextProj: nextProjection(p) };
+      const markedGame = !mark || mark === "open" ? null : mark === "locked" ? lockable.at(-1) : lockable.find((g) => g.date === mark);
+      const userOpen = mark === "open";
 
-      const earlier = done.slice(0, -1).find((g) => near(g.fp, shown) && !near(lastDone.fp, shown));
-      const markKey = lastDone ? `${pid}@${lastDone.date}` : null;
-      const mark = markKey ? marks[markKey] : undefined;
+      if (markedGame) {
+        Object.assign(s, { kind: "locked", certain: true, manual: true, lockedGame: markedGame, value: { mean: markedGame.fp, variance: 0 } });
+        return s;
+      }
+      const earlier = !userOpen && done.slice(0, -1).find((g) => near(g.fp, shown) && !near(lastDone.fp, shown));
       if (earlier) {
-        Object.assign(s, { kind: "locked", certain: true, lockedGame: earlier, value: { mean: shown, variance: 0 } });
+        Object.assign(s, { kind: "locked", certain: true, auto: true, lockedGame: earlier, value: { mean: shown, variance: 0 } });
       } else if (liveGame) {
         const after = futureGames(p, liveGame.date, 1);
-        if (lastDone && near(lastDone.fp, shown) && !near(liveGame.fp ?? 0, shown) && lastDone.fp !== 0) {
-          Object.assign(s, { kind: "locked", certain: false, lockedGame: lastDone, value: { mean: shown, variance: 0 } });
+        if (!userOpen && lastDone && near(lastDone.fp, shown) && !near(liveGame.fp ?? 0, shown) && lastDone.fp !== 0) {
+          Object.assign(s, { kind: "locked", certain: false, auto: true, lockedGame: lastDone, value: { mean: shown, variance: 0 } });
         } else {
           // The live game becomes a decision once it ends; model it as one more game.
           const liveMu = Math.max((liveGame.projFp ?? p.pBar) * p.ratio, 0);
@@ -198,13 +214,11 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
         } else {
           // Ambiguous window: Sleeper shows the same number whether he's locked or open.
           const bar = slotValue(rem);
-          Object.assign(s, { ambiguous: true, markKey, mark, score: lastDone.fp, games: rem, bar,
+          Object.assign(s, { ambiguous: true, score: lastDone.fp, games: rem, bar,
             pctScore: p.pct(lastDone.fp), pctBar: p.pct(bar) });
-          if (mark === "locked") {
-            Object.assign(s, { kind: "locked", certain: true, manual: true, lockedGame: lastDone, value: { mean: lastDone.fp, variance: 0 } });
-          } else if (mine) {
+          if (mine) {
             Object.assign(s, { kind: "pending", value: slotMoments(rem) });
-          } else if (mark === "open") {
+          } else if (userOpen) {
             Object.assign(s, { kind: "open", manual: true, value: slotMoments(rem) });
           } else {
             const assumeLocked = lastDone.fp >= bar;   // a rational opponent locks anything above his bar
@@ -213,8 +227,19 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
           }
         }
       }
+      if (userOpen && s.kind !== "pending" && s.kind !== "final") s.manual = true;
       return s;
     });
+  }
+
+  /** Bench players: not counted, but shown so swaps are easy to spot. */
+  function benchFor(match) {
+    if (!match) return [];
+    const starters = new Set(match.starters || []);
+    return (match.players || []).filter((pid) => pid && !starters.has(pid)).map((pid) => {
+      const p = player(pid);
+      return { pid, p, points: match.players_points?.[pid] ?? 0, nextProj: nextProjection(p) };
+    }).sort((a, b) => (b.nextProj ?? -1) - (a.nextProj ?? -1));
   }
 
   let mySlots = slotsFor(myMatch, true);
@@ -250,17 +275,40 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   const myValues = mySlots.map((s) => s.value);
   const win = oppSlots.length ? winProbability(myValues, theirs) : null;
   const sum = (arr) => arr.reduce((t, v) => t + v.mean, 0);
+  // "next" basis: any slot not locked counts Sleeper's projection for his next game
+  // (or the game he's playing now); locked and finished slots count their score.
+  const slotShown = (x) => {
+    if (x.kind === "locked" || x.kind === "final" || x.kind === "assumed-locked" || x.kind === "empty") return x.value.mean;
+    if (x.kind === "none") return 0;
+    return x.nextProj ?? x.value.mean;
+  };
+  for (const x of [...mySlots, ...oppSlots]) x.shownProj = c.projBasis === "smart" ? x.value.mean : slotShown(x);
+  const projOf = (slots) => slots.reduce((t, x) => t + x.shownProj, 0);
   const banked = (slots) => slots.filter((x) => (x.kind === "locked" && x.certain) || x.kind === "final").reduce((t, x) => t + x.value.mean, 0);
   return {
-    week, weekDates, today, scoring, mode: useMatchup ? "win" : "ev",
-    me: myMatch && { rosterId: myMatch.roster_id, name: userName(myMatch.roster_id), points: myMatch.points, proj: sum(myValues), banked: banked(mySlots), slots: mySlots },
-    opp: oppMatch && { rosterId: oppMatch.roster_id, name: userName(oppMatch.roster_id), points: oppMatch.points, proj: sum(theirs), banked: banked(oppSlots), slots: oppSlots },
+    week, weekDates, today, scoring, mode: useMatchup ? "win" : "ev", projBasis: c.projBasis,
+    me: myMatch && { rosterId: myMatch.roster_id, name: userName(myMatch.roster_id), points: myMatch.points, proj: projOf(mySlots), banked: banked(mySlots), slots: mySlots, bench: benchFor(myMatch) },
+    opp: oppMatch && { rosterId: oppMatch.roster_id, name: userName(oppMatch.roster_id), points: oppMatch.points, proj: projOf(oppSlots), banked: banked(oppSlots), slots: oppSlots, bench: benchFor(oppMatch) },
     win, missingRoster: !myRoster, noMatchup: !!myRoster && !oppMatch,
     whatIf(slot, score) {
       const others = mySlots.filter((o) => o !== slot).map((o) => o.value);
       return lockCall(score, slot.tonight?.after || slot.games || [], useMatchup ? others : null, useMatchup ? theirs : null);
     },
   };
+}
+
+/** Accepts current marks plus the two older formats (a Set of "pid@date", or {"pid@date": "locked"|"open"}). */
+export function normalizeMarks(marks) {
+  if (!marks) return {};
+  const entries = marks instanceof Set ? [...marks].map((k) => [k, "locked"]) : Object.entries(marks);
+  const out = {};
+  for (const [k, v] of entries) {
+    const at = k.indexOf("@");
+    if (at === -1) { out[k] = v; continue; }
+    const pid = k.slice(0, at), date = k.slice(at + 1);
+    out[pid] = v === "open" ? "open" : date;
+  }
+  return out;
 }
 
 /** Lowest score worth locking when the matchup is taken into account (bisection). */

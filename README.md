@@ -55,15 +55,21 @@ Sleeper reports each slot's current score, not whether it's locked:
 
 - If a slot shows an **earlier** game's score, it's locked. The app detects that.
 - If it shows his **latest** game, it's ambiguous until his next game starts.
-  - **Your slots:** tick "I already locked this game", or use Locked in the lineup.
-  - **Opponent's slots:** use Guess / Locked / Open in the Opponent lineup. Sleeper's
-    app shows their locks with a lock icon. On Guess, a score above his bar is
-    assumed locked.
-- **Banked** counts only certain locks and the ones you marked.
+- Every slot on both lineups has a picker that overrides what the app infers. Pick
+  **any** of his completed games this week as the locked one, **Not locked**, or
+  **Auto**. Use it when you come back late, or copy your opponent's lock icons from
+  Sleeper. On Auto, an opponent's score above his bar is assumed locked.
+- **Banked** counts only certain locks and the ones you entered.
+- **Proj** (top) counts locked slots at their score. Every other slot counts
+  Sleeper's projection for his next game, in your scoring. Settings can switch this
+  to the expected final, which includes future locks and sit risk. The win
+  probability always uses the full model.
+- **Bench** players are listed under each lineup with their games and next-game
+  projection, which helps with swaps.
 
 ## Development
 ```bash
-node --test tests/*.test.mjs        # 16 tests, no dependencies
+node --test tests/*.test.mjs        # 20 tests, no dependencies
 python3 -m http.server              # then open http://localhost:8000
 ```
 Every push to `main` runs the tests and deploys to GitHub Pages.

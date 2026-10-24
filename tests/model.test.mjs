@@ -134,3 +134,55 @@ test("a player's own game log sets his percentiles and his bar", () => {
   assert.ok(Math.abs(b.bar - a.bar) < 1e-6);
   assert.ok(b.call.pBelow !== a.call.pBelow);            // ...but the odds of ending lower do
 });
+
+test("any earlier game can be marked as the locked one, for either team", () => {
+  // lockedEarly: Tue 40 (Sleeper shows it -> auto-detected), Thu 18.
+  const auto = buildModel(raw, "me");
+  const le = auto.me.slots.find((x) => x.pid === "lockedEarly");
+  assert.equal(le.kind, "locked"); assert.ok(le.auto);
+  assert.deepEqual(le.lockable.map((g) => g.date), ["2026-10-20", "2026-10-22"]);
+
+  // Viewer says it was actually Thursday's game that got locked: the mark wins.
+  const thu = buildModel(raw, "me", {}, { lockedEarly: "2026-10-22" }).me.slots.find((x) => x.pid === "lockedEarly");
+  assert.equal(thu.kind, "locked"); assert.ok(thu.manual);
+  assert.equal(thu.lockedGame.date, "2026-10-22");
+  assert.equal(thu.value.mean, fp(18));
+
+  // Viewer says nothing is locked: the slot reopens with his remaining games.
+  const open = buildModel(raw, "me", {}, { lockedEarly: "open" }).me.slots.find((x) => x.pid === "lockedEarly");
+  assert.ok(open.kind !== "locked");
+  assert.ok(open.value.variance > 0);
+
+  // Opponent: mark an earlier game (Tue) even though his latest game is Thu.
+  const opp = buildModel(raw, "me", {}, { oppHot: "2026-10-20" }).opp.slots.find((x) => x.pid === "oppHot");
+  assert.equal(opp.kind, "locked");
+  assert.equal(opp.value.mean, fp(48));
+});
+
+test("old mark formats still load", () => {
+  const a = buildModel(raw, "me", {}, new Set(["pending@2026-10-21"])).me.slots.find((x) => x.pid === "pending");
+  assert.equal(a.kind, "locked"); assert.equal(a.lockedGame.date, "2026-10-21");
+  const b = buildModel(raw, "me", {}, { "oppHot@2026-10-22": "open" }).opp.slots.find((x) => x.pid === "oppHot");
+  assert.equal(b.kind, "open");
+});
+
+test("projected total: next-game basis vs expected-final basis", () => {
+  const next = buildModel(raw, "me");                       // default: next game
+  const smart = buildModel(raw, "me", { projBasis: "smart" });
+  const fresh = next.me.slots.find((x) => x.pid === "fresh");
+  assert.equal(fresh.shownProj, fresh.nextProj);            // not locked -> Sleeper's next-game projection
+  const le = next.me.slots.find((x) => x.pid === "lockedEarly");
+  assert.equal(le.shownProj, le.value.mean);                // locked -> its score
+  assert.ok(Math.abs(next.me.proj - smart.me.proj) > 0.01);
+  assert.equal(next.win, smart.win);                        // win odds never depend on the display basis
+});
+
+test("bench players are listed with their next projection", () => {
+  const withBench = { ...raw, matchups: raw.matchups.map((m) => m.roster_id === 1 ? { ...m, players: [...m.starters, "benchGuy"], players_points: { benchGuy: 12 } } : m),
+    projections: [...raw.projections, proj("benchGuy", "AAA", 5, 30)] };
+  const m = buildModel(withBench, "me");
+  assert.equal(m.me.bench.length, 1);
+  assert.equal(m.me.bench[0].pid, "benchGuy");
+  assert.ok(m.me.bench[0].nextProj > 0);
+  assert.ok(!m.me.slots.some((x) => x.pid === "benchGuy"));
+});

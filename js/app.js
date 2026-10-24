@@ -1,5 +1,5 @@
 import * as S from "./sleeper.js?v=__V__";
-import { buildModel, DEFAULTS, dow, md, todayET } from "./model.js?v=__V__";
+import { buildModel, DEFAULTS, dow, md, normalizeMarks, todayET } from "./model.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -135,16 +135,18 @@ async function loadLogs(pids, season, fresh) {
 }
 
 function cfg() { return { ...DEFAULTS, ...store.get("cfg", {}) }; }
-function marksKey() { return `marks.${ctx.leagueId}.${ctx.raw.week}`; }
+function marksKey() { return `marks3.${ctx.leagueId}.${ctx.raw.week}`; }
 function getMarks() {
   const marks = store.get(marksKey(), null);
   if (marks) return marks;
-  // carry over the older "I locked this" list
-  return Object.fromEntries(store.get(`locks.${ctx.leagueId}.${ctx.raw.week}`, []).map((k) => [k, "locked"]));
+  // carry over older formats ({"pid@date": "locked"|"open"} and the "I locked this" list)
+  const old = store.get(`marks.${ctx.leagueId}.${ctx.raw.week}`, null)
+    || Object.fromEntries(store.get(`locks.${ctx.leagueId}.${ctx.raw.week}`, []).map((k) => [k, "locked"]));
+  return normalizeMarks(old);
 }
-function setMark(key, value) {
+function setMark(pid, value) {
   const marks = getMarks();
-  if (value) marks[key] = value; else delete marks[key];
+  if (value) marks[pid] = value; else delete marks[pid];
   store.set(marksKey(), marks);
   rebuild();
 }
@@ -163,7 +165,7 @@ function render() {
   }
   renderBoard(m); renderDecide(m); renderTonight(m); renderLineup(m);
   const c = cfg();
-  $("cfg-mode").value = c.mode; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.b2bDnp * 100);
+  $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.b2bDnp * 100);
 }
 
 function renderBoard(m) {
@@ -176,7 +178,7 @@ function renderBoard(m) {
   }
   const w = m.win;
   $("board").innerHTML = `
-    <div class="board-top"><span>${esc(ctx.raw.league.name)} · Week ${m.week} · ${range}</span><span>${m.mode === "win" ? "Calls play to win this matchup" : "Calls maximize points"}</span></div>
+    <div class="board-top"><span>${esc(ctx.raw.league.name)} · Week ${m.week} · ${range}</span><span>${m.mode === "win" ? "Calls play to win this matchup" : "Calls maximize points"} · Proj = ${m.projBasis === "smart" ? "expected final" : "next-game projections"}</span></div>
     <div class="teams">
       <div class="team"><div class="who">${esc(m.me.name)}</div><div class="pts num">${f1(m.me.points)}</div><div class="proj num">Banked ${f1(m.me.banked)} · Proj ${f1(m.me.proj)}</div></div>
       <div class="vs">VS</div>
@@ -222,10 +224,10 @@ function renderDecide(m) {
       ${winRow}${flip}
       <div class="why">${whyLines(s.games).map((x) => `<div>${x}</div>`).join("")}
         <div>Passing: ${pct(c.pBelow)} chance he ends the week lower than ${f1(s.score)}.</div></div>
-      <label class="toggle"><input type="checkbox" data-mark="${esc(s.markKey)}"> I already locked this game</label>
+      <label class="toggle"><input type="checkbox" data-mark="${esc(s.pid)}" data-date="${esc(g.date)}"> I already locked this game</label>
     </article>`;
   }).join("")}</div>`;
-  el.querySelectorAll("[data-mark]").forEach((cb) => cb.addEventListener("change", () => setMark(cb.dataset.mark, cb.checked ? "locked" : null)));
+  el.querySelectorAll("[data-mark]").forEach((cb) => cb.addEventListener("change", () => setMark(cb.dataset.mark, cb.checked ? cb.dataset.date : null)));
 }
 
 function renderTonight(m) {
@@ -268,12 +270,16 @@ function renderTonight(m) {
 
 const STATE_LABEL = { locked: "Locked", final: "Final", pending: "Your call", live: "Live", open: "Open", none: "No games", empty: "Empty", "assumed-locked": "Guess: locked", "assumed-open": "Guess: open" };
 
-function markControl(s, mine) {
-  if (!s.ambiguous) return "";
+function lockPicker(s) {
+  if (!s.lockable?.length) return "";
+  const autoText = s.kind === "locked" && s.auto ? `locked ${dow(s.lockedGame.date)}`
+    : s.kind === "assumed-locked" ? "guess: locked" : s.kind === "assumed-open" ? "guess: open"
+    : s.kind === "final" ? "last game counts" : s.kind === "pending" ? "your call" : "not locked";
   const cur = s.mark || "auto";
-  const opts = mine ? [["auto", "Not locked"], ["locked", "Locked"]] : [["auto", "Guess"], ["locked", "Locked"], ["open", "Open"]];
-  return `<div class="seg" role="group" aria-label="Lock state for ${esc(s.p.name)}">${opts.map(([v, l]) =>
-    `<button type="button" data-k="${esc(s.markKey)}" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div>`;
+  const opt = (v, label) => `<option value="${esc(v)}"${cur === v ? " selected" : ""}>${esc(label)}</option>`;
+  const games = s.lockable.map((g) => opt(g.date, `Locked ${dow(g.date)} · ${f1(g.fp)}${s.p.pct(g.fp) != null ? ` (${ord(s.p.pct(g.fp))} pct)` : ""}`));
+  return `<label class="picker"><span class="sr">Lock for ${esc(s.p.name)}</span>
+    <select data-pick="${esc(s.pid)}">${opt("auto", `Auto: ${autoText}`)}${opt("open", "Not locked")}${games.join("")}</select></label>`;
 }
 
 function gameChips(s) {
@@ -285,7 +291,8 @@ function gameChips(s) {
       return `<span class="${cls} num">${dow(g.date)} ${g.played ? f1(g.fp) : "DNP"}</span>`;
     }
     if (g.live) return `<span class="g live num">${dow(g.date)} live ${f1(g.fp ?? 0)}</span>`;
-    return `<span class="g">${dow(g.date)} ${g.home ? "v" : "@"}${esc(g.opp)}</span>`;
+    const pj = g.projFp !== null && g.projFp !== undefined ? ` · ${f1(g.projFp)}` : g.projectedOut ? " · out" : "";
+    return `<span class="g num" title="Sleeper projection">${dow(g.date)} ${g.home ? "v" : "@"}${esc(g.opp)}${pj}</span>`;
   }).join("");
 }
 
@@ -294,21 +301,33 @@ function renderLineup(m) {
   $("tab-me").setAttribute("aria-selected", view === "me"); $("tab-opp").setAttribute("aria-selected", view === "opp");
   $("tab-opp").hidden = !m.opp;
   if (!side) { $("lineup").innerHTML = ""; return; }
-  $("lineup").innerHTML = side.slots.map((s) => {
+  const smart = m.projBasis === "smart";
+  const rows = side.slots.map((s) => {
     if (s.empty) return `<div class="row"><div class="slot">${esc(s.label)}</div><div class="muted">Empty slot</div><div class="val"><b>0.0</b></div></div>`;
     const kind = s.kind.startsWith("assumed") ? (s.kind === "assumed-locked" ? "locked" : "open") : s.kind;
+    const counted = ["locked", "final", "assumed-locked", "none"].includes(s.kind);
     const sd = Math.sqrt(s.value.variance);
+    const sub = counted ? "&nbsp;" : smart ? (s.nextProj != null ? `next ${f1(s.nextProj)}` : "&nbsp;") : `exp ${f1(s.value.mean)}${sd > 0.5 ? ` ± ${f1(sd)}` : ""}`;
     return `<div class="row">
       <div class="slot">${esc(s.label)}</div>
       <div style="min-width:0">
         <div class="pname" style="font-size:16.5px">${esc(s.p.name)} <span class="pmeta">${esc(s.p.team || "FA")}${s.p.injury ? ` · <span class="warn">${esc(s.p.injury)}</span>` : ""}</span></div>
         <div class="games">${gameChips(s)}</div>
-        ${s.ambiguous ? `<div class="markrow"><span class="pmeta">${f1(s.score)} on ${dow(s.lastDone.date)}${s.pctScore != null ? ` · ${ord(s.pctScore)} pct` : ""} · locked?</span>${markControl(s, view === "me")}</div>` : ""}
+        ${lockPicker(s)}
       </div>
-      <div class="val"><span class="state ${kind}">${STATE_LABEL[s.kind]}${s.manual ? " (you)" : ""}</span><b class="num">${f1(s.value.mean)}</b><small class="num">${sd > 0.5 ? `± ${f1(sd)}` : "&nbsp;"}</small></div>
+      <div class="val"><span class="state ${kind}">${STATE_LABEL[s.kind]}${s.manual ? " (you)" : ""}</span><b class="num">${f1(s.shownProj)}</b><small class="num">${sub}</small></div>
     </div>`;
-  }).join("");
-  $("lineup").querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => setMark(b.dataset.k, b.dataset.v === "auto" ? null : b.dataset.v)));
+  });
+  const bench = (side.bench || []).map((b) => `<div class="row bench">
+      <div class="slot">BN</div>
+      <div style="min-width:0">
+        <div class="pname" style="font-size:15.5px">${esc(b.p.name)} <span class="pmeta">${esc(b.p.team || "FA")}${b.p.injury ? ` · <span class="warn">${esc(b.p.injury)}</span>` : ""}</span></div>
+        <div class="games">${gameChips({ p: b.p, kind: "bench" })}</div>
+      </div>
+      <div class="val"><span class="state open">Bench</span><b class="num">${b.nextProj != null ? f1(b.nextProj) : "–"}</b><small>next game</small></div>
+    </div>`);
+  $("lineup").innerHTML = rows.join("") + (bench.length ? `<div class="row benchhead"><div></div><div class="pmeta">Bench: not counted, shown for swaps</div><div></div></div>${bench.join("")}` : "");
+  $("lineup").querySelectorAll("select[data-pick]").forEach((sel) => sel.addEventListener("change", () => setMark(sel.dataset.pick, sel.value === "auto" ? null : sel.value)));
 }
 
 $("tab-me").addEventListener("click", () => { view = "me"; renderLineup(model); });
@@ -317,10 +336,11 @@ $("refresh").addEventListener("click", async () => { $("refresh").textContent = 
 const saveCfg = () => {
   const c = cfg();
   c.mode = $("cfg-mode").value;
+  c.projBasis = $("cfg-proj").value;
   c.baseDnp = Math.min(Math.max((parseFloat($("cfg-base").value) || 0) / 100, 0), 0.3);
   c.b2bDnp = Math.min(Math.max((parseFloat($("cfg-b2b").value) || 0) / 100, 0), 0.5);
   store.set("cfg", c); rebuild();
 };
-["cfg-mode", "cfg-base", "cfg-b2b"].forEach((id) => $(id).addEventListener("change", saveCfg));
+["cfg-mode", "cfg-proj", "cfg-base", "cfg-b2b"].forEach((id) => $(id).addEventListener("change", saveCfg));
 
 boot();

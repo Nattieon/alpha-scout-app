@@ -110,10 +110,11 @@ form.find input { flex: 1 1 220px; min-width: 0; background: var(--surface); bor
 .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .pct { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .markrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button { border: 0; background: var(--surface); color: var(--muted); font-size: 12.5px; font-weight: 600; padding: 5px 10px; }
-.seg button + button { border-left: 1px solid var(--line); }
-.seg button[aria-pressed="true"] { background: var(--raised); color: var(--fg); box-shadow: inset 0 -2px 0 var(--accent); }
+.picker { display: inline-block; margin-top: 6px; max-width: 100%; }
+.picker select { max-width: 100%; background: var(--raised); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font-size: 13px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.row.bench { opacity: .8; }
+.row.benchhead { padding-block: 8px; background: var(--raised); }
 
 /* lineup table */
 .tabs { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 3px; }
@@ -191,6 +192,12 @@ label.f input, label.f select { background: var(--raised); border: 1px solid var
             <option value="ev">Max points (ignore matchup)</option>
           </select>
         </label>
+        <label class="f">Projected totals on top
+          <select id="cfg-proj">
+            <option value="next">Next-game projection for every slot not locked</option>
+            <option value="smart">Expected final (includes future locks and sit risk)</option>
+          </select>
+        </label>
         <label class="f">Chance any game is missed (%)
           <input id="cfg-base" type="number" min="0" max="30" step="1">
         </label>
@@ -205,9 +212,10 @@ label.f input, label.f select { background: var(--raised); border: 1px solid var
         Each player's spread comes from <b>his own game log</b> (last season + this one, in your league's scoring), so a boom-or-bust
         player gets a higher bar than a steady one with the same average, and every score shows its <b>percentile</b> among his recent games.
         In <b>win probability</b> mode the call can flip: with a safe lead it locks a little early to remove risk; when behind it passes to chase upside.
-        Sleeper doesn't say whether a slot is locked until his next game starts. Mark locks in the lineups (yours and your opponent's, which Sleeper shows with a lock icon);
-        any opponent slot you leave on <i>Guess</i> is assumed locked if the score beats his bar.
-        <b>Banked</b> counts only locks that are certain or that you marked.
+        Sleeper only reveals a lock once the player's next game starts. In the lineups, every slot (yours and your opponent's) has a picker:
+        choose which game is locked, <i>Not locked</i>, or <i>Auto</i> to use what Sleeper's numbers imply (an opponent slot on Auto is assumed locked if the score beats his bar).
+        <b>Banked</b> counts only locks that are certain or that you entered. <b>Proj</b> adds Sleeper's next-game projection for every slot that isn't locked
+        (switch to expected final below); the win probability always uses the full model.
       </p>
     </details>
     <div class="foot"><span id="updated"></span><span><button class="chip" id="refresh">Refresh</button></span></div>
