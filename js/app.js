@@ -270,6 +270,7 @@ function renderSwaps(m) {
           <div class="stat"><small>Slot worth with him</small><b class="num">${f1(w.into.value)}</b></div>
           <div class="stat"><small>Gain</small><b class="num">+${f1(w.gain)}</b></div>
         </div>
+        ${w.keepFirst?.length ? `<div class="flip">No rush: keep ${esc(w.out.name)} in for ${w.keepFirst.map((x) => dow(x.date)).join("/")}. Lock him if he scores ${f1(w.into.value)}+; otherwise swap ${esc(w.into.p.name)} in before ${dow(w.deadline)}.</div>` : ""}
         <div class="why"><div>${w.into.games.map((x) => `${dow(x.date)} ${x.home ? "vs" : "@"} ${esc(x.opp)} · proj ${f1(x.mu)}`).join(" · ")}</div>
           ${whyLines(w.into.games).slice(1).map((x) => `<div>${x}</div>`).join("")}</div>
       </article>`;
@@ -295,7 +296,7 @@ function renderTonight(m) {
         ${s.p.injury ? `<div class="warn">Listed ${esc(s.p.injury)}. If he sits, an open slot scores 0. Swap in a healthy starter.</div>` : ""}</div></article>`;
     }
     const liveLine = live ? `<div class="stat"><small>Live now</small><b class="num">${f1(s.liveFp)}</b></div>` : `<div class="stat"><small>Projected tonight</small><b class="num">${f1(s.games?.[0]?.mu)}</b></div>`;
-    const benchNote = t.afterBy ? `<div class="flip">If you pass, the slot goes to <b>${esc(t.afterBy.p.name)}</b> (bench) for ${t.after.map((x) => dow(x.date)).join("/")}.</div>` : "";
+    const benchNote = t.afterBy ? `<div class="flip">If you pass, swap <b>${esc(t.afterBy.p.name)}</b> in (${t.afterBy.from === "bench" ? "bench" : `from ${esc(t.afterBy.from)}`}) for ${t.after.map((x) => dow(x.date)).join("/")}.</div>` : "";
     const evNote = Math.abs(t.bar - t.evBar) >= 0.5 ? `<div class="flip">Points-only bar is ${f1(t.evBar)}; your matchup moves it to ${f1(t.bar)}.</div>` : "";
     return `<article class="card">${head}
       <div class="duel">${liveLine}<div class="stat"><small>Then ${t.after.length} more game${t.after.length > 1 ? "s" : ""}</small><b class="num">${f1(t.after.reduce((a, g) => a + g.mu, 0) / t.after.length)}</b></div></div>

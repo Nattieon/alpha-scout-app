@@ -245,3 +245,22 @@ test("bench swaps: a stronger bench guard takes the G slot, a bench center fills
   // the plan's values feed the projection and win odds
   assert.ok(m.me.proj > buildModel(raw, "me").me.proj);
 });
+
+test("a swap whose bench player starts later keeps the current player in until then", () => {
+  const withPos = (row, pos) => ({ ...row, player: { ...row.player, fantasy_positions: pos } });
+  // "fresh" (PF, team FFF) plays tonight (Fri) and Sat; benchF plays only Sun with a big projection.
+  const bench = {
+    ...raw,
+    matchups: raw.matchups.map((m) => (m.roster_id === 1 ? { ...m, players: [...m.starters, "benchF"] } : m)),
+    projections: [...raw.projections, withPos(proj("benchF", "CCC", 6, 60), ["PF"])],
+    league: { ...raw.league, roster_positions: ["PG", "SG", "G", "SF", "PF", "C", "BN"] },
+  };
+  const m = buildModel(bench, "me");
+  const sw = m.swaps.find((x) => x.into.key === "benchF");
+  assert.ok(sw, "swap suggested");
+  assert.equal(sw.slot.pid, "fresh");
+  assert.deepEqual(sw.keepFirst.map((g) => g.date), ["2026-10-23", "2026-10-24"]);   // let him play Fri + Sat first
+  const fresh = m.me.slots.find((x) => x.pid === "fresh");
+  assert.ok(fresh.tonight && fresh.tonight.afterBy?.key === "benchF");                // tonight's bar counts the fallback
+  assert.ok(fresh.tonight.bar > 0);
+});

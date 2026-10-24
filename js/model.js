@@ -322,7 +322,11 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
       const without = s.kind === "pending" ? slotValue(s.games) : s.kind === "final" ? s.value.mean : (byKey.get(s.pid)?.value ?? 0);
       const stay = s.kind === "final" ? s.lastDone?.fp ?? 0 : s.kind === "pending" ? slotValue(s.games) : (byKey.get(s.pid)?.value ?? 0);
       const gain = occ.value - Math.max(stay, 0);
-      if (gain >= 1) swaps.push({ slot: s, into: occ, out: s.p || null, gain, deadline: occ.games[0]?.date, without });
+      // Games the current player still gets before the incoming player's first game: no need to
+      // swap yet. Let him play them, lock a big one, and only swap if he falls short.
+      const deadline = occ.games[0]?.date;
+      const keepFirst = s.p ? (s.games || []).filter((g) => deadline && g.date < deadline) : [];
+      if (gain >= 1) swaps.push({ slot: s, into: occ, out: s.p || null, gain, deadline, without, keepFirst });
     } else if (keepNow && s.kind === "final") {
       s.value = { mean: s.lastDone?.fp ?? s.value.mean, variance: 0 };
     } else if (!occ && s.kind !== "final") {
@@ -335,13 +339,14 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   // Passing keeps the slot open for his later games or for a free bench player.
   const usedBench = new Set(Object.values(plan.assign).filter(Boolean));
   for (const s of mySlots) {
-    if (s.swapIn) continue;
     const tonight = s.kind === "live" ? s.liveGame : (s.kind === "open" || s.kind === "pending") && s.games?.[0]?.date === today ? s.games[0] : null;
     if (!tonight) continue;
-    let after = s.kind === "live" ? s.after : s.games.slice(1);
-    let afterBy = null;
+    // A planned swap whose incoming player starts later: he still plays tonight, and the swap is his fallback.
+    if (s.swapIn && !(s.swapIn.games[0]?.date > today)) continue;
+    let after = s.swapIn ? s.swapIn.games : s.kind === "live" ? s.after : s.games.slice(1);
+    let afterBy = s.swapIn || null;
     for (const x of candidates) {
-      if (x.starter || usedBench.has(x.key) || !canFill(s.label, x.positions)) continue;
+      if (s.swapIn || x.starter || usedBench.has(x.key) || !canFill(s.label, x.positions)) continue;
       const later = x.games.filter((g) => g.date > today);
       if (later.length && slotValue(later) > slotValue(after)) { after = later; afterBy = x; }
     }
