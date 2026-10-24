@@ -186,3 +186,13 @@ test("bench players are listed with their next projection", () => {
   assert.ok(m.me.bench[0].nextProj > 0);
   assert.ok(!m.me.slots.some((x) => x.pid === "benchGuy"));
 });
+
+test("an undecided slot the app says to LOCK counts its score, unless marked Not locked", () => {
+  const m = buildModel(raw, "me");
+  const pend = m.me.slots.find((x) => x.pid === "pending");
+  assert.equal(pend.call.verdict, "LOCK");
+  assert.equal(pend.shownProj, pend.score);
+  const open = buildModel(raw, "me", {}, { pending: "open" }).me.slots.find((x) => x.pid === "pending");
+  assert.equal(open.kind, "pending");                      // still your decision...
+  assert.equal(open.shownProj, open.nextProj);              // ...but Proj now uses his next game
+});

@@ -280,6 +280,8 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   const slotShown = (x) => {
     if (x.kind === "locked" || x.kind === "final" || x.kind === "assumed-locked" || x.kind === "empty") return x.value.mean;
     if (x.kind === "none") return 0;
+    // Your undecided slot: follow the call (locking it counts tonight's score) unless you said "Not locked".
+    if (x.kind === "pending" && x.mark !== "open" && x.call?.verdict === "LOCK") return x.score;
     return x.nextProj ?? x.value.mean;
   };
   for (const x of [...mySlots, ...oppSlots]) x.shownProj = c.projBasis === "smart" ? x.value.mean : slotShown(x);
