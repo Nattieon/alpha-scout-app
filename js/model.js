@@ -426,7 +426,9 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     if (x.kind === "locked" || x.kind === "assumed-locked") return x.lockedGame?.fp ?? x.score ?? x.value.mean;
     if (x.kind === "final") return x.lastDone?.fp ?? 0;
     if (x.kind === "live") return x.liveFp ?? 0;
-    return x.shown ?? 0;
+    // Sleeper's public slot scores are unreliable for Lock-In (different servers return different, wrong
+    // combinations), so the score comes from his own game stats: his latest game this week.
+    return x.lastDone?.fp ?? 0;
   };
   for (const x of [...mySlots, ...oppSlots]) x.now = nowScore(x);
   const pointsOf = (slots) => slots.reduce((t, x) => t + (x.now || 0), 0);
