@@ -117,7 +117,7 @@ async function leagueRaw(leagueId, { week, season, refreshLogs }) {
     const dump = await S.allPlayers();
     players = Object.fromEntries(missing.filter((p) => dump[p]).map((p) => [p, { first_name: dump[p].first_name, last_name: dump[p].last_name, team: dump[p].team, injury_status: dump[p].injury_status, fantasy_positions: dump[p].fantasy_positions, position: dump[p].position }]));
   }
-  wr(`schedule/${season}.json`, schedule);
+  if (refreshLogs) wr(`schedule/${season}.json`, schedule);   // nightly/replay only: it's big and changes mid-game
   const logs = await playerLogs(pids, season, { refreshCurrent: refreshLogs });
   return {
     league: { league_id: league.league_id, name: league.name, season: league.season, scoring_settings: scoring, roster_positions: league.roster_positions },
