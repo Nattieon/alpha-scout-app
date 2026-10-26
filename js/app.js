@@ -15,38 +15,53 @@ const store = {
   del(k) { try { localStorage.removeItem("as." + k); } catch { /* ignore */ } },
 };
 
-let ctx = null;        // {user, leagueId, raw}
+let ctx = null;        // {user, leagueId, rosterId|null, raw}
 let model = null;
 let view = "me";
 let timer = null;
 
+// "me" is the person using the app ({username, user_id}); "view" is the matchup on screen ({u, l, r}),
+// so the app reopens wherever you left it. "recent" keeps the last few matchups you looked at.
+const me = () => store.get("me", null);
+
 // ------------------------------------------------------------------ boot
 async function boot() {
   const q = new URLSearchParams(location.search);
-  const u = q.get("u") || store.get("username", "");
-  const l = q.get("l") || store.get("league", "");
-  if (u && l) return openLeague(u, l);
-  showOnboard(u);
+  const saved = store.get("view", null) || (store.get("league", "") ? { u: store.get("username", ""), l: store.get("league", "") } : null);
+  const u = q.get("u") || saved?.u || store.get("username", "");
+  const l = q.get("l") || saved?.l || "";
+  const r = q.get("r") ? Number(q.get("r")) : q.get("u") ? null : saved?.r ?? null;
+  if (u && l) return openLeague(u, l, r);
+  showOnboard(u, { auto: true });
 }
 
-function showOnboard(username = "") {
+function showOnboard(username = "", { auto = false } = {}) {
   clearInterval(timer);
+  closeSwitcher();
   $("dash").hidden = true; $("onboard").hidden = false; $("who").hidden = true;
   $("username").value = username;
-  if (username) findLeagues(username);
+  $("find-msg").textContent = ""; $("leagues").innerHTML = "";
+  if (username && auto) findLeagues(username, { auto: true });
+  $("username").focus();
 }
 
-$("find").addEventListener("submit", (e) => { e.preventDefault(); findLeagues($("username").value); });
-$("home").addEventListener("click", (e) => { e.preventDefault(); store.del("league"); history.replaceState(null, "", location.pathname); showOnboard(store.get("username", "")); });
-$("who").addEventListener("click", () => $("home").click());
+$("find").addEventListener("submit", (e) => { e.preventDefault(); findLeagues($("username").value, { asMe: true, auto: true }); });
+$("home").addEventListener("click", (e) => {
+  e.preventDefault();
+  if (me()) goMine(); else showOnboard(store.get("username", ""));
+});
+$("who").addEventListener("click", () => toggleSwitcher());
 
-async function findLeagues(username) {
+/** Onboarding lookup. asMe: the typed username becomes "me". auto: open a lone league straight away. */
+async function findLeagues(username, { auto = false, asMe = false } = {}) {
   const msg = $("find-msg"), list = $("leagues");
   msg.className = "muted"; msg.textContent = "Looking you up on Sleeper…"; list.innerHTML = "";
   try {
     const [st, user] = await Promise.all([S.state(), S.findUser(username)]);
     const leagues = await S.nbaLeagues(user.user_id, st.league_season);
-    store.set("username", user.username || username.trim());
+    const name = user.username || username.trim();
+    store.set("username", name);
+    if (asMe || !me()) store.set("me", { username: name, user_id: user.user_id });
     if (!leagues.length) { msg.textContent = `No ${st.league_season} NBA leagues on this account.`; return; }
     msg.textContent = `${leagues.length} NBA league${leagues.length > 1 ? "s" : ""} for ${st.league_season}. Pick one:`;
     list.innerHTML = leagues.map((l) => `
@@ -54,30 +69,134 @@ async function findLeagues(username) {
         <span><b>${esc(l.name)}</b><br><span class="muted">${l.total_rosters} teams · ${esc(l.status.replace("_", " "))}</span></span>
         <span class="chip">Open</span>
       </button>`).join("");
-    list.querySelectorAll(".league").forEach((b) => b.addEventListener("click", () => openLeague(user.username || username, b.dataset.id)));
-    if (leagues.length === 1) openLeague(user.username || username, leagues[0].league_id);
+    list.querySelectorAll(".league").forEach((b) => b.addEventListener("click", () => openLeague(name, b.dataset.id, null)));
+    if (auto && leagues.length === 1) openLeague(name, leagues[0].league_id, null);
   } catch (err) {
     msg.className = "err"; msg.textContent = err.message;
   }
 }
 
 // ------------------------------------------------------------------ league
-async function openLeague(username, leagueId) {
+async function openLeague(username, leagueId, rosterId = null) {
+  closeSwitcher();
   $("onboard").hidden = true; $("dash").hidden = false;
   $("board").innerHTML = '<div class="skeleton"></div>';
-  ["decide", "tonight"].forEach((id) => ($(id).innerHTML = ""));
+  ["decide", "swaps", "tonight"].forEach((id) => ($(id).innerHTML = ""));
   $("lineup").innerHTML = "";
   try {
     const user = await S.findUser(username);
-    store.set("username", user.username || username); store.set("league", leagueId);
-    history.replaceState(null, "", `?u=${encodeURIComponent(user.username || username)}&l=${leagueId}`);
-    ctx = { user, leagueId };
-    $("who").hidden = false; $("who").textContent = `${user.display_name} · switch`;
+    const name = user.username || username;
+    if (!me()) store.set("me", { username: name, user_id: user.user_id });
+    store.set("username", me().username); store.set("league", leagueId);
+    ctx = { user, leagueId, rosterId: rosterId ?? null };
+    store.set("view", { u: name, l: leagueId, r: ctx.rosterId });
+    history.replaceState(null, "", `?u=${encodeURIComponent(name)}&l=${leagueId}${ctx.rosterId != null ? `&r=${ctx.rosterId}` : ""}`);
+    view = "me";
+    $("who").hidden = false; $("who").textContent = "Matchups ▾";
     await load(false);
+    rememberView();
     clearInterval(timer);
     timer = setInterval(() => { if (document.visibilityState === "visible") load(true); }, 120000);
   } catch (err) {
-    $("board").innerHTML = `<p class="err">${esc(err.message)}</p><button class="btn ghost" onclick="location.reload()">Try again</button>`;
+    $("board").innerHTML = `<p class="err">${esc(err.message)}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" onclick="location.reload()">Try again</button></div>`;
+    $("who").hidden = false; $("who").textContent = "Matchups ▾";
+  }
+}
+
+/** Is the team on screen the app user's own? */
+function viewingMine() {
+  const m = me();
+  const r = ctx?.raw?.rosters?.find((x) => x.roster_id === myRosterId(ctx.raw.rosters));
+  return !!(m && r && (r.owner_id === m.user_id || (r.co_owners || []).includes(m.user_id)));
+}
+
+function rememberView() {
+  if (!model || model.missingRoster) return;
+  const rid = myRosterId(ctx.raw.rosters);
+  const entry = { u: ctx.user.username || ctx.user.display_name, l: ctx.leagueId, r: rid, mine: viewingMine(),
+    label: `${model.me.name}${model.opp ? ` vs ${model.opp.name}` : ""}`, league: ctx.raw.league.name };
+  const list = store.get("recent", []).filter((x) => !(x.l === entry.l && x.r === entry.r));
+  store.set("recent", [entry, ...list].slice(0, 8));
+  if (entry.mine) { const m = me(); store.set("me", { ...m, view: { l: ctx.leagueId } }); }
+  $("who").textContent = "Matchups ▾";
+}
+
+// ------------------------------------------------------------------ switcher
+function closeSwitcher() { $("switcher").hidden = true; $("who").setAttribute("aria-expanded", "false"); }
+function toggleSwitcher() { if ($("switcher").hidden) openSwitcher(); else closeSwitcher(); }
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("switcher").hidden) closeSwitcher(); });
+
+function teamName(raw, rid) {
+  const r = raw.rosters.find((x) => x.roster_id === rid);
+  const u = r && raw.users.find((x) => x.user_id === r.owner_id);
+  return u ? (u.metadata?.team_name || u.display_name) : `Team ${rid}`;
+}
+
+/** Back to the app user's own matchup: this league if he has a team here, else his last league. */
+function goMine() {
+  const m = me();
+  if (!m) return showOnboard("");
+  const raw = ctx?.raw;
+  const mineHere = raw?.rosters.find((r) => r.owner_id === m.user_id || (r.co_owners || []).includes(m.user_id));
+  const l = mineHere ? ctx.leagueId : m.view?.l;
+  if (l) openLeague(m.username, l, null); else { openSwitcher(); }
+}
+
+function openSwitcher() {
+  const el = $("switcher");
+  el.hidden = false; $("who").setAttribute("aria-expanded", "true");
+  const raw = ctx?.raw;
+  const cur = raw ? myRosterId(raw.rosters) : null;
+  const m = me();
+  // this league, every pairing this week
+  let leagueHtml = "";
+  if (raw) {
+    const byId = new Map();
+    raw.matchups.filter((x) => x.matchup_id).forEach((x) => { if (!byId.has(x.matchup_id)) byId.set(x.matchup_id, []); byId.get(x.matchup_id).push(x); });
+    const owner = (rid) => raw.rosters.find((x) => x.roster_id === rid);
+    const isMe = (rid) => { const r = owner(rid); return !!(m && r && (r.owner_id === m.user_id || (r.co_owners || []).includes(m.user_id))); };
+    const side = (x) => `<button class="side${x.roster_id === cur ? " on" : ""}" data-r="${x.roster_id}">
+        <span>${esc(teamName(raw, x.roster_id))}${isMe(x.roster_id) ? ' <span class="tag">you</span>' : ""}</span><b class="num">${f1(x.points)}</b></button>`;
+    leagueHtml = `<div class="sw-sec"><h3>${esc(raw.league.name)} · week ${raw.week}</h3><p class="muted">Tap a team to see the week from its side.</p>
+      <div class="pairs">${[...byId.values()].map((pair) => `<div class="pair">${pair.map(side).join('<span class="v">vs</span>')}</div>`).join("")}</div></div>`;
+  }
+  const recent = store.get("recent", []).filter((x) => !(raw && x.l === ctx.leagueId && x.r === cur));
+  const recentHtml = recent.length ? `<div class="sw-sec"><h3>Recent</h3><div class="rows">${recent.map((x, i) =>
+    `<button class="row-btn" data-recent="${i}"><span>${esc(x.label)}${x.mine ? ' <span class="tag">you</span>' : ""}</span><span class="muted">${esc(x.league)}</span></button>`).join("")}</div></div>` : "";
+  el.innerHTML = `
+    <div class="sw-head"><b>Switch matchup</b><button class="chip" id="sw-close" aria-label="Close">Close</button></div>
+    ${raw && !viewingMine() && m ? `<button class="btn" id="sw-mine">Back to my matchup</button>` : ""}
+    ${leagueHtml}
+    <div class="sw-sec"><h3>Leagues</h3>
+      <form class="find" id="sw-find"><input id="sw-user" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Any Sleeper username" value="${esc(m?.username || "")}">
+        <button class="btn ghost" type="submit">Look up</button></form>
+      <div id="sw-msg" class="muted" role="status"></div><div class="rows" id="sw-leagues"></div></div>
+    ${recentHtml}
+    <p class="muted sw-foot">"You" is <b>${esc(m?.username || "—")}</b> on Sleeper: that's whose team the app opens by default. <button class="linkish" id="sw-me">Change</button></p>`;
+  $("sw-close").onclick = closeSwitcher;
+  if ($("sw-mine")) $("sw-mine").onclick = goMine;
+  el.querySelectorAll(".side").forEach((b) => (b.onclick = () => openLeague(ctx.user.username || ctx.user.display_name, ctx.leagueId, Number(b.dataset.r))));
+  el.querySelectorAll("[data-recent]").forEach((b) => (b.onclick = () => { const x = recent[Number(b.dataset.recent)]; openLeague(x.u, x.l, x.r); }));
+  $("sw-find").onsubmit = (e) => { e.preventDefault(); switcherLeagues($("sw-user").value); };
+  $("sw-me").onclick = () => { store.del("me"); store.del("view"); history.replaceState(null, "", location.pathname); showOnboard(""); };
+  if (m) switcherLeagues(m.username);
+}
+
+async function switcherLeagues(username) {
+  const msg = $("sw-msg"), list = $("sw-leagues");
+  if (!msg || !username.trim()) return;
+  msg.className = "muted"; msg.textContent = "Looking up…"; list.innerHTML = "";
+  try {
+    const [st, user] = await Promise.all([S.state(), S.findUser(username)]);
+    const leagues = await S.nbaLeagues(user.user_id, st.league_season);
+    const name = user.username || username.trim();
+    const mine = me()?.user_id === user.user_id;
+    msg.textContent = leagues.length ? `${mine ? "Your" : `${user.display_name}'s`} ${st.league_season} NBA leagues:` : `No ${st.league_season} NBA leagues for ${name}.`;
+    list.innerHTML = leagues.map((l) => `<button class="row-btn" data-id="${esc(l.league_id)}"><span><b>${esc(l.name)}</b></span>
+      <span class="muted">${mine ? "my matchup" : `${esc(user.display_name)}'s matchup`}${ctx && l.league_id === ctx.leagueId ? " · open now" : ""}</span></button>`).join("");
+    list.querySelectorAll("[data-id]").forEach((b) => (b.onclick = () => openLeague(name, b.dataset.id, null)));
+  } catch (err) {
+    msg.className = "err"; msg.textContent = err.message;
   }
 }
 
@@ -92,7 +211,7 @@ async function load(fresh) {
     Promise.all(weeks.map((w) => S.weekStats(season, w, fresh || w === week))),
     Promise.all(weeks.map((w) => S.weekProjections(season, w, fresh || w === week))),
   ]);
-  const raw = { league, rosters, users, matchups, schedule, week, stats: statsW.flat(), projections: projW.flat(), today: todayET() };
+  const raw = { league, rosters, users, matchups, schedule, week, viewRosterId: ctx.rosterId, stats: statsW.flat(), projections: projW.flat(), today: todayET() };
   // Names for rostered players who appear in no stats rows (long injuries).
   const known = new Set([...raw.stats, ...raw.projections].map((r) => r.player_id));
   const needed = matchups.flatMap((m) => m.starters || []).filter((p) => p && p !== "0" && !known.has(p));
@@ -115,6 +234,7 @@ async function load(fresh) {
 }
 
 function myRosterId(rosters) {
+  if (ctx.rosterId != null && rosters.some((x) => x.roster_id === ctx.rosterId)) return ctx.rosterId;
   const r = rosters.find((x) => x.owner_id === ctx.user.user_id || (x.co_owners || []).includes(ctx.user.user_id));
   return r && r.roster_id;
 }
@@ -180,10 +300,17 @@ function rebuild() {
 function render() {
   const m = model;
   if (m.missingRoster) {
-    $("board").innerHTML = `<p class="muted">You don't own a team in <b>${esc(ctx.raw.league.name)}</b>.</p>`;
+    $("board").innerHTML = `<p class="muted"><b>${esc(ctx.user.display_name)}</b> doesn't have a team in <b>${esc(ctx.raw.league.name)}</b>. Use <b>Matchups</b> to pick one.</p>`;
+    ["decide", "swaps", "tonight", "lineup"].forEach((id) => ($(id).innerHTML = ""));
     return;
   }
+  const mine = viewingMine();
+  $("tab-me").textContent = mine ? "You" : m.me.name;
+  $("tab-opp").textContent = mine ? "Opponent" : m.opp?.name || "Opponent";
   renderBoard(m); renderDecide(m); renderSwaps(m); renderTonight(m); renderLineup(m);
+  if (!mine) $("board").insertAdjacentHTML("afterbegin", `<div class="viewing">Viewing <b>${esc(m.me.name)}</b>'s side: calls, swaps and "your" lineup are theirs.
+    <button class="linkish" id="back-mine">Back to my matchup</button></div>`);
+  if ($("back-mine")) $("back-mine").onclick = goMine;
   const c = cfg();
   $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-opp").value = c.oppSwaps ? "on" : "off"; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.pairRest * 100);
 }

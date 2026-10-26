@@ -298,3 +298,11 @@ test("opponent bench swaps are a setting", () => {
   assert.ok(on.opp.slots.some((x) => x.swapIn?.key === "oppBench"));
   assert.ok(on.win < off.win);                               // his swap makes the matchup harder
 });
+
+test("any team's side of the week can be viewed", () => {
+  const m = buildModel({ ...raw, viewRosterId: 2 }, "me");
+  assert.equal(m.me.name, "Them");
+  assert.equal(m.opp.name, "Me");
+  assert.deepEqual(m.me.slots.map((s) => s.pid).filter(Boolean), ["oppHot", "oppCold"]);
+  assert.ok(Math.abs(m.win + buildModel(raw, "me").win - 1) < 0.15);   // roughly the mirror image
+});

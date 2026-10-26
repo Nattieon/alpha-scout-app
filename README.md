@@ -21,6 +21,10 @@ From that it shows four things:
 - **Lineups:** both teams' slots, marked locked / your call / open / final, with each
   slot's projected value.
 
+**Matchups ▾** (top right) switches to any team in the league (you see the week from its
+side), to your other leagues, or to anyone's leagues by Sleeper username. The app reopens on
+whatever you looked at last, so you only type a username once.
+
 Nothing to install, no accounts, no server. Everything runs in your browser
 against Sleeper's public read-only API. Settings and your lock marks stay in your
 browser only.
@@ -101,7 +105,7 @@ Sleeper reports each slot's current score, not whether it's locked:
 
 ## Development
 ```bash
-node --test tests/*.test.mjs        # 43 tests, no dependencies
+node --test tests/*.test.mjs        # 44 tests, no dependencies
 python3 -m http.server              # then open http://localhost:8000
 ```
 Every push to `main` runs the tests and deploys to GitHub Pages.

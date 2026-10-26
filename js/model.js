@@ -42,7 +42,7 @@ export const md = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-U
 /**
  * raw: {league, rosters, users, matchups, schedule, stats: [...rows], projections: [...rows], week, players?,
  *       logs?: {pid: [{date, stats}]}  -- each starter's game log (last season + this season)}
- * myUserId: Sleeper user_id of the viewer.
+ * myUserId: Sleeper user_id of the viewer (raw.viewRosterId, if set, picks the team instead).
  * marks: {pid: "YYYY-MM-DD" | "locked" | "open"} -- the viewer's lock overrides for this week (either
  *        team): the date of the locked game ("locked" = his latest game), or "open" for not locked.
  */
@@ -166,7 +166,9 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   }
 
   // ---------------------------------------------------------------- slots
-  const myRoster = raw.rosters.find((r) => r.owner_id === myUserId || (r.co_owners || []).includes(myUserId));
+  // raw.viewRosterId: look at the week from any team's side (another matchup in the league).
+  const myRoster = (raw.viewRosterId != null && raw.rosters.find((r) => r.roster_id === raw.viewRosterId))
+    || raw.rosters.find((r) => r.owner_id === myUserId || (r.co_owners || []).includes(myUserId));
   const myMatch = myRoster && raw.matchups.find((m) => m.roster_id === myRoster.roster_id);
   const oppMatch = myMatch && raw.matchups.find((m) => m.matchup_id === myMatch.matchup_id && m.roster_id !== myMatch.roster_id);
   const userName = (rid) => {

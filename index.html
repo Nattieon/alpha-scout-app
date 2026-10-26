@@ -51,8 +51,30 @@ h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .12em; color: v
 @media (max-width: 380px) { .brand b { font-size: 19px; } .brand span { font-size: 11px; } }
 .brand b { font: 700 22px/1 var(--display); letter-spacing: .06em; }
 .brand span { font: 600 13px/1 var(--display); letter-spacing: .14em; color: var(--accent); text-transform: uppercase; }
-.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+.chip { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
 .chip:hover { border-color: var(--faint); }
+
+/* matchup switcher */
+.switcher { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 16px; }
+.sw-head { display: flex; justify-content: space-between; align-items: center; }
+.sw-head b { font: 600 20px/1 var(--display); letter-spacing: .02em; }
+.sw-sec { display: grid; gap: 8px; }
+.sw-sec h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+.sw-sec p { margin: 0; font-size: 13.5px; }
+.pairs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 8px; }
+.pair { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 6px; }
+.pair .v { align-self: center; font: 600 12px/1 var(--display); color: var(--faint); text-transform: uppercase; }
+.side, .row-btn { display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left; min-width: 0;
+  background: var(--raised); border: 1px solid transparent; border-radius: 10px; padding: 9px 11px; font-size: 14px; }
+.side span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side:hover, .row-btn:hover { border-color: var(--faint); }
+.side.on { border-color: var(--accent); }
+.rows { display: grid; gap: 6px; }
+.row-btn { width: 100%; flex-wrap: wrap; }
+.tag { font: 600 11px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.linkish { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.sw-foot { margin: 0; font-size: 13px; }
+.viewing { font-size: 13.5px; color: var(--muted); border-left: 3px solid var(--live); padding: 4px 10px; margin-bottom: 10px; }
 
 /* onboarding */
 .hero { padding-block: 40px 8px; display: grid; gap: 14px; max-width: 560px; }
@@ -158,8 +180,9 @@ label.f input, label.f select { background: var(--raised); border: 1px solid var
 <div class="wrap">
   <header class="bar">
     <a class="brand" href="./" id="home"><b>ALPHA SCOUT</b><span>Lock-In</span></a>
-    <button class="chip" id="who" hidden></button>
+    <button class="chip" id="who" hidden aria-expanded="false" aria-controls="switcher"></button>
   </header>
+  <section class="switcher" id="switcher" hidden aria-label="Switch matchup"></section>
 
   <main id="onboard" hidden>
     <section class="hero">
