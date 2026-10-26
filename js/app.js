@@ -4,6 +4,8 @@ import { openHistory } from "./history.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+/** Last name for tight spaces, skipping suffixes: "Jaren Jackson Jr." -> "Jackson". */
+const shortName = (n) => { const w = String(n || "").split(" ").filter((x) => !/^(jr|sr|ii|iii|iv|v)\.?$/i.test(x)); return w.at(-1) || n; };
 const f1 = (x) => (x === null || x === undefined || Number.isNaN(x) ? "–" : (Math.round(x * 10) / 10).toFixed(1));
 const pct = (x) => `${Math.round(x * 100)}%`;
 const ord = (q) => { const n = Math.min(99, Math.max(1, Math.round(q * 100))); const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
@@ -425,12 +427,12 @@ function renderCushion(m) {
   for (const x of m.me.slots) {
     if (x.kind === "pending" && x.call) {
       const was = b[x.i]?.call?.verdict;
-      items.push(`<span class="cu-item${was && was !== x.call.verdict ? " changed" : ""}">${esc(x.p.name.split(" ").slice(-1)[0])} <b class="${x.call.verdict === "LOCK" ? "lock" : "pass"}">${x.call.verdict}</b></span>`);
+      items.push(`<span class="cu-item${was && was !== x.call.verdict ? " changed" : ""}">${esc(shortName(x.p.name))} <b class="${x.call.verdict === "LOCK" ? "lock" : "pass"}">${x.call.verdict}</b></span>`);
     }
     if (x.tonight?.bar !== undefined && !x.tonight.final) {
       const was = b[x.i]?.tonight?.bar;
       const moved = was !== undefined && Math.abs(was - x.tonight.bar) >= 0.05;
-      items.push(`<span class="cu-item${moved ? " changed" : ""}">${esc(x.p.name.split(" ").slice(-1)[0])} lock ≥ <b class="num">${f1(x.tonight.bar)}</b>${moved ? ` <span class="muted num">(${f1(was)})</span>` : ""}</span>`);
+      items.push(`<span class="cu-item${moved ? " changed" : ""}">${esc(shortName(x.p.name))} lock ≥ <b class="num">${f1(x.tonight.bar)}</b>${moved ? ` <span class="muted num">(${f1(was)})</span>` : ""}</span>`);
     }
   }
   $("cu-effect").innerHTML = items.length ? items.join("") : `<span class="muted">No lock decisions or games tonight to move.</span>`;
@@ -561,7 +563,7 @@ const clockET = (hhmm) => { const [h, mi] = hhmm.split(":").map(Number); return 
 function planLine(s) {
   const days = [];
   s.plan.forEach((x, k) => { const last = days.at(-1); const step = { ...x, k }; if (last && last.date === x.date) last.steps.push(step); else days.push({ date: x.date, steps: [step] }); });
-  const stepText = (x) => `<b>${esc(x.name.split(" ").slice(-1)[0])}</b>${tipLabel(x)}${x.bar != null ? ` (lock ≥ ${f1(x.bar)})` : x.k === s.plan.length - 1 ? " (counts if still open)" : ""}`;
+  const stepText = (x) => `<b>${esc(shortName(x.name))}</b>${tipLabel(x)}${x.bar != null ? ` (lock ≥ ${f1(x.bar)})` : x.k === s.plan.length - 1 ? " (counts if still open)" : ""}`;
   return days.map((d) => `<div class="${d.steps.length > 1 ? "lsw" : "muted"}">${dow(d.date)}: ${d.steps.map(stepText).join('<span class="arrow"> → </span>')}</div>`).join("");
 }
 
@@ -707,7 +709,7 @@ function renderLineup(m) {
         ${availLine(s.p)}
         ${lockPicker(s)}
       </div>
-      <div class="val"><span class="state ${kind}">${s.swapIn ? `→ ${esc(s.swapIn.p.name.split(" ").slice(-1)[0])}` : STATE_LABEL[s.kind]}${s.manual ? " (you)" : ""}</span><b class="num">${f1(s.shownProj)}</b><small class="num">${sub}</small></div>
+      <div class="val"><span class="state ${kind}">${s.swapIn ? `→ ${esc(shortName(s.swapIn.p.name))}` : STATE_LABEL[s.kind]}${s.manual ? " (you)" : ""}</span><b class="num">${f1(s.shownProj)}</b><small class="num">${sub}</small></div>
     </div>`;
   });
   const bench = (side.bench || []).map((b) => `<div class="row bench">
