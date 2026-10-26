@@ -421,7 +421,7 @@ async function replay(week) {
     }
     // the actual final, for "what happened"
     wr(`${dir}/final.json`, { week: raw.week, fetched: NOW.toISOString(), source: appTotals ? appTotals.source : "sleeper public data (unreliable for Lock-In)",
-      truth, candidates, truthHash: appTotals ? hashOf(appTotals) : null, modelHash: MODEL_HASH,
+      truth, candidates, truthHash: appTotals ? hashOf(appTotals) : null, modelHash: MODEL_HASH, tipHash: weekTipHash(raw.tipoffs, weekDates),
       matchups: finalMatchups.map((m) => ({ rosterId: m.roster_id, matchupId: m.matchup_id, points: m.points, starters: m.starters, starters_points: m.starters_points })), counted });
     touchIndex(leagueId, raw.league.name, season, raw.week, "final");
     log(`${raw.league.name} w${raw.week}: replayed ${weekDates.length} nights${appTotals ? `, totals (${appTotals.source}): ${JSON.stringify(truth)}` : ""}${unknown.length ? `, ${unknown.length} slot(s) whose counted game couldn't be matched` : ""}`);
@@ -483,6 +483,8 @@ async function finals() {
   for (const w of rebuild) await replay(w);
 }
 
+/** Tip-off times for one week's dates (a replay is rebuilt when they arrive or change). */
+const weekTipHash = (tipoffs, dates) => hashOf(dates.map((d) => tipoffs?.[d] || null));
 const hashOf = (v) => crypto.createHash("sha1").update(JSON.stringify(v)).digest("hex").slice(0, 12);
 /** Rebuild any week whose app totals were added or changed since its replay was made. */
 async function truthCheck() {
@@ -490,11 +492,13 @@ async function truthCheck() {
   const season = st.league_season;
   const idx = rd("index.json", { leagues: {} });
   for (const [leagueId, L] of Object.entries(idx.leagues)) for (const w of Object.keys(L.seasons[season]?.weeks || {})) {
+    const W = L.seasons[season].weeks[w];
     const dir = weekDir(leagueId, season, Number(w));
     const t = weekTotals(dir), fin = rd(`${dir}/final.json`);
     if (!t) continue;
     if (fin?.truthHash !== hashOf(t)) { log(`w${w}: totals changed, rebuilding`); await replay(Number(w)); }
     else if (fin?.modelHash !== MODEL_HASH) { log(`w${w}: the math changed, rebuilding its replay`); await replay(Number(w)); }
+    else if (W.replay?.length && fin?.tipHash !== weekTipHash(rd(`tipoffs/${season}.json`), [...W.replay].sort())) { log(`w${w}: tip-off times changed, rebuilding its replay`); await replay(Number(w)); }
   }
 }
 
