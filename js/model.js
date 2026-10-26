@@ -332,7 +332,7 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   // team's open slots can still make (its standard deviation).
   const cushionAgainst = (theirSlots) => {
     if (!useMatchup) return 0;
-    if (c.cushion === "auto") return Math.max(0, ...theirSlots.map((x) => Math.sqrt(Math.max(x.value?.variance || 0, 0))));
+    if (c.cushion === "auto") return sdMax(theirSlots);
     return Math.max(Number(c.cushion) || 0, 0);
   };
   function decide(t, theirs, cushion, pointsOnly = false) {
@@ -405,6 +405,7 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   const evMineSlots = fullPlan(mySlots, myMatch, myRoster, true);
   const evOppSlots = fullPlan(oppSlots, oppMatch, oppRoster, !!c.oppSwaps);
   const evMine = evMineSlots.map((s) => s.value), evOpp = evOppSlots.map((s) => s.value);
+  const sdMax = (xs) => Math.max(0, ...xs.map((x) => Math.sqrt(Math.max(x.value?.variance || 0, 0))));
   const mine = prepare(mySlots, myMatch, myRoster, true);
   const opp = prepare(oppSlots, oppMatch, oppRoster, !!c.oppSwaps);
   decide(mine, evOpp, cushionAgainst(evOppSlots));
@@ -487,7 +488,7 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     week, weekDates, today, scoring, mode: useMatchup ? "win" : "ev", projBasis: c.projBasis,
     me: myMatch && { rosterId: myMatch.roster_id, name: userName(myMatch.roster_id), points: pointsOf(mySlots), sleeperPoints: myMatch.points, proj: projOf(mySlots), banked: banked(mySlots), slots: mySlots, bench: benchFor(myMatch) },
     opp: oppMatch && { rosterId: oppMatch.roster_id, name: userName(oppMatch.roster_id), points: pointsOf(oppSlots), sleeperPoints: oppMatch.points, proj: projOf(oppSlots), banked: banked(oppSlots), slots: oppSlots, bench: benchFor(oppMatch) },
-    win, cushion: mine.cushion, missingRoster: !myRoster, noMatchup: !!myRoster && !oppMatch, swaps, oppSwaps, oppSwapsModeled: !!c.oppSwaps,
+    win, cushion: mine.cushion, autoCushion: useMatchup ? sdMax(evOppSlots) : 0, missingRoster: !myRoster, noMatchup: !!myRoster && !oppMatch, swaps, oppSwaps, oppSwapsModeled: !!c.oppSwaps,
     whatIf(slot, score) {
       const others = mySlots.filter((o) => o !== slot).map((o) => o.value);
       return lockCall(score, slot.tonight?.after || slot.contGames || slot.games || [], useMatchup ? others : null, useMatchup ? theirs : null, mine.cushion);

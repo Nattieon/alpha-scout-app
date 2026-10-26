@@ -91,6 +91,25 @@ h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .12em; color: v
 .plan .lsw { font-weight: 500; }
 .plan .arrow { color: var(--faint); }
 
+/* safety cushion slider */
+.cushion { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; }
+.cu-row { display: flex; align-items: center; gap: 10px; }
+.cu-row label { white-space: nowrap; }
+.cu-row output { margin-left: auto; font: 600 18px/1 var(--display); white-space: nowrap; }
+.cushion input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 32px; background: transparent; margin: 0; touch-action: pan-y; cursor: pointer; }
+.cushion input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(to right, var(--accent) var(--fill, 0%), var(--raised) var(--fill, 0%)); }
+.cushion input[type=range]::-moz-range-track { height: 6px; border-radius: 999px; background: var(--raised); }
+.cushion input[type=range]::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--accent); }
+.cushion input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -10px; border-radius: 50%; background: var(--fg); border: 3px solid var(--accent); box-shadow: 0 1px 4px rgb(0 0 0 / .35); }
+.cushion input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--fg); border: 3px solid var(--accent); }
+.cu-scale { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: -4px; }
+.cu-effect { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; }
+.cu-item { background: var(--raised); border-radius: 8px; padding: 4px 8px; border: 1px solid transparent; transition: border-color .15s; }
+.cu-item.changed { border-color: var(--accent); }
+.cu-item .lock { color: var(--lock); } .cu-item .pass { color: var(--pass); }
+.cu-hint { margin: 0; font-size: 12.5px; }
+#cu-auto[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
 /* history */
 .history { display: grid; gap: 14px; }
 .h-head { display: flex; justify-content: space-between; align-items: center; }
@@ -246,6 +265,7 @@ label.f input, label.f select { width: 100%; min-width: 0; background: var(--rai
 
   <main id="dash" hidden>
     <section class="board" id="board"><div class="skeleton"></div></section>
+    <section class="cushion" id="cushion" hidden aria-label="Safety cushion"></section>
     <section class="section" id="decide"></section>
     <section class="section" id="swaps"></section>
     <section class="section" id="tonight"></section>
@@ -280,15 +300,6 @@ label.f input, label.f select { width: 100%; min-width: 0; background: var(--rai
             <option value="off">Don't model them (your win % reads higher)</option>
           </select>
         </label>
-        <label class="f">Safety cushion for lock calls
-          <select id="cfg-cushion">
-            <option value="0">Off: maximize the chance to win</option>
-            <option value="auto">Auto: your opponent's biggest single-slot swing</option>
-            <option value="10">10 points</option>
-            <option value="20">20 points</option>
-            <option value="30">30 points</option>
-          </select>
-        </label>
         <label class="f">League default: sits an ordinary game (%)
           <input id="cfg-base" type="number" min="0" max="30" step="1">
         </label>
@@ -303,7 +314,7 @@ label.f input, label.f select { width: 100%; min-width: 0; background: var(--rai
         resting back-to-backs (95%); it stays on until you turn it off. League defaults below fill in for players with little history.
         <b>Late swaps:</b> an open slot can change hands before every tip-off, so its plan can run through several players in tip-off order
         ("keep Markkanen's 3:30 game if it beats 47; otherwise Reed at 7"). Tip-off times come from the NBA's schedule; without them, same-day games count as simultaneous.
-        <b>Safety cushion</b> (setting): decide by the chance of winning by more than the cushion, so a lead one move could erase is played like a deficit.
+        <b>Safety cushion</b> (slider under the scoreboard): decide by the chance of winning by more than the cushion, so a lead one move could erase is played like a deficit.
         The win % shown stays the plain chance to win.
         <b>Bench swaps:</b> any open slot can go to a bench player before his next game. The app picks the best player for each open slot for the rest of the week
         (positions respected, each player used once), so a lock bar is what the slot is worth with your whole bench available, and <b>Swaps before tip-off</b>

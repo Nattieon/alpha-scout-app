@@ -304,8 +304,10 @@ function savedCfg() {
   if ((saved.cfgv || 1) < 2) delete saved.oppSwaps;   // v2: opponent swaps default to on (keeps both sides consistent)
   return saved;
 }
+let liveCushion = null;   // while the slider is being dragged
 function cfg() {
   const c = { ...DEFAULTS, ...savedCfg() };
+  if (liveCushion !== null) c.cushion = liveCushion;
   c.b2bFlags = ctx ? store.get(`b2bflags.${ctx.leagueId}`, {}) : {};
   return c;
 }
@@ -333,6 +335,7 @@ function setMark(pid, value) {
 }
 
 function rebuild() {
+  cushionBase = null;
   model = buildModel(ctx.raw, ctx.user.user_id, cfg(), getMarks());
   ctx.shownRoster = myRosterId(ctx.raw.rosters);
   render();
@@ -349,10 +352,88 @@ function render() {
   const mine = viewingMine();
   $("tab-me").textContent = mine ? "You" : m.me.name;
   $("tab-opp").textContent = mine ? "Opponent" : m.opp?.name || "Opponent";
-  renderBoard(m); renderDecide(m); renderSwaps(m); renderTonight(m); renderLineup(m);
+  renderBoard(m); renderCushion(m); renderDecide(m); renderSwaps(m); renderTonight(m); renderLineup(m);
   renderSides(m, mine);
   const c = cfg();
-  $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-opp").value = c.oppSwaps ? "on" : "off"; $("cfg-cushion").value = String(c.cushion ?? 0); $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.pairRest * 100);
+  $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-opp").value = c.oppSwaps ? "on" : "off"; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.pairRest * 100);
+}
+
+// ------------------------------------------------------------------ safety cushion slider
+// Live: every move of the slider rebuilds the model and redraws everything except the slider itself.
+// The value is saved when the slider is let go. Auto = the opponent's biggest single-slot swing.
+let cushionBase = null;   // the model with no cushion, for "what changed"
+const CU_MAX = 40;
+function renderCushion(m) {
+  const el = $("cushion");
+  if (!m.opp || m.mode !== "win") { el.hidden = true; return; }
+  el.hidden = false;
+  const saved = cfg().cushion;
+  const isAuto = saved === "auto";
+  const val = isAuto ? m.autoCushion : Number(saved) || 0;
+  if (!$("cu-range")) {
+    el.innerHTML = `
+      <div class="cu-row">
+        <label for="cu-range"><b>Safety cushion</b></label>
+        <output id="cu-out" class="num" for="cu-range"></output>
+        <button type="button" class="chip" id="cu-auto" aria-pressed="false"></button>
+      </div>
+      <input type="range" id="cu-range" min="0" max="${CU_MAX}" step="1" aria-describedby="cu-hint">
+      <div class="cu-scale num"><span>0 · best odds to win</span><span>${CU_MAX} pts</span></div>
+      <div id="cu-effect" class="cu-effect" aria-live="polite"></div>
+      <p id="cu-hint" class="cu-hint muted">Calls treat a lead smaller than the cushion as one move from gone, and play it like a deficit. The win % above stays the plain chance to win.</p>`;
+    const range = $("cu-range");
+    let raf = 0;
+    const live = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        liveCushion = Number(range.value);
+        cushionBase ||= buildModel(ctx.raw, ctx.user.user_id, { ...cfg(), cushion: 0 }, getMarks());
+        model = buildModel(ctx.raw, ctx.user.user_id, cfg(), getMarks());
+        render();
+      });
+    };
+    range.addEventListener("input", live);
+    range.addEventListener("change", () => {
+      cancelAnimationFrame(raf);
+      liveCushion = null;
+      const c = { ...DEFAULTS, ...savedCfg(), cfgv: 2, cushion: Number(range.value) };
+      delete c.b2bFlags;
+      store.set("cfg", c);
+      rebuild();
+    });
+    $("cu-auto").addEventListener("click", () => {
+      const c = { ...DEFAULTS, ...savedCfg(), cfgv: 2 };
+      delete c.b2bFlags;
+      c.cushion = c.cushion === "auto" ? Math.round(model.autoCushion) : "auto";
+      store.set("cfg", c);
+      liveCushion = null;
+      rebuild();
+    });
+  }
+  const range = $("cu-range");
+  if (document.activeElement !== range || liveCushion === null) range.value = String(Math.round(Math.min(val, CU_MAX)));
+  range.style.setProperty("--fill", `${(Math.min(val, CU_MAX) / CU_MAX) * 100}%`);
+  $("cu-out").textContent = val > 0 ? `${f1(val)} pts` : "Off";
+  const a = $("cu-auto");
+  a.textContent = `Auto · ${f1(m.autoCushion)}`;
+  a.setAttribute("aria-pressed", String(isAuto && liveCushion === null));
+  // what the cushion changes right now: decisions and tonight's lock bars, vs no cushion
+  const base = liveCushion !== null && cushionBase ? cushionBase : null;
+  const bySlot = (mm) => Object.fromEntries(mm.me.slots.map((x) => [x.i, x]));
+  const b = base ? bySlot(base) : {};
+  const items = [];
+  for (const x of m.me.slots) {
+    if (x.kind === "pending" && x.call) {
+      const was = b[x.i]?.call?.verdict;
+      items.push(`<span class="cu-item${was && was !== x.call.verdict ? " changed" : ""}">${esc(x.p.name.split(" ").slice(-1)[0])} <b class="${x.call.verdict === "LOCK" ? "lock" : "pass"}">${x.call.verdict}</b></span>`);
+    }
+    if (x.tonight?.bar !== undefined && !x.tonight.final) {
+      const was = b[x.i]?.tonight?.bar;
+      const moved = was !== undefined && Math.abs(was - x.tonight.bar) >= 0.05;
+      items.push(`<span class="cu-item${moved ? " changed" : ""}">${esc(x.p.name.split(" ").slice(-1)[0])} lock ≥ <b class="num">${f1(x.tonight.bar)}</b>${moved ? ` <span class="muted num">(${f1(was)})</span>` : ""}</span>`);
+    }
+  }
+  $("cu-effect").innerHTML = items.length ? items.join("") : `<span class="muted">No lock decisions or games tonight to move.</span>`;
 }
 
 /** "You are: [A] [B]" — which side of this matchup the calls, swaps and "your" lineup belong to. */
@@ -650,12 +731,11 @@ const saveCfg = () => {
   c.mode = $("cfg-mode").value;
   c.projBasis = $("cfg-proj").value;
   c.oppSwaps = $("cfg-opp").value === "on";
-  c.cushion = $("cfg-cushion").value === "auto" ? "auto" : Number($("cfg-cushion").value) || 0;
   c.baseDnp = Math.min(Math.max((parseFloat($("cfg-base").value) || 0) / 100, 0), 0.3);
   c.pairRest = Math.min(Math.max((parseFloat($("cfg-b2b").value) || 0) / 100, 0), 0.9);
   delete c.b2bDnp; delete c.b2bFlags;
   store.set("cfg", c); rebuild();
 };
-["cfg-mode", "cfg-proj", "cfg-opp", "cfg-cushion", "cfg-base", "cfg-b2b"].forEach((id) => $(id).addEventListener("change", saveCfg));
+["cfg-mode", "cfg-proj", "cfg-opp", "cfg-base", "cfg-b2b"].forEach((id) => $(id).addEventListener("change", saveCfg));
 
 boot();
