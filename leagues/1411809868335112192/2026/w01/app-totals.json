@@ -1,0 +1,15 @@
+{
+  "source": "Sleeper app, week 1 final, screenshot 2026-10-26 10:53am PT",
+  "teams": {
+    "7":  { "name": "Yuki bless my tank",  "points": 548.85, "proj": 446.92 },
+    "5":  { "name": "bringbackbensimmons", "points": 566.05, "proj": 405.33 },
+    "1":  { "name": "1st seed",            "points": 633.80, "proj": 447.73 },
+    "8":  { "name": "BillVu",              "points": 529.10, "proj": 422.24 },
+    "2":  { "name": "Bron Killer",         "points": 648.55, "proj": 418.08 },
+    "4":  { "name": "LeThanos",            "points": 450.60, "proj": 359.92 },
+    "3":  { "name": "Beonotbeos",          "points": 473.25, "proj": 378.38 },
+    "9":  { "name": "AI Frontier",         "points": 547.65, "proj": 413.07 },
+    "6":  { "name": "High School Team",    "points": 466.80, "proj": 380.11 },
+    "10": { "name": "Pls No More Injury",  "points": 415.40, "proj": 422.06 }
+  }
+}
