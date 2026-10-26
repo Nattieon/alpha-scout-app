@@ -3,7 +3,8 @@
 //
 //   node scripts/snapshot.mjs nightly --data <dir>          full snapshot of every matchup (after the night's games)
 //   node scripts/snapshot.mjs tick    --data <dir>          light check: lineups, transactions, injuries; full
-//                                                           snapshot only when something changed
+//                                                           snapshot only when something changed. Also re-checks last
+//                                                           week's final (Sleeper finalizes it in stages on Monday)
 //   node scripts/snapshot.mjs replay  --data <dir> --week N rebuild a finished week, night by night, from Sleeper's final data
 //
 // Leagues: every NBA league of the users in scripts/snapshot.config.json.
@@ -337,6 +338,7 @@ async function replay(week) {
 
 /** Once a week is over, store its final lineups/scores (used by History for "what happened"). */
 async function finals() {
+  const rebuild = new Set();
   const st = await S.state();
   const season = st.league_season, week = st.week || st.display_week || 1;
   const idx = rd("index.json", { leagues: {} });
@@ -347,14 +349,17 @@ async function finals() {
     const ms = await S.matchups(leagueId, Number(w), true);
     const prevFinal = rd(`${dir}/final.json`);
     const same = prevFinal && JSON.stringify(prevFinal.matchups.map((m) => m.starters_points)) === JSON.stringify(ms.map((m) => m.starters_points));
+    if (same) continue;
+    if (W.replay?.length) rebuild.add(Number(w));   // Sleeper finalizes in stages; the replay must follow the final
     wr(`${dir}/final.json`, { ...(same && prevFinal.counted ? { counted: prevFinal.counted } : {}), week: Number(w), fetched: NOW.toISOString(), matchups: ms.map((m) => ({ rosterId: m.roster_id, matchupId: m.matchup_id, points: m.points, starters: m.starters, starters_points: m.starters_points })) });
     W.final = true;
-    log(`${L.name} w${w}: final saved`);
+    log(`${L.name} w${w}: final ${prevFinal ? "changed" : "saved"}`);
   }
   wr("index.json", idx);
+  for (const w of rebuild) await replay(w);
 }
 
 if (mode === "nightly") { await nightlyOrTick("nightly"); await finals(); }
-else if (mode === "tick") await nightlyOrTick("tick");
+else if (mode === "tick") { await nightlyOrTick("tick"); await finals(); }
 else if (mode === "replay") await replay(opt("week"));
 else { console.error("usage: snapshot.mjs nightly|tick|replay --data <dir> [--week N]"); process.exit(2); }
