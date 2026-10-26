@@ -182,8 +182,9 @@ export function normalQuantile(p) {
 }
 
 /** P(my total > opponent total) for independent normal slots: [{mean, variance}]. */
-export function winProbability(mine, theirs) {
-  const M = mine.reduce((s, x) => s + x.mean, 0) - theirs.reduce((s, x) => s + x.mean, 0);
+/** P(my total beats theirs by more than `cushion`) (cushion 0: the plain win probability). */
+export function winProbability(mine, theirs, cushion = 0) {
+  const M = mine.reduce((s, x) => s + x.mean, 0) - theirs.reduce((s, x) => s + x.mean, 0) - cushion;
   const V = mine.reduce((s, x) => s + x.variance, 0) + theirs.reduce((s, x) => s + x.variance, 0);
   if (V < 1e-9) return M > 0 ? 1 : M < 0 ? 0 : 0.5;
   return Phi(M / Math.sqrt(V));
@@ -194,17 +195,27 @@ export function winProbability(mine, theirs) {
  *   score: what the just-finished game scored
  *   games: his remaining games this week
  *   others/theirs: every OTHER slot of mine, and all of the opponent's, as {mean, variance}
+ *   cushion: decide by P(win by more than this) instead of P(win)
  * Returns the points-maximizing call and, when the matchup is known, the win-maximizing one.
  */
-export function lockCall(score, games, others = null, theirs = null) {
+export function lockCall(score, games, others = null, theirs = null, cushion = 0) {
   const bar = slotValue(games);
   const ev = score >= bar ? "LOCK" : "PASS";
   const out = { bar, ev, pBelow: pFinishBelow(score, games), verdict: ev };
   if (others && theirs) {
     const pass = slotMoments(games);
-    out.winIfLock = winProbability([...others, { mean: score, variance: 0 }], theirs);
+    const lock = { mean: score, variance: 0 };
+    out.winIfLock = winProbability([...others, lock], theirs);
     out.winIfPass = winProbability([...others, pass], theirs);
-    const diff = out.winIfLock - out.winIfPass;
+    let diff = out.winIfLock - out.winIfPass;
+    if (cushion > 0) {
+      // Safety cushion: a win by less than `cushion` can be erased by one move we haven't modeled,
+      // so decide by the chance of winning by more than that.
+      out.cushion = cushion;
+      out.safeIfLock = winProbability([...others, lock], theirs, cushion);
+      out.safeIfPass = winProbability([...others, pass], theirs, cushion);
+      diff = out.safeIfLock - out.safeIfPass;
+    }
     out.verdict = Math.abs(diff) < 0.002 ? ev : diff > 0 ? "LOCK" : "PASS";
     out.matchupFlip = out.verdict !== ev;
   }

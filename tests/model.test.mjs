@@ -315,7 +315,7 @@ test("win % is the same matchup from either side: yours + theirs = 100%", () => 
     projections: [...raw.projections, withPos(proj("myBench", "AAA", 5, 30), ["PG", "SG"]), withPos(proj("oppBench", "CCC", 6, 50), ["SF", "PF"])],
   };
   const cases = [
-    [{}, {}], [{ mode: "ev" }, {}],
+    [{}, {}], [{ mode: "ev" }, {}], [{ cushion: "auto" }, {}], [{ cushion: 20 }, {}],
     [{}, { pending: "open" }], [{}, { oppHot: "open", oppCold: "locked" }], [{}, { pending: "2026-10-20" }],
   ];
   for (const [cfg, marks] of cases) {
@@ -364,4 +364,18 @@ test("score now shows locked games (as the Sleeper app does); banked never count
   const bankedSlots = m2.me.slots.filter((x) => (x.kind === "locked" && x.certain) || (x.kind === "final" && !x.swapIn));
   assert.ok(!bankedSlots.includes(fin));                           // ...and his expected score isn't banked
   assert.ok(Math.abs(m2.me.banked - bankedSlots.reduce((t, x) => t + (x.lastDone?.fp ?? x.value.mean), 0)) < 1e-9);
+});
+
+test("late swaps: a bench player tipping later the same day backs up an open slot", () => {
+  const withPos = (row, pos) => ({ ...row, player: { ...row.player, fantasy_positions: pos } });
+  const r = { ...raw,
+    matchups: raw.matchups.map((m) => (m.roster_id === 1 ? { ...m, starters: m.starters.slice(0, 5), starters_points: m.starters_points.slice(0, 5), players: [...m.starters.slice(0, 5), "benchLate"] } : m)),
+    projections: [...raw.projections, withPos(proj("benchLate", "AAA", 5, 24), ["PG", "SG", "G", "SF", "PF"])] };
+  // "fresh" (FFF) has games Fri and Sat; benchLate (AAA) plays Sat. No empty slot, so he's only a backup.
+  const noTimes = buildModel(r, "me").me.slots.find((x) => x.pid === "fresh");
+  const timed = buildModel({ ...r, tipoffs: { "2026-10-24": { FFF: "15:00", AAA: "19:30" } } }, "me").me.slots.find((x) => x.pid === "fresh");
+  assert.ok(timed.planPlayers?.includes("benchLate"));                  // Sat 3pm fresh, else benchLate at 7:30
+  assert.ok(timed.value.mean > noTimes.value.mean + 0.5);
+  const step = timed.plan.find((x) => x.who === "fresh" && x.date === "2026-10-24");
+  assert.ok(step && step.bar > 0);                                      // lock his Sat game only above the backup's value
 });

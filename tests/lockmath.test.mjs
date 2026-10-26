@@ -171,3 +171,17 @@ test("once he has played night 1, a likely rest on night 2 lowers the bar for ni
   const linked = [{ mu: 40, sigma: 12, p: 0.06 }, { mu: 40, sigma: 12, p: 0.55, pIfPrevPlayed: 0.57, pIfPrevSat: 0.03 }];
   assert.ok(lb(linked)[0] < lb(unlinked)[0] - 15);
 });
+
+test("safety cushion: a thin lead is played like a deficit", async () => {
+  const { lockCall, winProbability } = await import("../js/lockmath.js");
+  const theirs = [{ mean: 100, variance: 400 }];
+  const others = [{ mean: 95, variance: 0 }];
+  const games = [{ mu: 10, sigma: 8, p: 0.05 }];
+  assert.ok(Math.abs(winProbability([{ mean: 110, variance: 0 }], [{ mean: 100, variance: 100 }], 10) - 0.5) < 1e-9);
+  const plain = lockCall(10, games, others, theirs);
+  assert.equal(plain.verdict, "LOCK");                    // ahead by 5: protect it
+  const safe = lockCall(10, games, others, theirs, 20);
+  assert.equal(safe.verdict, "PASS");                     // ahead by less than 20: chase upside
+  assert.ok(safe.safeIfPass > safe.safeIfLock);
+  assert.equal(safe.winIfLock, plain.winIfLock);          // the plain win odds are still reported
+});

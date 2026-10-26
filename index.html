@@ -87,6 +87,11 @@ h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .12em; color: v
 .ask-btns { display: flex; gap: 8px; margin-top: 4px; }
 .ask-btns .btn { flex: 1; padding: 9px 12px; }
 
+.plan { font-size: 13.5px; line-height: 1.7; }
+.plan .step { white-space: nowrap; }
+.plan .arrow { color: var(--faint); }
+@media (max-width: 420px) { .plan .step { white-space: normal; } }
+
 /* history */
 .history { display: grid; gap: 14px; }
 .h-head { display: flex; justify-content: space-between; align-items: center; }
@@ -108,6 +113,12 @@ h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .12em; color: v
 .h-row .pill { margin-left: auto; }
 .h-card .ok { color: var(--lock); } .h-card .warn { color: var(--pass); }
 .h-ev { margin: 0; padding-left: 18px; font-size: 13.5px; display: grid; gap: 4px; }
+.h-cal { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; }
+.h-cal summary { cursor: pointer; }
+.h-cal p { margin: 8px 0; font-size: 13px; }
+.h-tab { border-collapse: collapse; width: 100%; max-width: 420px; font-size: 13.5px; }
+.h-tab th, .h-tab td { text-align: left; padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); }
+.h-tab th { color: var(--muted); font-weight: 600; }
 .sw-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .sw-actions .btn { flex: 1 1 160px; }
 
@@ -270,6 +281,15 @@ label.f input, label.f select { width: 100%; min-width: 0; background: var(--rai
             <option value="off">Don't model them (your win % reads higher)</option>
           </select>
         </label>
+        <label class="f">Safety cushion for lock calls
+          <select id="cfg-cushion">
+            <option value="0">Off: maximize the chance to win</option>
+            <option value="auto">Auto: your opponent's biggest single-slot swing</option>
+            <option value="10">10 points</option>
+            <option value="20">20 points</option>
+            <option value="30">30 points</option>
+          </select>
+        </label>
         <label class="f">League default: sits an ordinary game (%)
           <input id="cfg-base" type="number" min="0" max="30" step="1">
         </label>
@@ -282,6 +302,10 @@ label.f input, label.f select { width: 100%; min-width: 0; background: var(--rai
         back-to-back and which night, how much he has missed overall, and whether he's just back from a long absence. The two nights of a back-to-back are linked:
         once he plays night 1, a rest becomes more likely on night 2; if he sits night 1, night 2 is safe. Tap <b>Sits B2Bs?</b> on any player to mark him as
         resting back-to-backs (95%); it stays on until you turn it off. League defaults below fill in for players with little history.
+        <b>Late swaps:</b> an open slot can change hands before every tip-off, so its plan can run through several players in tip-off order
+        ("keep Markkanen's 3:30 game if it beats 47; otherwise Reed at 7"). Tip-off times come from the NBA's schedule; without them, same-day games count as simultaneous.
+        <b>Safety cushion</b> (setting): decide by the chance of winning by more than the cushion, so a lead one move could erase is played like a deficit.
+        The win % shown stays the plain chance to win.
         <b>Bench swaps:</b> any open slot can go to a bench player before his next game. The app picks the best player for each open slot for the rest of the week
         (positions respected, each player used once), so a lock bar is what the slot is worth with your whole bench available, and <b>Swaps before tip-off</b>
         lists the moves the calls assume you'll make. Your opponent gets the same treatment, so the win % is the same matchup from either side (yours + theirs = 100%).

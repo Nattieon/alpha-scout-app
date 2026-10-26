@@ -1,9 +1,10 @@
 // Turns raw Sleeper data into slot states, per-game projections and lock calls.
-import { buildShape, lockCall, percentileOf, slotMoments, slotValue, winProbability } from "./lockmath.js?v=__V__";
+import { buildShape, lockBars, lockCall, percentileOf, slotMoments, slotValue, winProbability } from "./lockmath.js?v=__V__";
 import { availabilityProfile, gameSitRisks, shiftDay } from "./availability.js?v=__V__";
 import { canFill, planSlots } from "./swaps.js?v=__V__";
+import { addBackups, chainOf } from "./chains.js?v=__V__";
 
-export const DEFAULTS = { baseDnp: 0.04, pairRest: 0.19, injuryDecay: 0.7, mode: "win", cvPrior: 0.30, projBasis: "next", oppSwaps: true, b2bFlags: {} };
+export const DEFAULTS = { baseDnp: 0.04, pairRest: 0.19, injuryDecay: 0.7, mode: "win", cvPrior: 0.30, projBasis: "next", oppSwaps: true, cushion: 0, b2bFlags: {} };
 
 // ------------------------------------------------------------------ scoring
 const BONUS = {
@@ -60,7 +61,8 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     for (const [side, other] of [["home", "away"], ["away", "home"]]) {
       const t = g[side]?.team;
       if (!t) continue;
-      (teamGames[t] ||= []).push({ date: g.date, status: g.status, opp: g[other]?.team, home: side === "home", week: g.week, id: g.game_id });
+      const tip = raw.tipoffs?.[g.date]?.[t];       // "HH:MM" Eastern, when known
+      (teamGames[t] ||= []).push({ date: g.date, status: g.status, opp: g[other]?.team, home: side === "home", week: g.week, id: g.game_id, tip: tip ? `${g.date}T${tip}` : null });
     }
   }
   for (const t in teamGames) teamGames[t].sort((a, b) => a.date.localeCompare(b.date));
@@ -162,7 +164,7 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     return fut.map((g, i) => {
       const base = g.projFp ?? (p.pBar || p.actualAvg);
       const mu = Math.max(base * p.ratio, 0);
-      return { mu, sigma: Math.max(p.cv * mu, 4), shape: p.shape, ...risks[i], date: g.date, opp: g.opp, home: g.home };
+      return { mu, sigma: Math.max(p.cv * mu, 4), shape: p.shape, ...risks[i], date: g.date, tip: g.tip || null, opp: g.opp, home: g.home, pid: p.pid };
     });
   }
 
@@ -311,37 +313,63 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
       keepScore: s.kind === "pending" ? (s.forcedPass ? null : s.score) : s.kind === "final" ? s.value.mean : null,
     }));
     const firstPlan = planSlots(planRows(), candidates);
+    // Late swaps: the slot's main player plus anyone left over, in tip-off order (chains.js).
+    const groupsFor = (rows, assign, keep = {}) => addBackups(rows.filter((r) => !keep[r.key]),
+      Object.fromEntries(rows.filter((r) => !keep[r.key]).map((r) => [r.key, assign[r.key] ? [byKey.get(assign[r.key])] : []])), candidates);
     for (const s of slots) if (s.kind === "pending") {
       const { assign } = firstPlan.openValue(s.i);
       const occ = byKey.get(assign[s.i]);
-      s.contGames = occ ? (occ.key === s.pid ? s.games : occ.games) : [];
+      const rows = planRows().map((r) => (r.key === s.i ? { ...r, keepScore: null } : r));
+      const kept = Object.fromEntries(rows.map((r) => [r.key, r.key !== s.i && r.keepScore != null && assign[r.key] === r.current && r.keepScore >= (byKey.get(r.current)?.value ?? 0)]));
+      const groups = groupsFor(rows, assign, kept);
+      s.contGames = chainOf(groups[s.i] || []);
       s.contBy = occ && occ.key !== s.pid ? occ : null;
       s.value = !s.forcedPass && s.score >= slotValue(s.contGames) ? { mean: s.score, variance: 0 } : slotMoments(s.contGames);
     }
-    return { slots, candidates, byKey, planRows };
+    return { slots, candidates, byKey, planRows, groupsFor };
   }
-  function decide(t, theirs) {
+  // Safety cushion (setting): a number of points, or "auto" = the biggest swing one of the other
+  // team's open slots can still make (its standard deviation).
+  const cushionAgainst = (theirSlots) => {
+    if (!useMatchup) return 0;
+    if (c.cushion === "auto") return Math.max(0, ...theirSlots.map((x) => Math.sqrt(Math.max(x.value?.variance || 0, 0))));
+    return Math.max(Number(c.cushion) || 0, 0);
+  };
+  function decide(t, theirs, cushion) {
+    t.cushion = cushion;
     for (const s of t.slots) {
       if (s.kind !== "pending") continue;
       const others = t.slots.filter((o) => o !== s).map((o) => o.value);
-      s.call = lockCall(s.score, s.contGames, useMatchup ? others : null, useMatchup ? theirs : null);
+      s.call = lockCall(s.score, s.contGames, useMatchup ? others : null, useMatchup ? theirs : null, cushion);
       s.bar = s.call.bar;
       s.value = s.call.verdict === "LOCK" && !s.forcedPass ? { mean: s.score, variance: 0 } : slotMoments(s.contGames);
     }
   }
   function finish(t) {
-    const { slots, candidates, byKey, planRows } = t;
+    const { slots, candidates, byKey, planRows, groupsFor } = t;
     const lockedNow = new Set(slots.filter((s) => s.kind === "pending" && s.call.verdict === "LOCK" && !s.forcedPass).map((s) => s.i));
     const lockedPlayers = new Set(slots.filter((s) => lockedNow.has(s.i)).map((s) => s.pid));
-    const plan = planSlots(planRows(lockedNow), candidates.filter((x) => !lockedPlayers.has(x.key)));
+    const free = candidates.filter((x) => !lockedPlayers.has(x.key));
+    const plan = planSlots(planRows(lockedNow), free);
+    const rows = planRows(lockedNow);
+    const groups = addBackups(rows.filter((r) => !plan.keep[r.key]),
+      Object.fromEntries(rows.filter((r) => !plan.keep[r.key]).map((r) => [r.key, plan.assign[r.key] ? [byKey.get(plan.assign[r.key])] : []])), free);
     const swaps = [];
     for (const s of slots) {
       if (!OPEN.has(s.kind) || lockedNow.has(s.i)) continue;
       const occ = byKey.get(plan.assign[s.i]) || null;
       const keepNow = plan.keep[s.i];
+      const chain = keepNow ? null : chainOf(groups[s.i] || []);
+      if (chain?.length) {
+        // the slot's plan for the rest of the week, with the score that makes each game worth locking
+        const bars = lockBars(chain);
+        s.chain = chain;
+        s.plan = chain.map((g, k) => ({ who: g.who, name: g.whoName, date: g.date, tip: g.tip, mu: g.mu, p: g.p, bar: bars[k] ?? null }));
+        s.planPlayers = [...new Set(chain.map((g) => g.who))];
+      }
       if (occ && occ.key !== s.pid) {
         s.swapIn = occ;
-        s.value = slotMoments(occ.games);
+        s.value = chain?.length ? slotMoments(chain) : slotMoments(occ.games);
         const without = s.kind === "pending" ? slotValue(s.games) : s.kind === "final" ? s.value.mean : (byKey.get(s.pid)?.value ?? 0);
         const stay = s.kind === "final" ? s.lastDone?.fp ?? 0 : s.kind === "pending" ? slotValue(s.games) : (byKey.get(s.pid)?.value ?? 0);
         const gain = occ.value - Math.max(stay, 0);
@@ -352,6 +380,8 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
         if (gain >= 1) swaps.push({ slot: s, into: occ, out: s.p || null, gain, deadline, without, keepFirst });
       } else if (keepNow && s.kind === "final") {
         s.value = { mean: s.lastDone?.fp ?? s.value.mean, variance: 0 };
+      } else if (chain?.length && s.kind !== "final") {
+        s.value = slotMoments(chain);                 // he stays, with late-swap options behind him
       } else if (!occ && s.kind !== "final") {
         s.value = { mean: 0, variance: 0 };
       }
@@ -365,8 +395,8 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   const mine = prepare(mySlots, myMatch, myRoster, true);
   const opp = prepare(oppSlots, oppMatch, oppRoster, !!c.oppSwaps);
   const evMine = mySlots.map((s) => s.value), evOpp = oppSlots.map((s) => s.value);
-  decide(mine, evOpp);
-  decide(opp, evMine);
+  decide(mine, evOpp, cushionAgainst(oppSlots));
+  decide(opp, evMine, cushionAgainst(mySlots));
   const { plan, swaps } = finish(mine);
   const { swaps: oppSwaps } = finish(opp);
   const { candidates } = mine;
@@ -383,14 +413,23 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   for (const s of mySlots) {
     const tonight = s.kind === "live" ? s.liveGame : (s.kind === "open" || s.kind === "pending") && s.games?.[0]?.date === today ? s.games[0] : null;
     if (!tonight) continue;
-    // A planned swap whose incoming player starts later: he still plays tonight, and the swap is his fallback.
-    if (s.swapIn && !(s.swapIn.games[0]?.date > today)) continue;
-    let after = s.swapIn ? s.swapIn.games : s.kind === "live" ? s.after : s.games.slice(1);
-    let afterBy = s.swapIn || null;
-    for (const x of candidates) {
-      if (s.swapIn || x.starter || usedBench.has(x.key) || !canFill(s.label, x.positions)) continue;
-      const later = x.games.filter((g) => g.date > today);
-      if (later.length && slotValue(later) > slotValue(after)) { after = later; afterBy = x; }
+    let after, afterBy = null;
+    const k = s.chain ? s.chain.findIndex((g) => g.who === s.pid && g.date === today) : -1;
+    if (k >= 0) {
+      // his game tonight is a step in the slot's plan: passing means the rest of the plan
+      after = s.chain.slice(k + 1);
+      const nextWho = after.find((g) => g.who !== s.pid)?.who;
+      afterBy = nextWho ? candidates.find((x) => x.key === nextWho) || null : null;
+    } else {
+      // A planned swap whose incoming player starts later: he still plays tonight, and the swap is his fallback.
+      if (s.swapIn && !(s.swapIn.games[0]?.date > today)) continue;
+      after = s.swapIn ? s.swapIn.games : s.kind === "live" ? s.after : s.games.slice(1);
+      afterBy = s.swapIn || null;
+      for (const x of candidates) {
+        if (s.swapIn || x.starter || usedBench.has(x.key) || !canFill(s.label, x.positions)) continue;
+        const later = x.games.filter((g) => g.date > today);
+        if (later.length && slotValue(later) > slotValue(after)) { after = later; afterBy = x; }
+      }
     }
     s.tonight = { date: today, opp: tonight.opp, after, afterBy, final: after.length === 0 };
     if (!after.length) continue;
@@ -398,7 +437,7 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     s.tonight.bar = s.tonight.evBar;
     if (useMatchup) {
       const others = mySlots.filter((o) => o !== s).map((o) => o.value);
-      s.tonight.bar = matchupBar(after, others, theirs) ?? s.tonight.evBar;
+      s.tonight.bar = matchupBar(after, others, theirs, mine.cushion) ?? s.tonight.evBar;
     }
     s.tonight.pctBar = s.p.pct(s.tonight.bar);
   }
@@ -436,10 +475,10 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     week, weekDates, today, scoring, mode: useMatchup ? "win" : "ev", projBasis: c.projBasis,
     me: myMatch && { rosterId: myMatch.roster_id, name: userName(myMatch.roster_id), points: pointsOf(mySlots), sleeperPoints: myMatch.points, proj: projOf(mySlots), banked: banked(mySlots), slots: mySlots, bench: benchFor(myMatch) },
     opp: oppMatch && { rosterId: oppMatch.roster_id, name: userName(oppMatch.roster_id), points: pointsOf(oppSlots), sleeperPoints: oppMatch.points, proj: projOf(oppSlots), banked: banked(oppSlots), slots: oppSlots, bench: benchFor(oppMatch) },
-    win, missingRoster: !myRoster, noMatchup: !!myRoster && !oppMatch, swaps, oppSwaps, oppSwapsModeled: !!c.oppSwaps,
+    win, cushion: mine.cushion, missingRoster: !myRoster, noMatchup: !!myRoster && !oppMatch, swaps, oppSwaps, oppSwapsModeled: !!c.oppSwaps,
     whatIf(slot, score) {
       const others = mySlots.filter((o) => o !== slot).map((o) => o.value);
-      return lockCall(score, slot.tonight?.after || slot.contGames || slot.games || [], useMatchup ? others : null, useMatchup ? theirs : null);
+      return lockCall(score, slot.tonight?.after || slot.contGames || slot.games || [], useMatchup ? others : null, useMatchup ? theirs : null, mine.cushion);
     },
   };
 }
@@ -459,8 +498,8 @@ export function normalizeMarks(marks) {
 }
 
 /** Lowest score worth locking when the matchup is taken into account (bisection). */
-export function matchupBar(games, others, theirs) {
-  const decide = (x) => lockCall(x, games, others, theirs);
+export function matchupBar(games, others, theirs, cushion = 0) {
+  const decide = (x) => lockCall(x, games, others, theirs, cushion);
   let lo = -10, hi = 160;
   if (decide(hi).verdict !== "LOCK") return null;
   if (decide(lo).verdict === "LOCK") return lo;

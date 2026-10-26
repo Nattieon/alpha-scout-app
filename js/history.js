@@ -27,8 +27,10 @@ export async function openHistory(el, { leagueId, mineRosterId, preferRosterId, 
   if (!L) { el.innerHTML = header() + `<p class="empty-note">No snapshots for this league yet. The scheduled job saves one every night (about 4:30am ET) and checks lineups every 30 minutes on game days.</p>`; bind(); return; }
   H.L = L;
   H.season = Object.keys(L.seasons).sort().at(-1);
-  const weeks = Object.keys(L.seasons[H.season].weeks).map(Number).sort((a, b) => a - b);
-  H.week = weeks.at(-1);
+  const W = L.seasons[H.season].weeks;
+  const has = (w) => ["nightly", "ticks", "replay"].some((k) => W[w]?.[k]?.length);
+  const weeks = Object.keys(W).map(Number).sort((a, b) => a - b);
+  H.week = [...weeks].reverse().find(has) ?? weeks.at(-1);
   await draw();
 }
 
@@ -97,7 +99,9 @@ async function draw() {
   const evs = (events || []).filter((e) => e.at > prevAt && e.at <= cur.at && (e.type !== "lineup" || rids.has(e.rosterId)));
   const evHtml = evs.length ? `<h3>Changes since the previous moment</h3><ul class="h-ev">${evs.map(eventLine).join("")}</ul>` : "";
 
+  const cal = await get("calibration.json");
   el.innerHTML = `${header()}
+    ${calibrationBox(cal)}
     <div class="h-controls">
       <label class="f">Week <select id="h-week">${weeks.map((w) => `<option value="${w}"${w === H.week ? " selected" : ""}>Week ${w}</option>`).join("")}</select></label>
       <label class="f">Matchup <select id="h-pair">${pairs.map((x) => `<option value="${x.teams[0].rosterId}"${hasSide(x, H.side) ? " selected" : ""}>${esc(x.teams.map((t) => t.name).join(" vs "))}</option>`).join("")}</select></label>
@@ -162,4 +166,14 @@ function eventLine(e) {
   if (e.type === "injury") return `<li>${when}<b>${esc(e.name)}</b> injury tag ${esc(e.from || "none")} → ${esc(e.to || "none")}</li>`;
   if (e.type === "transaction") return `<li>${when}${esc(e.kind.replace("_", " "))}: ${[...e.adds.map((a) => `${esc(a.to)} added ${esc(a.name)}`), ...e.drops.map((d) => `${esc(d.from)} dropped ${esc(d.name)}`)].join("; ")}</li>`;
   return "";
+}
+
+/** League-wide: how well the win % has held up so far (finished weeks, replayed with the current math). */
+function calibrationBox(c) {
+  if (!c || !c.nights) return "";
+  const rows = c.buckets.filter((b) => b.n).map((b) => `<tr><td>${esc(b.range)}</td><td class="num">${b.n}</td><td class="num">${pct(b.predicted)}</td><td class="num">${pct(b.actual)}</td></tr>`).join("");
+  return `<details class="h-cal"><summary>How the win % has held up · ${c.matchups} matchup${c.matchups === 1 ? "" : "s"}, ${c.weeks} week${c.weeks === 1 ? "" : "s"} · Brier ${c.brier?.toFixed(3)} <span class="muted">(coin flip 0.250, lower is better)</span></summary>
+    <p class="muted">Every night of every finished week, replayed with the current math, against how the matchup ended. The favourite's predicted chance vs how often favourites actually won:</p>
+    <table class="h-tab"><thead><tr><th>Favourite at</th><th>Nights</th><th>Predicted</th><th>Won</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="muted">${esc(c.note)}</p></details>`;
 }

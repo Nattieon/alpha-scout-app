@@ -237,7 +237,8 @@ async function load(fresh) {
     Promise.all(weeks.map((w) => S.weekStats(season, w, fresh || w === week))),
     Promise.all(weeks.map((w) => S.weekProjections(season, w, fresh || w === week))),
   ]);
-  const raw = { league, rosters, users, matchups, schedule, week, viewRosterId: ctx.rosterId, stats: statsW.flat(), projections: projW.flat(), today: todayET() };
+  const raw = { league, rosters, users, matchups, schedule, week, viewRosterId: ctx.rosterId, stats: statsW.flat(), projections: projW.flat(), today: todayET(),
+    tipoffs: await tipoffs(season) };
   // Names for rostered players who appear in no stats rows (long injuries).
   const known = new Set([...raw.stats, ...raw.projections].map((r) => r.player_id));
   const needed = matchups.flatMap((m) => m.starters || []).filter((p) => p && p !== "0" && !known.has(p));
@@ -268,6 +269,15 @@ function myMatchupId(rosters, matchups) {
   const rid = myRosterId(rosters);
   const m = matchups.find((x) => x.roster_id === rid);
   return m && m.matchup_id;
+}
+
+// Tip-off times (Eastern), saved by the snapshot job from the NBA's schedule: they let the model plan
+// same-day late swaps. Without them, same-day games are treated as simultaneous.
+let tipCache = null;
+async function tipoffs(season) {
+  tipCache ||= fetch(`https://raw.githubusercontent.com/Nattieon/alpha-scout-app/data/tipoffs/${season}.json?t=${Math.floor(Date.now() / 3.6e6)}`)
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  return tipCache;
 }
 
 const logCache = new Map();
@@ -342,7 +352,7 @@ function render() {
   renderBoard(m); renderDecide(m); renderSwaps(m); renderTonight(m); renderLineup(m);
   renderSides(m, mine);
   const c = cfg();
-  $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-opp").value = c.oppSwaps ? "on" : "off"; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.pairRest * 100);
+  $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-opp").value = c.oppSwaps ? "on" : "off"; $("cfg-cushion").value = String(c.cushion ?? 0); $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.pairRest * 100);
 }
 
 /** "You are: [A] [B]" — which side of this matchup the calls, swaps and "your" lineup belong to. */
@@ -388,7 +398,7 @@ function renderBoard(m) {
   }
   const w = m.win;
   $("board").innerHTML = `
-    <div class="board-top"><span>${esc(ctx.raw.league.name)} · Week ${m.week} · ${range}</span><span>${m.mode === "win" ? "Calls play to win this matchup" : "Calls maximize points"} · Proj = ${m.projBasis === "smart" ? "expected final" : "next-game projections"}${m.oppSwapsModeled ? " · opponent swaps modeled" : ""}</span></div>
+    <div class="board-top"><span>${esc(ctx.raw.league.name)} · Week ${m.week} · ${range}</span><span>${m.mode === "win" ? "Calls play to win this matchup" : "Calls maximize points"} · Proj = ${m.projBasis === "smart" ? "expected final" : "next-game projections"}${m.oppSwapsModeled ? " · opponent swaps modeled" : ""}${m.cushion > 0 ? ` · ${f1(m.cushion)}-pt safety cushion` : ""}</span></div>
     <div class="teams">
       <div class="team"><div class="who">${esc(m.me.name)}</div><div class="pts num">${f1(m.me.points)}</div><div class="proj num">Banked ${f1(m.me.banked)} · Proj ${f1(m.me.proj)}</div></div>
       <div class="vs">VS</div>
@@ -432,7 +442,9 @@ function renderDecide(m) {
     const c = s.call, lock = c.verdict === "LOCK";
     const g = s.lastDone;
     const viaSwap = !lock && s.contBy ? `<div class="flip">Pass and swap in <b>${esc(s.contBy.p.name)}</b> (${s.contBy.from === "bench" ? "bench" : `from ${esc(s.contBy.from)}`}, ${s.contBy.games.map((x) => dow(x.date)).join("/")}). The bar counts that swap.</div>` : "";
-    const flip = c.matchupFlip ? `<div class="flip">${lock ? "Below his bar, but locking protects your lead." : "Above his bar, but you need upside to come back."}</div>` : "";
+    const cushioned = c.cushion > 0 && (c.winIfLock >= c.winIfPass ? "LOCK" : "PASS") !== c.verdict;
+    const flip = cushioned ? `<div class="flip">Plain odds favour ${lock ? "passing" : "locking"}, but your lead is thinner than the ${f1(c.cushion)}-point safety cushion, so the call ${lock ? "locks" : "chases upside"}: win by ${f1(c.cushion)}+ ${pct(c.safeIfLock)} if you lock vs ${pct(c.safeIfPass)} if you pass.</div>`
+      : c.matchupFlip ? `<div class="flip">${lock ? "Below his bar, but locking protects your lead." : "Above his bar, but you need upside to come back."}</div>` : "";
     const winRow = c.winIfLock !== undefined ? `
       <div class="duel">
         <div class="stat"><small>Win if you lock</small><b class="num">${pct(c.winIfLock)}</b></div>
@@ -461,12 +473,26 @@ function renderDecide(m) {
   el.querySelectorAll("[data-no]").forEach((b) => (b.onclick = () => setMark(b.dataset.no, `pass:${b.dataset.date}`)));
 }
 
+const tipLabel = (g) => (g.tip ? ` ${clockET(g.tip.slice(11))}` : "");
+const clockET = (hhmm) => { const [h, mi] = hhmm.split(":").map(Number); return `${((h + 11) % 12) + 1}${mi ? `:${String(mi).padStart(2, "0")}` : ""}${h < 12 ? "am" : "pm"} ET`; };
+/** "Markkanen Sun 3:30pm ET, lock ≥ 47.2 → Reed Sun 7pm ET (counts)" */
+function planLine(s) {
+  return s.plan.map((x, k) => `<span class="step"><b>${esc(x.name)}</b> ${dow(x.date)}${tipLabel(x)}${x.bar != null ? ` · lock ≥ ${f1(x.bar)}` : k === s.plan.length - 1 ? " · counts if still open" : ""}</span>`).join('<span class="arrow"> → </span>');
+}
+
 function renderSwaps(m) {
   const el = $("swaps");
-  if (!m.swaps?.length) { el.innerHTML = ""; return; }
-  el.innerHTML = `<h2>Swaps before tip-off</h2>
-    <p class="muted" style="margin:0;font-size:13.5px">The calls and projections above assume you make these swaps in Sleeper before each player's next game.</p>
-    <div class="cards">${m.swaps.map((w) => {
+  const swapSlots = new Set((m.swaps || []).map((w) => w.slot));
+  const plans = m.me.slots.filter((s) => s.planPlayers?.length >= 2 && !swapSlots.has(s));
+  if (!m.swaps?.length && !plans.length) { el.innerHTML = ""; return; }
+  const planCards = plans.map((s) => `<article class="card swap">
+      <div class="card-head"><div><div class="pname">${esc(s.label)}: late-swap plan</div>
+        <div class="pmeta">${esc(s.p?.name || "Empty slot")} stays in; if he falls short, someone who tips off later takes the slot</div></div>
+        <span class="pill soft num">${f1(s.value.mean)}</span></div>
+      <div class="plan">${planLine(s)}</div></article>`).join("");
+  el.innerHTML = `<h2>Swaps &amp; late-swap plans</h2>
+    <p class="muted" style="margin:0;font-size:13.5px">The calls and projections above assume you make these moves in Sleeper before each player's game. Each step's "lock ≥" is the score worth keeping; below it, move to the next player.</p>
+    <div class="cards">${planCards}${(m.swaps || []).map((w) => {
       const g = w.into.games[0];
       const outLine = w.out ? `for ${esc(w.out.name)}${w.slot.kind === "final" ? ` (his week is over: ${f1(w.slot.lastDone?.fp ?? 0)})` : w.slot.kind === "none" ? " (no games left)" : ""}` : "into an empty slot";
       return `<article class="card swap">
@@ -480,6 +506,7 @@ function renderSwaps(m) {
           <div class="stat"><small>Gain</small><b class="num">+${f1(w.gain)}</b></div>
         </div>
         ${w.keepFirst?.length ? `<div class="flip">No rush: keep ${esc(w.out.name)} in for ${w.keepFirst.map((x) => dow(x.date)).join("/")}. Lock him if he scores ${f1(w.slot.tonight?.bar ?? w.into.value)}+; otherwise swap ${esc(w.into.p.name)} in before ${dow(w.deadline)}.</div>` : ""}
+        ${w.slot.planPlayers?.length >= 2 ? `<div class="plan">${planLine(w.slot)}</div>` : ""}
         <div class="why"><div>${w.into.games.map((x) => `${dow(x.date)} ${x.home ? "vs" : "@"} ${esc(x.opp)} · proj ${f1(x.mu)}`).join(" · ")}</div>
           ${whyLines(w.into.games).slice(1).map((x) => `<div>${x}</div>`).join("")}</div>
       </article>`;
@@ -619,11 +646,12 @@ const saveCfg = () => {
   c.mode = $("cfg-mode").value;
   c.projBasis = $("cfg-proj").value;
   c.oppSwaps = $("cfg-opp").value === "on";
+  c.cushion = $("cfg-cushion").value === "auto" ? "auto" : Number($("cfg-cushion").value) || 0;
   c.baseDnp = Math.min(Math.max((parseFloat($("cfg-base").value) || 0) / 100, 0), 0.3);
   c.pairRest = Math.min(Math.max((parseFloat($("cfg-b2b").value) || 0) / 100, 0), 0.9);
   delete c.b2bDnp; delete c.b2bFlags;
   store.set("cfg", c); rebuild();
 };
-["cfg-mode", "cfg-proj", "cfg-opp", "cfg-base", "cfg-b2b"].forEach((id) => $(id).addEventListener("change", saveCfg));
+["cfg-mode", "cfg-proj", "cfg-opp", "cfg-cushion", "cfg-base", "cfg-b2b"].forEach((id) => $(id).addEventListener("change", saveCfg));
 
 boot();

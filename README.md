@@ -83,6 +83,23 @@ property of the matchup: viewed from either side, the two numbers add up to 100%
 opponent's swaps can be switched off in settings (**Opponent's bench swaps**). That makes your
 side read higher, and the two sides then no longer mirror each other.
 
+**Late swaps** (`js/chains.js`). An open slot can change hands before every tip-off, so its plan for the
+rest of the week can run through several players in tip-off order: "keep Markkanen's 3:30 game if it
+beats 47; otherwise Reed at 7". It's the same lock-or-pass math, applied to one sequence of games from
+several players. Players nobody starts are handed out as backups, one slot each, wherever they add most.
+Both teams get this. Tip-off times come from the NBA's public schedule (saved by the snapshot job).
+Without them, same-day games count as simultaneous.
+
+**Safety cushion** (setting, off by default). Decide by the chance of winning by *more than* the cushion
+instead of the chance of winning, so a lead one unmodeled move could erase is played like a deficit.
+*Auto* sets it to the biggest swing one of the other team's open slots can still make. The win % shown
+is always the plain chance to win, and the two sides still add up to 100%.
+
+**Calibration.** Every finished week is replayed with the current math (rebuilt whenever the math
+changes), and each night's win % is checked against how the matchup ended. History shows the result
+(Brier score, and how often favourites at each level actually won). That's what decides whether the
+cushion should be on by default.
+
 **Win-probability mode** (the default) also uses your opponent's slots. Locked
 scores count exactly; the rest are modeled the same way. The call picks whichever
 of LOCK and PASS gives the higher chance to win the week, so with a safe lead it
@@ -108,7 +125,7 @@ Sleeper doesn't keep past lineups either. So:
 
 ## Development
 ```bash
-node --test tests/*.test.mjs        # 47 tests, no dependencies
+node --test tests/*.test.mjs        # 56 tests, no dependencies
 python3 -m http.server              # then open http://localhost:8000
 ```
 Every push to `main` runs the tests and deploys to GitHub Pages.

@@ -26,10 +26,10 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 import { execSync } from "node:child_process";
+import crypto from "node:crypto";
 import * as S from "../js/sleeper.js";
 import { buildModel, DEFAULTS, fantasyPoints, todayET } from "../js/model.js";
 import { solveCounted } from "../js/truth.js";
-import crypto from "node:crypto";
 
 const V1 = "https://api.sleeper.app/v1";
 const args = process.argv.slice(2);
@@ -39,6 +39,9 @@ const DATA = path.resolve(opt("data", "data"));
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const CONFIG = JSON.parse(fs.readFileSync(opt("config", path.join(HERE, "snapshot.config.json")), "utf8"));
 const MODEL_VERSION = (() => { try { return execSync("git rev-parse --short=7 HEAD", { cwd: HERE, stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); } catch { return "dev"; } })();
+// The math itself: replays are rebuilt whenever these files change, so they always show the current model.
+const MATH_FILES = ["model.js", "lockmath.js", "availability.js", "swaps.js", "chains.js", "truth.js"];
+const MODEL_HASH = crypto.createHash("sha1").update(MATH_FILES.map((f) => { try { return fs.readFileSync(path.join(HERE, "../js", f), "utf8"); } catch { return ""; } }).join("\n")).digest("hex").slice(0, 10);
 const NOW = opt("now") ? new Date(opt("now")) : new Date();
 
 // ------------------------------------------------------------------ files
@@ -59,9 +62,9 @@ async function getJSON(url) {
   for (let a = 0; ; a++) {
     try {
       const r = await fetch(url);
-      if (!r.ok) throw new Error(`${r.status} ${url}`);
+      if (!r.ok) { const e = new Error(`${r.status} ${url}`); e.final = r.status >= 400 && r.status < 500; throw e; }
       return await r.json();
-    } catch (e) { if (a >= 3) throw e; await new Promise((res) => setTimeout(res, 1500 * (a + 1))); }
+    } catch (e) { if (a >= 3 || e.final) throw e; await new Promise((res) => setTimeout(res, 1500 * (a + 1))); }
   }
 }
 
@@ -92,6 +95,35 @@ async function playerLogs(pids, season, { refreshCurrent }) {
   }
   await Promise.all(Array.from({ length: 6 }, worker));
   return out;
+}
+
+// ------------------------------------------------------------------ tip-off times
+// Sleeper's schedule has dates only. The NBA's public schedule has tip-off times; they let the model
+// plan same-day late swaps. Saved as {date: {TEAM: "HH:MM"}} in Eastern time.
+const TEAM_FIX = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", PHO: "PHX", WSH: "WAS", UTAH: "UTA" };
+async function saveTipoffs(season, { force = false } = {}) {
+  const f = `tipoffs/${season}.json`;
+  if (!force && rd(f)) return rd(f);
+  try {
+    const j = await getJSON("https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json");
+    const out = {};
+    let n = 0;
+    for (const d of j?.leagueSchedule?.gameDates || []) for (const g of d.games || []) {
+      const utc = g.gameDateTimeUTC, h = g.homeTeam?.teamTricode, a = g.awayTeam?.teamTricode;
+      if (!utc || !h || !a) continue;
+      const et = etStamp(new Date(utc));
+      if (et.slice(11) === "00:00") continue;                 // time not set yet
+      const day = (out[et.slice(0, 10)] ||= {});
+      day[TEAM_FIX[h] || h] = et.slice(11); day[TEAM_FIX[a] || a] = et.slice(11); n++;
+    }
+    if (!n) throw new Error("no games with times");
+    wr(f, out);
+    log(`tip-off times: ${n} games`);
+    return out;
+  } catch (e) {
+    log(`tip-off times unavailable (${e.message}): same-day games stay simultaneous`);
+    return rd(f);
+  }
 }
 
 // ------------------------------------------------------------------ official totals
@@ -133,7 +165,9 @@ async function leagueRaw(leagueId, { week, season, refreshLogs }) {
   }
   if (refreshLogs) wr(`schedule/${season}.json`, schedule);   // nightly/replay only: it's big and changes mid-game
   const logs = await playerLogs(pids, season, { refreshCurrent: refreshLogs });
+  const tipoffs = await saveTipoffs(season, { force: refreshLogs && mode === "nightly" });
   return {
+    tipoffs,
     league: { league_id: league.league_id, name: league.name, season: league.season, scoring_settings: scoring, roster_positions: league.roster_positions },
     rosters: rosters.map((r) => ({ roster_id: r.roster_id, owner_id: r.owner_id, co_owners: r.co_owners || null, reserve: r.reserve || [], players: r.players || [], standings: standingsOf(r) })),
     users: users.map((u) => ({ user_id: u.user_id, display_name: u.display_name, metadata: { team_name: u.metadata?.team_name || null } })),
@@ -154,6 +188,8 @@ function slotOut(s) {
   const games = s.contGames || s.games;
   if (games?.length) o.games = games.map((g) => ({ d: g.date, opp: g.opp, mu: r2(g.mu), p: r3(g.p) }));
   if (s.tonight?.bar !== undefined) o.tonightBar = r2(s.tonight.bar);
+  if (s.plan?.length) o.plan = s.plan.map((x) => ({ who: x.who, name: x.name, d: x.date, tip: x.tip ? x.tip.slice(11) : null, mu: r2(x.mu), bar: r2(x.bar) }));
+  if (s.call?.cushion) o.call.cushion = r2(s.call.cushion);
   if (s.p?.injury) o.injury = s.p.injury;
   return o;
 }
@@ -177,7 +213,7 @@ function runMatchups(raw, cfg, marks = {}) {
 const CFG = { ...DEFAULTS, b2bFlags: {} };
 
 function inputsOf(raw) {   // everything but the shared files (logs, season schedule)
-  const { logs, schedule, ...rest } = raw;
+  const { logs, schedule, tipoffs, ...rest } = raw;
   const weekGames = schedule.filter((g) => g.week === raw.week).map((g) => [g.game_id, g.status, g.date]);
   return { ...rest, weekGames, logPids: Object.keys(logs) };
 }
@@ -367,7 +403,7 @@ async function replay(week) {
     }
     // the actual final, for "what happened"
     wr(`${dir}/final.json`, { week: raw.week, fetched: NOW.toISOString(), source: appTotals ? appTotals.source : "sleeper public data (unreliable for Lock-In)",
-      truth, candidates, truthHash: appTotals ? hashOf(appTotals) : null,
+      truth, candidates, truthHash: appTotals ? hashOf(appTotals) : null, modelHash: MODEL_HASH,
       matchups: finalMatchups.map((m) => ({ rosterId: m.roster_id, matchupId: m.matchup_id, points: m.points, starters: m.starters, starters_points: m.starters_points })), counted });
     touchIndex(leagueId, raw.league.name, season, raw.week, "final");
     log(`${raw.league.name} w${raw.week}: replayed ${weekDates.length} nights${appTotals ? `, totals (${appTotals.source}): ${JSON.stringify(truth)}` : ""}${unknown.length ? `, ${unknown.length} slot(s) whose counted game couldn't be matched` : ""}`);
@@ -413,7 +449,7 @@ async function finals() {
         } else log(`${L.name} w${w}: standings cover it, but an earlier week's official totals are missing`);
       }
       if (!rd(`${dir}/final.json`) || (weekTotals(dir) && rd(`${dir}/final.json`)?.truthHash !== hashOf(weekTotals(dir)))) {
-        if (W.replay?.length) rebuild.add(w);
+        if (W.replay?.length || weekTotals(dir)) rebuild.add(w);       // a finished week with real totals gets a replay (calibration)
         else {   // no replay for this week: store Sleeper's final lineups (scores from the official totals)
           const ms = await S.matchups(leagueId, w, true);
           const t = weekTotals(dir);
@@ -437,12 +473,56 @@ async function truthCheck() {
   const idx = rd("index.json", { leagues: {} });
   for (const [leagueId, L] of Object.entries(idx.leagues)) for (const w of Object.keys(L.seasons[season]?.weeks || {})) {
     const dir = weekDir(leagueId, season, Number(w));
-    const t = weekTotals(dir);
-    if (t && rd(`${dir}/final.json`)?.truthHash !== hashOf(t)) { log(`w${w}: totals changed, rebuilding`); await replay(Number(w)); }
+    const t = weekTotals(dir), fin = rd(`${dir}/final.json`);
+    if (!t) continue;
+    if (fin?.truthHash !== hashOf(t)) { log(`w${w}: totals changed, rebuilding`); await replay(Number(w)); }
+    else if (fin?.modelHash !== MODEL_HASH) { log(`w${w}: the math changed, rebuilding its replay`); await replay(Number(w)); }
   }
 }
 
-if (mode === "nightly") { await nightlyOrTick("nightly"); await finals(); await truthCheck(); }
-else if (mode === "tick") { await nightlyOrTick("tick"); await finals(); await truthCheck(); }
+/** How well the win % holds up: every night of every finished week (replayed with the current math),
+ *  against how the matchup actually ended. Skips each week's last night (nothing left to predict). */
+function calibrate() {
+  const idx = rd("index.json", { leagues: {} });
+  const pts = [];   // {p: favourite's win %, y: favourite won, nightsLeft, week}
+  let weeks = 0, matchups = 0;
+  for (const [leagueId, L] of Object.entries(idx.leagues)) for (const [season, S_] of Object.entries(L.seasons)) for (const [w, W] of Object.entries(S_.weeks)) {
+    const dir = weekDir(leagueId, season, Number(w));
+    const fin = rd(`${dir}/final.json`);
+    if (!fin?.truthHash || !W.replay?.length) continue;   // only weeks whose final is known for sure
+    const pointsOf = Object.fromEntries(fin.matchups.map((m) => [m.rosterId, m.points]));
+    const nights = [...W.replay].sort();
+    weeks++;
+    nights.slice(0, -1).forEach((d, k) => {
+      const snap = rd(`${dir}/replay/${d}.json`);
+      for (const m of snap?.matchups || []) {
+        if (m.teams.length < 2 || m.win === null) continue;
+        const [a, b] = m.teams, pa = pointsOf[a.rosterId], pb = pointsOf[b.rosterId];
+        if (pa === undefined || pb === undefined || pa === pb) continue;
+        const fav = m.win >= 0.5;
+        pts.push({ p: fav ? m.win : 1 - m.win, y: (pa > pb) === fav ? 1 : 0, nightsLeft: nights.length - 1 - k, week: Number(w) });
+        if (k === 0) matchups++;
+      }
+    });
+  }
+  const mean = (xs) => (xs.length ? xs.reduce((t, x) => t + x, 0) / xs.length : null);
+  const brier = mean(pts.map((x) => (x.p - x.y) ** 2));
+  const buckets = [[0.5, 0.6], [0.6, 0.7], [0.7, 0.8], [0.8, 0.9], [0.9, 1.01]].map(([lo, hi]) => {
+    const xs = pts.filter((x) => x.p >= lo && x.p < hi);
+    return { range: `${Math.round(lo * 100)}–${Math.min(100, Math.round(hi * 100))}%`, n: xs.length, predicted: r3(mean(xs.map((x) => x.p))), actual: r3(mean(xs.map((x) => x.y))) };
+  });
+  const byNightsLeft = [...new Set(pts.map((x) => x.nightsLeft))].sort((a, b) => b - a).map((k) => {
+    const xs = pts.filter((x) => x.nightsLeft === k);
+    return { nightsLeft: k, n: xs.length, brier: r3(mean(xs.map((x) => (x.p - x.y) ** 2))), predicted: r3(mean(xs.map((x) => x.p))), actual: r3(mean(xs.map((x) => x.y))) };
+  });
+  wr("calibration.json", { updated: NOW.toISOString(), modelHash: MODEL_HASH, weeks, matchups, nights: pts.length,
+    brier: r3(brier), coinFlipBrier: 0.25, buckets, byNightsLeft,
+    note: "Each matchup counts once per night, so nights of the same matchup aren't independent; read with care until there are several weeks." });
+  log(`calibration: ${weeks} week(s), ${matchups} matchups, ${pts.length} matchup-nights, Brier ${r3(brier)}`);
+}
+
+if (mode === "nightly") { await nightlyOrTick("nightly"); await finals(); await truthCheck(); calibrate(); }
+else if (mode === "tick") { await nightlyOrTick("tick"); await finals(); await truthCheck(); calibrate(); }
+else if (mode === "calibrate") { await truthCheck(); calibrate(); }
 else if (mode === "replay") await replay(opt("week"));
 else { console.error("usage: snapshot.mjs nightly|tick|replay --data <dir> [--week N]"); process.exit(2); }
