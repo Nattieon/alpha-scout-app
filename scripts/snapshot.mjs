@@ -191,9 +191,13 @@ function injuryState(raw) {
   for (const r of raw.projections) if (want.has(r.player_id) && r.date >= raw.today) out[r.player_id] = r.player?.injury_status || null;
   return out;
 }
-function diffEvents(prev, raw, txs, at) {
+function diffEvents(prev, raw, txs, at, dump = {}) {
   const ev = [];
-  const name = (pid) => { const r = [...raw.projections, ...raw.stats].find((x) => x.player_id === pid); return r ? `${r.player.first_name} ${r.player.last_name}` : pid; };
+  const name = (pid) => {
+    const r = [...raw.projections, ...raw.stats].find((x) => x.player_id === pid);
+    const d = r?.player || raw.players?.[pid] || dump[pid];
+    return d ? `${d.first_name} ${d.last_name}` : pid;
+  };
   const team = (rid) => { const r = raw.rosters.find((x) => x.roster_id === Number(rid)); const u = raw.users.find((x) => x.user_id === r?.owner_id); return u?.metadata?.team_name || u?.display_name || `Team ${rid}`; };
   const labels = (raw.league.roster_positions || []).filter((s) => !["BN", "IR", "TAXI"].includes(s));
   const lineups = lineupState(raw), inj = injuryState(raw);
@@ -230,7 +234,11 @@ async function nightlyOrTick(kind) {
     raw.today = today;
     const txs = await getJSON(`${V1}/league/${leagueId}/transactions/${week}`).catch(() => []);
     const prev = rd(`${dir}/state.json`);
-    const { events, state } = diffEvents(prev, raw, txs, at);
+    // players in new transactions who aren't on any roster now (drops) need the full player list for a name
+    const seen = new Set(prev?.txIds || []);
+    const onRoster = new Set([...raw.projections, ...raw.stats].map((r) => r.player_id));
+    const needNames = (txs || []).some((t) => !seen.has(t.transaction_id) && Object.keys({ ...t.adds, ...t.drops }).some((p) => !onRoster.has(p)));
+    const { events, state } = diffEvents(prev, raw, txs, at, needNames ? await S.allPlayers() : {});
     if (events.length) wr(`${dir}/events.json`, [...rd(`${dir}/events.json`, []), ...events]);
     wr(`${dir}/state.json`, state);
     const meta = { at, today, week, season, league: raw.league.name, leagueId, model: MODEL_VERSION, cfg: CFG, kind };
