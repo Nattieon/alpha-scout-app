@@ -1,7 +1,7 @@
-// Late swaps. An open slot isn't tied to one player for the rest of the week: before each tip-off you
-// can put whoever you like in it, and once a game is over you lock it or move on. So a slot's plan is a
-// time-ordered sequence of games, possibly from several players ("Markkanen at 3:30; if he's under the
-// bar, Reed at 7"), played with the same lock-or-pass math as one player's games.
+// Late swaps. On a day an open slot's player plays, a bench player who tips off later that day is a
+// second chance: if the early game falls short, swap him in. So a slot's plan is a time-ordered sequence
+// of games ("Markkanen at 3:30; if he's under the bar, Reed at 7"), played with the same lock-or-pass
+// math as one player's games.
 //
 // Games tipping at the same time can't both be used (one player in the slot), and when a day's tip-off
 // times aren't known its games are treated as simultaneous: no reacting within that day.
@@ -11,18 +11,28 @@ import { gameEmax, slotValue } from "./lockmath.js?v=__V__";
 const prevDay = (d) => { const t = new Date(`${d}T12:00:00Z`); t.setUTCDate(t.getUTCDate() - 1); return t.toISOString().slice(0, 10); };
 
 /**
- * The best sequence for one slot from a group of players.
+ * One slot's plan from a group of players. The first player with games is the slot's main player and
+ * plays all his games. The others are late-swap backups: one can take the slot only on a day the main
+ * player plays and only if he tips off later that day, i.e. when the early game falls short.
  * cands: [{key, p?, games: [{date, tip?, mu, p, ...}]}]  ->  games in time order, each tagged {who, whoName}
  */
 export function chainOf(cands) {
-  const all = cands.flatMap((c) => (c.games || []).map((g) => ({ ...g, who: c.key, whoName: c.p?.name || c.key })));
-  if (!all.length) return [];
+  const k0 = cands.findIndex((c) => c.games?.length);
+  if (k0 < 0) return [];
+  const main = cands[k0];
+  const tag = (c) => (g) => ({ ...g, who: c.key, whoName: c.p?.name || c.key });
+  const mainTip = new Map(main.games.map((g) => [g.date, g.tip]));
+  const all = main.games.map(tag(main));
+  for (const c of cands.slice(k0 + 1)) for (const g of c.games || []) {
+    const t = mainTip.get(g.date);
+    if (t && g.tip && g.tip > t) all.push(tag(c)(g));
+  }
   const untimed = new Set(all.filter((g) => !g.tip).map((g) => g.date));
   const keyOf = (g) => (untimed.has(g.date) ? `${g.date}T~` : g.tip);
   const groups = new Map();
   for (const g of all) (groups.get(keyOf(g)) || groups.set(keyOf(g), []).get(keyOf(g))).push(g);
   const order = [...groups.keys()].sort();
-  // Backward: at each time, put in whoever makes the rest of the week worth most.
+  // Backward: at each time, the best of the games tipping then (two backups at the same time: one slot).
   const pick = new Array(order.length);
   let V = null;
   for (let i = order.length - 1; i >= 0; i--) {

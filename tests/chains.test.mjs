@@ -40,3 +40,10 @@ test("leftover bench players go where they add most, one slot each", () => {
   assert.deepEqual(groups.U1.map((c) => c.key), ["x", "z"]);   // z backs up the weaker slot
   assert.deepEqual(groups.U2.map((c) => c.key), ["y"]);
 });
+
+test("backups only cover the main player's days, later the same day: no streaming across days", () => {
+  const main = { key: "miller", games: [game("2026-10-26", 45, "19:00"), game("2026-10-28", 45, "19:00")] };
+  const pj = { key: "pj", games: [game("2026-10-26", 40, "19:30"), game("2026-10-27", 60, "19:00"), game("2026-10-28", 40, "18:00")] };
+  const chain = chainOf([main, pj]);
+  assert.deepEqual(chain.map((g) => `${g.who} ${g.date.slice(5)}`), ["miller 10-26", "pj 10-26", "miller 10-28"]);
+});

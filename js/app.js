@@ -475,9 +475,13 @@ function renderDecide(m) {
 
 const tipLabel = (g) => (g.tip ? ` ${clockET(g.tip.slice(11))}` : "");
 const clockET = (hhmm) => { const [h, mi] = hhmm.split(":").map(Number); return `${((h + 11) % 12) + 1}${mi ? `:${String(mi).padStart(2, "0")}` : ""}${h < 12 ? "am" : "pm"} ET`; };
-/** "Markkanen Sun 3:30pm ET, lock ≥ 47.2 → Reed Sun 7pm ET (counts)" */
+/** One line per day: "Sun: Markkanen 3:30pm ET (lock ≥ 47.2) → Reed 7pm ET (counts)". Days with a
+ *  backup come first in bold; days where only the main player plays are summarized. */
 function planLine(s) {
-  return s.plan.map((x, k) => `<span class="step"><b>${esc(x.name)}</b> ${dow(x.date)}${tipLabel(x)}${x.bar != null ? ` · lock ≥ ${f1(x.bar)}` : k === s.plan.length - 1 ? " · counts if still open" : ""}</span>`).join('<span class="arrow"> → </span>');
+  const days = [];
+  s.plan.forEach((x, k) => { const last = days.at(-1); const step = { ...x, k }; if (last && last.date === x.date) last.steps.push(step); else days.push({ date: x.date, steps: [step] }); });
+  const stepText = (x) => `<b>${esc(x.name.split(" ").slice(-1)[0])}</b>${tipLabel(x)}${x.bar != null ? ` (lock ≥ ${f1(x.bar)})` : x.k === s.plan.length - 1 ? " (counts if still open)" : ""}`;
+  return days.map((d) => `<div class="${d.steps.length > 1 ? "lsw" : "muted"}">${dow(d.date)}: ${d.steps.map(stepText).join('<span class="arrow"> → </span>')}</div>`).join("");
 }
 
 function renderSwaps(m) {
@@ -487,7 +491,7 @@ function renderSwaps(m) {
   if (!m.swaps?.length && !plans.length) { el.innerHTML = ""; return; }
   const planCards = plans.map((s) => `<article class="card swap">
       <div class="card-head"><div><div class="pname">${esc(s.label)}: late-swap plan</div>
-        <div class="pmeta">${esc(s.p?.name || "Empty slot")} stays in; if he falls short, someone who tips off later takes the slot</div></div>
+        <div class="pmeta">${esc(s.p?.name || "Empty slot")} stays in. On the days in bold, if his game falls short of the bar, swap in the next player before his later tip-off.</div></div>
         <span class="pill soft num">${f1(s.value.mean)}</span></div>
       <div class="plan">${planLine(s)}</div></article>`).join("");
   el.innerHTML = `<h2>Swaps &amp; late-swap plans</h2>
@@ -505,7 +509,7 @@ function renderSwaps(m) {
           <div class="stat"><small>Slot worth with him</small><b class="num">${f1(w.into.value)}</b></div>
           <div class="stat"><small>Gain</small><b class="num">+${f1(w.gain)}</b></div>
         </div>
-        ${w.keepFirst?.length ? `<div class="flip">No rush: keep ${esc(w.out.name)} in for ${w.keepFirst.map((x) => dow(x.date)).join("/")}. Lock him if he scores ${f1(w.slot.tonight?.bar ?? w.into.value)}+; otherwise swap ${esc(w.into.p.name)} in before ${dow(w.deadline)}.</div>` : ""}
+        ${w.keepFirst?.length && !(w.slot.planPlayers?.length >= 2) ? `<div class="flip">No rush: keep ${esc(w.out.name)} in for ${w.keepFirst.map((x) => dow(x.date)).join("/")}. Lock him if he scores ${f1(w.slot.tonight?.bar ?? w.into.value)}+; otherwise swap ${esc(w.into.p.name)} in before ${dow(w.deadline)}.</div>` : ""}
         ${w.slot.planPlayers?.length >= 2 ? `<div class="plan">${planLine(w.slot)}</div>` : ""}
         <div class="why"><div>${w.into.games.map((x) => `${dow(x.date)} ${x.home ? "vs" : "@"} ${esc(x.opp)} · proj ${f1(x.mu)}`).join(" · ")}</div>
           ${whyLines(w.into.games).slice(1).map((x) => `<div>${x}</div>`).join("")}</div>
