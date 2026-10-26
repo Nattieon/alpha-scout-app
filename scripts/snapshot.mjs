@@ -56,12 +56,14 @@ const etStamp = (d) => {   // "2026-10-26T21:37" in Eastern time
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 };
 const shift = (d, n) => { const t = new Date(`${d}T12:00:00Z`); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
-const log = (...m) => console.log(...m);
+const LOG = [];
+const log = (...m) => { console.log(...m); LOG.push(m.join(" ")); };
 
-async function getJSON(url) {
+const BROWSERISH = { "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36", Accept: "application/json, text/plain, */*" };
+async function getJSON(url, headers = {}) {
   for (let a = 0; ; a++) {
     try {
-      const r = await fetch(url);
+      const r = await fetch(url, { headers });
       if (!r.ok) { const e = new Error(`${r.status} ${url}`); e.final = r.status >= 400 && r.status < 500; throw e; }
       return await r.json();
     } catch (e) { if (a >= 3 || e.final) throw e; await new Promise((res) => setTimeout(res, 1500 * (a + 1))); }
@@ -104,26 +106,42 @@ const TEAM_FIX = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", PHO: "PHX", WSH: 
 async function saveTipoffs(season, { force = false } = {}) {
   const f = `tipoffs/${season}.json`;
   if (!force && rd(f)) return rd(f);
+  const out = { ...(rd(f) || {}) };
+  let n = 0;
+  const put = (utc, h, a) => {
+    if (!utc || !h || !a) return;
+    const et = etStamp(new Date(utc));
+    const day = (out[et.slice(0, 10)] ||= {});
+    day[TEAM_FIX[h] || h] = et.slice(11); day[TEAM_FIX[a] || a] = et.slice(11); n++;
+  };
+  // 1) the NBA's season schedule
   try {
-    const j = await getJSON("https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json");
-    const out = {};
-    let n = 0;
+    const j = await getJSON("https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json", { ...BROWSERISH, Referer: "https://www.nba.com/", Origin: "https://www.nba.com" });
     for (const d of j?.leagueSchedule?.gameDates || []) for (const g of d.games || []) {
-      const utc = g.gameDateTimeUTC, h = g.homeTeam?.teamTricode, a = g.awayTeam?.teamTricode;
-      if (!utc || !h || !a) continue;
-      const et = etStamp(new Date(utc));
-      if (et.slice(11) === "00:00") continue;                 // time not set yet
-      const day = (out[et.slice(0, 10)] ||= {});
-      day[TEAM_FIX[h] || h] = et.slice(11); day[TEAM_FIX[a] || a] = et.slice(11); n++;
+      if (/T00:00:00/.test(g.gameDateTimeEst || "")) continue;   // time not set yet
+      put(g.gameDateTimeUTC, g.homeTeam?.teamTricode, g.awayTeam?.teamTricode);
     }
-    if (!n) throw new Error("no games with times");
-    wr(f, out);
-    log(`tip-off times: ${n} games`);
-    return out;
-  } catch (e) {
-    log(`tip-off times unavailable (${e.message}): same-day games stay simultaneous`);
-    return rd(f);
+    log(`tip-off times from nba.com: ${n} games`);
+  } catch (e) { log(`nba.com schedule unavailable (${e.message})`); }
+  // 2) ESPN's scoreboard, day by day, for the next two weeks and the past week (fills gaps)
+  if (!n) {
+    const today = todayET(NOW);
+    for (let k = -7; k <= 14; k++) {
+      const d = shift(today, k).replaceAll("-", "");
+      try {
+        const j = await getJSON(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${d}`, BROWSERISH);
+        for (const ev of j?.events || []) {
+          const c = ev.competitions?.[0]?.competitors || [];
+          const home = c.find((x) => x.homeAway === "home")?.team?.abbreviation, away = c.find((x) => x.homeAway === "away")?.team?.abbreviation;
+          put(ev.date, home, away);
+        }
+      } catch (e) { if (k === -7) log(`espn scoreboard unavailable (${e.message})`); break; }
+    }
+    if (n) log(`tip-off times from espn: ${n} games`);
   }
+  if (n) { wr(f, out); return out; }
+  log("tip-off times unavailable: same-day games stay simultaneous");
+  return rd(f);
 }
 
 // ------------------------------------------------------------------ official totals
@@ -521,8 +539,9 @@ function calibrate() {
   log(`calibration: ${weeks} week(s), ${matchups} matchups, ${pts.length} matchup-nights, Brier ${r3(brier)}`);
 }
 
+process.on("exit", () => { try { wr(`runs/last-${mode}.json`, { at: NOW.toISOString(), model: MODEL_VERSION, modelHash: MODEL_HASH, log: LOG }); } catch { /* ignore */ } });
 if (mode === "nightly") { await nightlyOrTick("nightly"); await finals(); await truthCheck(); calibrate(); }
 else if (mode === "tick") { await nightlyOrTick("tick"); await finals(); await truthCheck(); calibrate(); }
-else if (mode === "calibrate") { await truthCheck(); calibrate(); }
+else if (mode === "calibrate") { await saveTipoffs((await S.state()).league_season, { force: true }); await truthCheck(); calibrate(); }
 else if (mode === "replay") await replay(opt("week"));
 else { console.error("usage: snapshot.mjs nightly|tick|replay --data <dir> [--week N]"); process.exit(2); }
