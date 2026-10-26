@@ -83,6 +83,10 @@ h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .12em; color: v
 .linkish { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
 .sw-foot { margin: 0; font-size: 13px; }
 
+.card.ask { border-color: color-mix(in srgb, var(--pass) 45%, var(--line)); }
+.ask-btns { display: flex; gap: 8px; margin-top: 4px; }
+.ask-btns .btn { flex: 1; padding: 9px 12px; }
+
 /* history */
 .history { display: grid; gap: 14px; }
 .h-head { display: flex; justify-content: space-between; align-items: center; }
@@ -290,8 +294,10 @@ label.f input, label.f select { width: 100%; min-width: 0; background: var(--rai
         Each player's spread comes from <b>his own game log</b> (last season + this one, in your league's scoring), so a boom-or-bust
         player gets a higher bar than a steady one with the same average, and every score shows its <b>percentile</b> among his recent games.
         In <b>win probability</b> mode the call can flip: with a safe lead it locks a little early to remove risk; when behind it passes to chase upside.
-        Sleeper only reveals a lock once the player's next game starts. In the lineups, every slot (yours and your opponent's) has a picker:
-        choose which game is locked, <i>Not locked</i>, or <i>Auto</i> to use what Sleeper's numbers imply (an opponent slot on Auto is assumed locked if the score beats his bar).
+        <b>Sleeper never shows locks</b> in its public data while the week is on: each slot shows the player's latest game, and locks are applied only when
+        the week is finalized (Monday morning). So for any earlier game nobody has marked, the app assumes a sensible manager: he locked the first game that beat
+        what the rest of his week was worth. That guess is made the same way for both teams. For your team it asks <i>Did you lock these?</i>; for your opponent,
+        copy his lock icons from Sleeper with the picker on each slot.
         <b>Banked</b> counts only locks that are certain or that you entered. <b>Proj</b> adds Sleeper's next-game projection for every slot that isn't locked
         (switch to expected final below); the win probability always uses the full model.
       </p>

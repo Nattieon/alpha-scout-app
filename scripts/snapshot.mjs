@@ -149,13 +149,13 @@ function teamOut(t, swaps) {
     bench: (t.bench || []).map((b) => ({ pid: b.pid, name: b.p?.name, nextProj: r2(b.nextProj) })),
     swaps: (swaps || []).map((x) => ({ slot: x.slot.label, in: x.into.key, inName: x.into.p?.name, out: x.out?.pid || null, outName: x.out?.name || null, by: x.deadline, gain: r2(x.gain) })) };
 }
-function runMatchups(raw, cfg) {
+function runMatchups(raw, cfg, marks = {}) {
   const ids = new Map();
   for (const m of raw.matchups) if (m.matchup_id) (ids.get(m.matchup_id) || ids.set(m.matchup_id, []).get(m.matchup_id)).push(m.roster_id);
   const out = [];
   for (const [mid, rids] of [...ids.entries()].sort((a, b) => a[0] - b[0])) {
     const a = Math.min(...rids);
-    const m = buildModel({ ...raw, viewRosterId: a }, null, cfg, {});
+    const m = buildModel({ ...raw, viewRosterId: a }, null, cfg, marks);
     out.push({ matchupId: mid, win: r3(m.win), mode: m.mode, teams: [teamOut(m.me, m.swaps), m.opp ? teamOut(m.opp, m.oppSwaps) : null].filter(Boolean) });
   }
   return out;
@@ -289,6 +289,22 @@ async function replay(week) {
     });
     const dir = weekDir(leagueId, season, raw.week);
     const finalMatchups = raw.matchups;
+    // The truth from the finalized week, as marks: once a lock window has closed, the slot is known
+    // to be locked on its game (or not locked through that game). The decision night itself stays open.
+    const marksFor = (D) => {
+      const mk = {};
+      for (const m of raw.matchups) (m.starters || []).forEach((pid, i) => {
+        if (!pid || pid === "0") return;
+        const dates = (teamDates[teamOf[pid]] || []).sort();
+        const doneD = dates.filter((d) => d <= D);   // his team's games so far (a DNP still closes a lock window)
+        const latest = doneD.at(-1);
+        const lockD = counted[`${m.roster_id}:${i}`];
+        const isLock = lockD && lockD !== dates.at(-1);
+        if (isLock && latest && lockD < latest) mk[pid] = lockD;
+        else { const prevDone = doneD.at(-2); if (prevDone) mk[pid] = `pass:${prevDone}`; }   // earlier, closed windows weren't locked
+      });
+      return mk;
+    };
     for (const D of weekDates) {
       const rawD = {
         ...raw, today: shift(D, 1),
@@ -296,21 +312,19 @@ async function replay(week) {
         stats: raw.stats.filter((r) => r.date <= D),
         logs: Object.fromEntries(Object.entries(raw.logs).map(([pid, l]) => [pid, l.filter((g) => g.date <= D)])),
         matchups: finalMatchups.map((m) => {
-          const sp = (m.starters || []).map((pid, i) => {
+          // what Sleeper displayed that night: his latest game he played in (locks aren't shown mid-week)
+          const sp = (m.starters || []).map((pid) => {
             if (!pid || pid === "0") return 0;
-            const lockD = counted[`${m.roster_id}:${i}`];
-            const dates = (teamDates[teamOf[pid]] || []).filter((d) => d <= D).sort();
-            if (lockD && lockD <= D) return fpOn[pid]?.[lockD] ?? 0;
-            const last = dates.at(-1);
-            return last ? fpOn[pid]?.[last] ?? 0 : 0;
+            const played = (teamDates[teamOf[pid]] || []).filter((d) => d <= D && fpOn[pid]?.[d] !== undefined).sort();
+            return played.length ? fpOn[pid][played.at(-1)] : 0;
           });
           const pp = Object.fromEntries((m.players || []).map((pid) => { const ds = (teamDates[teamOf[pid]] || []).filter((d) => d <= D).sort(); return [pid, ds.length ? fpOn[pid]?.[ds.at(-1)] ?? 0 : 0]; }));
           return { ...m, starters_points: sp, players_points: pp, points: sp.reduce((t, x) => t + x, 0) };
         }),
       };
       const snap = { at: `${shift(D, 1)}T04:30`, today: rawD.today, week: raw.week, season, league: raw.league.name, leagueId, model: MODEL_VERSION, cfg: CFG, kind: "replay",
-        caveats: ["Rebuilt from Sleeper's final lineups: mid-week lineup moves aren't known.", "Injury tags are today's, not the ones shown that night."],
-        unknownSlots: unknown, matchups: runMatchups(rawD, CFG) };
+        caveats: ["Rebuilt from Sleeper's finalized week: locks are the real ones, but mid-week lineup moves aren't known (the final lineup is assumed all week).", "Injury tags are today's, not the ones shown that night."],
+        unknownSlots: unknown, matchups: runMatchups(rawD, CFG, marksFor(D)) };
       wr(`${dir}/replay/${D}.json`, snap);
       touchIndex(leagueId, raw.league.name, season, raw.week, "replay", D);
     }
@@ -329,9 +343,11 @@ async function finals() {
   for (const [leagueId, L] of Object.entries(idx.leagues)) for (const [w, W] of Object.entries(L.seasons[season]?.weeks || {})) {
     if (Number(w) >= week) continue;
     const dir = weekDir(leagueId, season, Number(w));
-    if (rd(`${dir}/final.json`)) continue;
+    if (rd(`${dir}/final.json`) && Number(w) < week - 1) continue;   // last week's is refreshed nightly (finalization, stat corrections)
     const ms = await S.matchups(leagueId, Number(w), true);
-    wr(`${dir}/final.json`, { week: Number(w), matchups: ms.map((m) => ({ rosterId: m.roster_id, matchupId: m.matchup_id, points: m.points, starters: m.starters, starters_points: m.starters_points })) });
+    const prevFinal = rd(`${dir}/final.json`);
+    const same = prevFinal && JSON.stringify(prevFinal.matchups.map((m) => m.starters_points)) === JSON.stringify(ms.map((m) => m.starters_points));
+    wr(`${dir}/final.json`, { ...(same && prevFinal.counted ? { counted: prevFinal.counted } : {}), week: Number(w), fetched: NOW.toISOString(), matchups: ms.map((m) => ({ rosterId: m.roster_id, matchupId: m.matchup_id, points: m.points, starters: m.starters, starters_points: m.starters_points })) });
     W.final = true;
     log(`${L.name} w${w}: final saved`);
   }

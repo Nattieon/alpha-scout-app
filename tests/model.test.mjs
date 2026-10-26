@@ -33,9 +33,9 @@ const proj = (pid, team, i, pts, inj = null) => ({ player_id: pid, date: DAYS[i]
 const fp = (pts) => fantasyPoints(line(pts), SCORING);
 const stats = [
   stat("lockedEarly", "AAA", 1, 40), stat("lockedEarly", "AAA", 3, 18),     // locked Tue, played Thu
-  stat("pending", "CCC", 1, 22), stat("pending", "CCC", 2, 30),             // played Tue, Wed; plays Sun
+  stat("pending", "CCC", 1, 8), stat("pending", "CCC", 2, 30),              // played Tue (poor, not worth locking), Wed; plays Sun
   stat("final", "DDD", 3, 25),                                              // Thu then Fri (today) is last
-  stat("live", "BBB", 0, 20), stat("live", "BBB", 2, 24), stat("live", "BBB", 4, 9),   // game tonight in progress
+  stat("live", "BBB", 0, 12), stat("live", "BBB", 2, 14), stat("live", "BBB", 4, 9),   // game tonight in progress; earlier games not worth locking
   stat("oppHot", "EEE", 1, 48), stat("oppHot", "EEE", 3, 50),
   stat("oppCold", "FFF", 2, 12),
 ];
@@ -58,7 +58,8 @@ const raw = {
 test("every slot state is classified from Sleeper's numbers", () => {
   const m = buildModel(raw, "me");
   const k = Object.fromEntries(m.me.slots.map((s) => [s.pid || "empty", s]));
-  assert.equal(k.lockedEarly.kind, "locked");                    // slot shows Tue score, not Thu
+  assert.equal(k.lockedEarly.kind, "assumed-locked");            // Tue 40 beat his rest of week: a sensible manager locked it
+  assert.ok(k.lockedEarly.guess);
   assert.equal(k.lockedEarly.lockedGame.date, "2026-10-20");
   assert.equal(k.pending.kind, "pending");                       // Wed done, Sun still to come
   assert.ok(["LOCK", "PASS"].includes(k.pending.call.verdict));
@@ -106,7 +107,7 @@ test("opponent lock marks override the rational-opponent guess", () => {
   const auto = buildModel(raw, "me");
   const hot = auto.opp.slots.find((s) => s.pid === "oppHot");
   assert.equal(hot.kind, "assumed-locked");
-  assert.ok(hot.ambiguous && hot.markKey);
+  assert.ok(hot.markKey);
   const cold = auto.opp.slots.find((s) => s.pid === "oppCold");
 
   const marked = buildModel(raw, "me", {}, { [hot.markKey]: "open", [cold.markKey]: "locked" });
@@ -136,10 +137,10 @@ test("a player's own game log sets his percentiles and his bar", () => {
 });
 
 test("any earlier game can be marked as the locked one, for either team", () => {
-  // lockedEarly: Tue 40 (Sleeper shows it -> auto-detected), Thu 18.
+  // lockedEarly: Tue 40, Thu 18. Unmarked, Tue is guessed as locked (Sleeper never shows locks).
   const auto = buildModel(raw, "me");
   const le = auto.me.slots.find((x) => x.pid === "lockedEarly");
-  assert.equal(le.kind, "locked"); assert.ok(le.auto);
+  assert.equal(le.kind, "assumed-locked"); assert.ok(le.guess);
   assert.deepEqual(le.lockable.map((g) => g.date), ["2026-10-20", "2026-10-22"]);
 
   // Viewer says it was actually Thursday's game that got locked: the mark wins.
@@ -322,4 +323,23 @@ test("win % is the same matchup from either side: yours + theirs = 100%", () => 
     assert.ok(Math.abs(a.win + b.win - 1) < 1e-9, `${JSON.stringify([cfg, marks])}: ${a.win} + ${b.win}`);
     assert.ok(Math.abs(a.me.proj - b.opp.proj) < 1e-9 && Math.abs(a.opp.proj - b.me.proj) < 1e-9);
   }
+});
+
+test("Sleeper's slot score is never read as a lock (it shows his latest game until the week is finalized)", () => {
+  // final (DDD): Thu 25, Fri tonight. Sleeper shows a stale-looking number: no lock may be inferred from it.
+  const r = { ...raw, matchups: raw.matchups.map((m) => (m.roster_id === 1 ? { ...m, starters_points: m.starters_points.map((x, i) => (i === 2 ? 99 : x)) } : m)) };
+  const s = buildModel(r, "me").me.slots.find((x) => x.pid === "final");
+  assert.notEqual(s.kind, "locked");
+  assert.ok(!s.certain);
+});
+
+test("'not locked through' marks close earlier lock windows without a guess", () => {
+  const le = buildModel(raw, "me", {}, { lockedEarly: "pass:2026-10-20" }).me.slots.find((x) => x.pid === "lockedEarly");
+  assert.equal(le.kind, "pending");                      // Tue wasn't locked; Thu is the open decision
+  assert.equal(le.lastDone.date, "2026-10-22");
+  assert.equal(le.passedThrough, "2026-10-20");
+  assert.deepEqual(le.lockable.map((g) => g.date), ["2026-10-22"]);
+  // and the two sides still mirror each other
+  const a = buildModel(raw, "me", {}, { lockedEarly: "pass:2026-10-20" }), b = buildModel({ ...raw, viewRosterId: 2 }, "me", {}, { lockedEarly: "pass:2026-10-20" });
+  assert.ok(Math.abs(a.win + b.win - 1) < 1e-9);
 });

@@ -417,9 +417,18 @@ function whyLines(games) {
 
 function renderDecide(m) {
   const pend = m.me.slots.filter((s) => s.kind === "pending");
+  // Sleeper never says what you locked, so earlier games are guessed. Your side: ask.
+  const guesses = viewingMine() ? m.me.slots.filter((s) => s.kind === "assumed-locked" && s.guess) : [];
   const el = $("decide");
-  if (!pend.length) { el.innerHTML = ""; return; }
-  el.innerHTML = `<h2>Decide before his next game</h2><div class="cards">${pend.map((s) => {
+  if (!pend.length && !guesses.length) { el.innerHTML = ""; return; }
+  const ask = guesses.length ? `<h2>Did you lock these?</h2>
+    <p class="muted" style="margin:0 0 8px;font-size:13.5px">Sleeper doesn't share locks until the week is final. These scores beat what the rest of his week was worth, so the app assumes you locked them.</p>
+    <div class="cards">${guesses.map((s) => `<div class="card ask">
+      <div><b>${esc(s.p.name)}</b><div class="muted" style="font-size:13px">${esc(s.label)} · ${esc(s.p.team || "")}</div></div>
+      <div class="num">${dow(s.lockedGame.date)} ${f1(s.lockedGame.fp)}${s.pctScore != null ? ` (${ord(s.pctScore)} pct)` : ""} · rest of week was worth ${f1(s.guessBar)}</div>
+      <div class="ask-btns"><button class="btn" data-yes="${esc(s.pid)}" data-date="${esc(s.lockedGame.date)}">Yes, locked</button>
+        <button class="btn ghost" data-no="${esc(s.pid)}" data-date="${esc(s.lockedGame.date)}">No</button></div></div>`).join("")}</div>` : "";
+  el.innerHTML = `${ask}${pend.length ? `<h2>Decide before his next game</h2>` : ""}<div class="cards">${pend.map((s) => {
     const c = s.call, lock = c.verdict === "LOCK";
     const g = s.lastDone;
     const viaSwap = !lock && s.contBy ? `<div class="flip">Pass and swap in <b>${esc(s.contBy.p.name)}</b> (${s.contBy.from === "bench" ? "bench" : `from ${esc(s.contBy.from)}`}, ${s.contBy.games.map((x) => dow(x.date)).join("/")}). The bar counts that swap.</div>` : "";
@@ -448,6 +457,8 @@ function renderDecide(m) {
     </article>`;
   }).join("")}</div>`;
   el.querySelectorAll("[data-mark]").forEach((cb) => cb.addEventListener("change", () => setMark(cb.dataset.mark, cb.checked ? cb.dataset.date : null)));
+  el.querySelectorAll("[data-yes]").forEach((b) => (b.onclick = () => setMark(b.dataset.yes, b.dataset.date)));
+  el.querySelectorAll("[data-no]").forEach((b) => (b.onclick = () => setMark(b.dataset.no, `pass:${b.dataset.date}`)));
 }
 
 function renderSwaps(m) {
@@ -532,8 +543,7 @@ function availLine(p) {
 function lockPicker(s) {
   const played = (s.completed || []).filter((g) => g.played);
   if (!s.completed?.length) return "";
-  const autoText = s.kind === "locked" && s.auto ? `locked ${dow(s.lockedGame.date)}`
-    : s.kind === "assumed-locked" ? "guess: locked" : s.kind === "assumed-open" ? "guess: open"
+  const autoText = s.kind === "assumed-locked" ? `guess: locked ${dow(s.lockedGame?.date || s.lastDone?.date)}` : s.kind === "assumed-open" ? "guess: open"
     : s.kind === "final" ? "last game counts" : s.kind === "pending" ? "your call" : "not locked";
   // Two uses: recording a lock made at the time (any game, earlier ones included), or saying it isn't locked.
   // An earlier game you didn't lock is dead by rule, so "not locked" is only ever about his latest game.
@@ -543,8 +553,9 @@ function lockPicker(s) {
   const opt = (v, label) => `<option value="${esc(v)}"${cur === v ? " selected" : ""}>${esc(label)}</option>`;
   const games = played.map((g) => opt(g.date, `${dow(g.date)} · ${f1(g.fp)}${s.p.pct(g.fp) != null ? ` (${ord(s.p.pct(g.fp))} pct)` : ""}${g !== latest ? " · locked back then" : ""}`));
   const open = latest.played
-    ? [opt("open", `${dow(latest.date)} still lockable (he started)`), opt(`after:${latest.date}`, `${dow(latest.date)} was on the bench: can't lock`)]
-    : [opt("open", "Not locked")];
+    ? [opt("open", `Nothing locked · ${dow(latest.date)} still lockable`), opt(`after:${latest.date}`, `${dow(latest.date)} was on the bench: can't lock`)]
+    : [opt("open", "Nothing locked")];
+  if (cur.startsWith?.("pass:")) open.unshift(opt(cur, `Not locked through ${dow(cur.slice(5))}`));
   return `<label class="picker"><span class="sr">Lock for ${esc(s.p.name)}</span>
     <select data-pick="${esc(s.pid)}">${opt("auto", `Auto: ${autoText}`)}<optgroup label="Locked">${games.join("")}</optgroup><optgroup label="Not locked">${open.join("")}</optgroup></select></label>`;
 }

@@ -145,8 +145,9 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   }
 
   /** Remaining games as {mu, shape, p (+ linked-night fields), date, opp, why[]} for the stopping model. */
-  function futureGames(p, afterDate, offset = 0) {
-    const fut = p.games.filter((g) => g.date > afterDate && g.status === "pre_game");
+  function futureGames(p, afterDate, offset = 0, asOf = false) {
+    // asOf: every game after afterDate, finished or not, as it looked beforehand (for "would he have locked it then?")
+    const fut = p.games.filter((g) => g.date > afterDate && (asOf || g.status === "pre_game"));
     if (!fut.length) return [];
     // Did he play the day before the first remaining game? (matters if that was night 1 of a back-to-back)
     const dayBefore = shiftDay(fut[0].date, -1);
@@ -193,39 +194,48 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
       if (!pid || pid === "0") return { i, label, empty: true, value: { mean: 0, variance: 0 }, kind: "empty" };
       const p = player(pid);
       const shown = match.starters_points?.[i] ?? 0;
-      // The viewer's override for this slot this week: a game date (locked that game), "open"
-      // (not locked), or "after:DATE" (he was on the bench through DATE, so those games
-      // can't be locked and don't count for this slot).
+      // Sleeper's public data never says whether a slot is locked: during the week a slot shows the
+      // player's latest game (locks are applied only when the week is finalized). So locks come from
+      // the viewer's marks, and otherwise from a guess (below), the same for both teams.
+      //   mark = a game date (locked that game) | "locked" (his latest) | "open" (not locked so far)
+      //        | "after:DATE" (on the bench through DATE: those games can't count)
+      //        | "pass:DATE"  (not locked through DATE: those lock windows are closed)
       const mark = marks[pid];
-      const benchedThrough = typeof mark === "string" && mark.startsWith("after:") ? mark.slice(6) : null;
+      const closed = typeof mark === "string" && /^(after|pass):/.test(mark) ? mark.slice(mark.indexOf(":") + 1) : null;
+      const benchedThrough = typeof mark === "string" && mark.startsWith("after:") ? closed : null;
       const allDone = p.games.filter((g) => g.status === "complete");
-      const done = benchedThrough ? allDone.filter((g) => g.date > benchedThrough) : allDone;
+      const done = closed ? allDone.filter((g) => g.date > closed) : allDone;
       const lastDone = done[done.length - 1];
       const liveGame = p.games.find((g) => g.live);
       const nextGame = p.games.find((g) => g.status === "pre_game");
-      const near = (a, b) => a !== null && b !== null && Math.abs(a - b) < 0.011;
       const lockable = done.filter((g) => g.played);
-      const s = { i, label, pid, p, shown, liveGame, nextGame, lastDone, mark, markKey: pid, lockable, completed: allDone, benchedThrough, nextProj: nextProjection(p) };
-      const markedGame = !mark || mark === "open" || benchedThrough ? null : mark === "locked" ? lockable.at(-1) : lockable.find((g) => g.date === mark);
+      const s = { i, label, pid, p, shown, liveGame, nextGame, lastDone, mark, markKey: pid, lockable, completed: allDone, benchedThrough, passedThrough: benchedThrough ? null : closed, nextProj: nextProjection(p) };
+      const markedGame = !mark || mark === "open" || closed ? null : mark === "locked" ? lockable.at(-1) : lockable.find((g) => g.date === mark);
       const userOpen = mark === "open" || !!benchedThrough;
 
       if (markedGame) {
         Object.assign(s, { kind: "locked", certain: true, manual: true, lockedGame: markedGame, value: { mean: markedGame.fp, variance: 0 } });
         return s;
       }
-      const earlier = !userOpen && lastDone && done.slice(0, -1).find((g) => near(g.fp, shown) && !near(lastDone.fp, shown));
-      if (earlier) {
-        Object.assign(s, { kind: "locked", certain: true, auto: true, lockedGame: earlier, value: { mean: shown, variance: 0 } });
-      } else if (liveGame) {
-        const after = futureGames(p, liveGame.date, 1);
-        if (!userOpen && lastDone && near(lastDone.fp, shown) && !near(liveGame.fp ?? 0, shown) && lastDone.fp !== 0) {
-          Object.assign(s, { kind: "locked", certain: false, auto: true, lockedGame: lastDone, value: { mean: shown, variance: 0 } });
-        } else {
-          // The live game becomes a decision once it ends; model it as one more game.
-          const liveMu = Math.max((liveGame.projFp ?? p.pBar) * p.ratio, 0);
-          const games = [{ mu: liveMu, sigma: Math.max(p.cv * liveMu, 4), shape: p.shape, p: 0.02, date: liveGame.date, opp: liveGame.opp }, ...after];
-          Object.assign(s, { kind: "live", liveFp: liveGame.fp ?? 0, after, value: slotMoments(games), games });
+      // Games whose lock window has closed (his next game has started). Nobody told us whether they
+      // were locked, so assume a sensible manager: he locked the first one that beat what the rest of
+      // his week was worth at the time.
+      const closedGames = liveGame ? done : done.slice(0, -1);
+      if (mark !== "open") for (const g of closedGames) {
+        if (!g.played || !(g.fp > 0)) continue;
+        const after = futureGames(p, g.date, 0, true);
+        const bar = after.length ? slotValue(after) : 0;
+        if (after.length && g.fp >= bar) {
+          Object.assign(s, { kind: "assumed-locked", guess: true, lockedGame: g, score: g.fp, guessBar: bar, pctScore: p.pct(g.fp), value: { mean: g.fp, variance: 0 } });
+          return s;
         }
+      }
+      if (liveGame) {
+        const after = futureGames(p, liveGame.date, 1);
+        // The live game becomes a decision once it ends; model it as one more game.
+        const liveMu = Math.max((liveGame.projFp ?? p.pBar) * p.ratio, 0);
+        const games = [{ mu: liveMu, sigma: Math.max(p.cv * liveMu, 4), shape: p.shape, p: 0.02, date: liveGame.date, opp: liveGame.opp }, ...after];
+        Object.assign(s, { kind: "live", liveFp: liveGame.fp ?? 0, after, value: slotMoments(games), games });
       } else if (!lastDone) {
         const games = futureGames(p, "0000-00-00");
         Object.assign(s, { kind: games.length ? "open" : "none", games, value: slotMoments(games) });
@@ -237,7 +247,7 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
           // He sat his latest game: nobody locks a 0, the slot just stays open.
           Object.assign(s, { kind: "open", games: rem, value: slotMoments(rem) });
         } else {
-          // Ambiguous window: Sleeper shows the same number whether he's locked or open.
+          // His latest game, still lockable until his next game tips off.
           const bar = slotValue(rem);
           Object.assign(s, { ambiguous: true, score: lastDone.fp, games: rem, bar,
             pctScore: p.pct(lastDone.fp), pctBar: p.pct(bar) });

@@ -90,32 +90,25 @@ locks a bit early, and when behind it chases upside. The rule was picked by a Mo
 Carlo bake-off of seven strategies; details are in the Alpha Scout repo.
 
 ## What Sleeper doesn't tell us
-Sleeper reports each slot's current score, not whether it's locked:
+Sleeper's public data **never shows locks while the week is on**. Each slot shows the player's
+latest game, and locks are applied only when Sleeper finalizes the week (Monday morning ET).
+Sleeper doesn't keep past lineups either. So:
 
-- If a slot shows an **earlier** game's score, it's locked. The app detects that.
-- If it shows his **latest** game, it's ambiguous until his next game starts.
-- Every slot on both lineups has a picker. By the rules, only a player's **latest** game can
-  still be locked. An earlier game counts only if you locked it before his next game, so the
-  picker has two jobs:
-  - **Locked:** record a lock made at the time. Any completed game can be picked, which
-    lets you catch up after the fact, or copy your opponent's lock icons from Sleeper.
-  - **Not locked:** about his latest game. Either *he started, still lockable* (the app makes
-    the call), or *on my bench, can't lock*. Sleeper doesn't keep past lineups, so a game
-    played from your bench looks lockable until you say so. The "He wasn't in my starting
-    lineup" box on his card does the same.
-  - **Auto** uses what Sleeper's numbers imply. An opponent's score above his bar is
-    assumed locked.
-- **Banked** counts only certain locks and the ones you entered.
-- **Proj** (top) counts locked slots at their score. Every other slot counts
-  Sleeper's projection for his next game, in your scoring. Settings can switch this
-  to the expected final, which includes future locks and sit risk. The win
-  probability always uses the full model.
-- **Bench** players are listed under each lineup with their games and next-game
-  projection, which helps with swaps.
+- **Earlier games nobody marked are guessed, the same way for both teams.** A sensible manager
+  locked the first game that beat what the rest of his week was worth at the time. On your side
+  the app asks **Did you lock these?** (Yes / No). For your opponent, copy his lock icons from the
+  Sleeper app with the picker on his slot.
+- **The picker** on every slot (both lineups) records a lock on any completed game. It can also
+  say *Nothing locked* (his latest game is still your call), *Not locked through* a day, or that
+  his latest game was played from the **bench** and can't count.
+- **Banked** counts only locks you entered. **Proj** (top) counts locked slots at their score, and
+  every other slot at Sleeper's projection for his next game, in your scoring. Settings can switch
+  this to the expected final. The win probability always uses the full model.
+- **Bench** players are listed under each lineup with their games and next-game projection.
 
 ## Development
 ```bash
-node --test tests/*.test.mjs        # 45 tests, no dependencies
+node --test tests/*.test.mjs        # 47 tests, no dependencies
 python3 -m http.server              # then open http://localhost:8000
 ```
 Every push to `main` runs the tests and deploys to GitHub Pages.
