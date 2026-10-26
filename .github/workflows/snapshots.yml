@@ -1,0 +1,60 @@
+name: Snapshots
+
+# Saves what the app would show, for every matchup in the configured leagues, to the `data` branch.
+#  - nightly, ~4:37am ET (3:37am in winter): every decision point of the day, full inputs + outputs
+#  - every 30 min, ~11am-1:40am ET: lineups, transactions and injury tags; a full snapshot only when something changed
+# GitHub may start scheduled runs late or skip one when it's busy; odd minutes help.
+on:
+  schedule:
+    - cron: "37 8 * * *"
+    - cron: "7,37 15-23 * * *"
+    - cron: "7,37 0-5 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "nightly, tick, or replay"
+        required: true
+        default: "tick"
+      week:
+        description: "week to replay (replay only)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapshots
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: app
+      - name: Check out the data branch
+        run: |
+          git clone --depth 1 --branch data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Pick mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then m="${{ inputs.mode }}";
+          elif [ "${{ github.event.schedule }}" = "37 8 * * *" ]; then m=nightly; else m=tick; fi
+          echo "mode=$m" >> "$GITHUB_OUTPUT"
+      - name: Snapshot
+        run: node app/scripts/snapshot.mjs ${{ steps.mode.outputs.mode }} --data data ${{ inputs.week && format('--week {0}', inputs.week) || '' }}
+      - name: Save
+        working-directory: data
+        run: |
+          git config user.name "alpha-scout-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
+          git commit -q -m "${{ steps.mode.outputs.mode }} $(TZ=America/New_York date '+%Y-%m-%d %H:%M') ET"
+          for i in 1 2 3; do git push -q origin data && exit 0; git pull -q --rebase origin data; done
+          exit 1

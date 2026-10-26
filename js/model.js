@@ -32,8 +32,8 @@ export function fantasyPoints(stats, scoring, { projected = false } = {}) {
 }
 
 // ------------------------------------------------------------------ dates
-export function todayET() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
+export function todayET(at = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(at);
 }
 export const dow = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
 export const md = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
