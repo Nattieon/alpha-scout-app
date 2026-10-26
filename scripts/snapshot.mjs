@@ -3,8 +3,8 @@
 //
 //   node scripts/snapshot.mjs nightly --data <dir>          full snapshot of every matchup (after the night's games)
 //   node scripts/snapshot.mjs tick    --data <dir>          light check: lineups, transactions, injuries; full
-//                                                           snapshot only when something changed. Also re-checks last
-//                                                           week's final (Sleeper finalizes it in stages on Monday)
+//                                                           snapshot only when something changed. Rebuilds a week when
+//                                                           its app-totals.json (the Sleeper app's final numbers) changes
 //   node scripts/snapshot.mjs replay  --data <dir> --week N rebuild a finished week, night by night, from Sleeper's final data
 //
 // Leagues: every NBA league of the users in scripts/snapshot.config.json.
@@ -19,12 +19,17 @@
 //     events.json                                     lineup moves, injury changes, transactions, with times
 //     state.json                                      last-seen lineups/injuries/transactions (for diffs)
 //     replay/{date}.json                              a finished week rebuilt from final data (lower fidelity)
+//     app-totals.json                                 the Sleeper app's final numbers, {teams: {rosterId: {points, proj}}}:
+//                                                     Sleeper's public final is unreliable for Lock-In, these decide
+//                                                     which game counted in each slot
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 import { execSync } from "node:child_process";
 import * as S from "../js/sleeper.js";
 import { buildModel, DEFAULTS, fantasyPoints, todayET } from "../js/model.js";
+import { solveCounted } from "../js/truth.js";
+import crypto from "node:crypto";
 
 const V1 = "https://api.sleeper.app/v1";
 const args = process.argv.slice(2);
@@ -289,7 +294,29 @@ async function replay(week) {
       if (!d && final !== 0) unknown.push({ rosterId: m.roster_id, slot: i, pid, final });
     });
     const dir = weekDir(leagueId, season, raw.week);
-    const finalMatchups = raw.matchups;
+    // The Sleeper app's own totals (score + projection per team), when someone has entered them:
+    // they decide which game counted in each slot. Sleeper's public final is only a fallback.
+    const appTotals = rd(`${dir}/app-totals.json`);
+    const truth = {};
+    if (appTotals) {
+      const pjOn = {};
+      for (const r of raw.projections) (pjOn[r.player_id] ||= {})[r.date] = fantasyPoints(r.stats, scoring, { projected: true }) || 0;
+      for (const m of raw.matchups) {
+        const t = appTotals.teams?.[m.roster_id];
+        if (!t) continue;
+        const slots = (m.starters || []).map((pid, i) => ({ key: `${m.roster_id}:${i}`,
+          games: pid && pid !== "0" ? (teamDates[teamOf[pid]] || []).sort().map((d) => ({ date: d, fp: fpOn[pid]?.[d] ?? 0, pj: pjOn[pid]?.[d] ?? 0 })) : [] }));
+        const sols = solveCounted(slots, t, { limit: 3 });
+        truth[m.roster_id] = sols.length === 1 ? "solved" : sols.length ? "ambiguous" : "no match";
+        if (sols.length === 1) Object.assign(counted, sols[0]);
+      }
+    }
+    const finalMatchups = raw.matchups.map((m) => {
+      const t = appTotals?.teams?.[m.roster_id];
+      if (!t) return m;
+      const sp = (m.starters || []).map((pid, i) => { const d = counted[`${m.roster_id}:${i}`]; return d ? fpOn[pid]?.[d] ?? 0 : 0; });
+      return { ...m, points: t.points, starters_points: truth[m.roster_id] === "solved" ? sp : m.starters_points };
+    });
     // The truth from the finalized week, as marks: once a lock window has closed, the slot is known
     // to be locked on its game (or not locked through that game). The decision night itself stays open.
     const marksFor = (D) => {
@@ -330,9 +357,11 @@ async function replay(week) {
       touchIndex(leagueId, raw.league.name, season, raw.week, "replay", D);
     }
     // the actual final, for "what happened"
-    wr(`${dir}/final.json`, { week: raw.week, matchups: finalMatchups.map((m) => ({ rosterId: m.roster_id, matchupId: m.matchup_id, points: m.points, starters: m.starters, starters_points: m.starters_points })), counted });
+    wr(`${dir}/final.json`, { week: raw.week, fetched: NOW.toISOString(), source: appTotals ? "sleeper app totals" : "sleeper public data (unreliable for Lock-In)",
+      truth, truthHash: appTotals ? hashOf(appTotals) : null,
+      matchups: finalMatchups.map((m) => ({ rosterId: m.roster_id, matchupId: m.matchup_id, points: m.points, starters: m.starters, starters_points: m.starters_points })), counted });
     touchIndex(leagueId, raw.league.name, season, raw.week, "final");
-    log(`${raw.league.name} w${raw.week}: replayed ${weekDates.length} nights${unknown.length ? `, ${unknown.length} slot(s) whose counted game couldn't be matched` : ""}`);
+    log(`${raw.league.name} w${raw.week}: replayed ${weekDates.length} nights${appTotals ? `, app totals: ${JSON.stringify(truth)}` : ""}${unknown.length ? `, ${unknown.length} slot(s) whose counted game couldn't be matched` : ""}`);
   }
 }
 
@@ -345,6 +374,7 @@ async function finals() {
   for (const [leagueId, L] of Object.entries(idx.leagues)) for (const [w, W] of Object.entries(L.seasons[season]?.weeks || {})) {
     if (Number(w) >= week) continue;
     const dir = weekDir(leagueId, season, Number(w));
+    if (rd(`${dir}/app-totals.json`)) continue;                       // the Sleeper app's totals are the truth
     if (rd(`${dir}/final.json`) && Number(w) < week - 1) continue;   // last week's is refreshed nightly (finalization, stat corrections)
     const ms = await S.matchups(leagueId, Number(w), true);
     const prevFinal = rd(`${dir}/final.json`);
@@ -359,7 +389,20 @@ async function finals() {
   for (const w of rebuild) await replay(w);
 }
 
-if (mode === "nightly") { await nightlyOrTick("nightly"); await finals(); }
-else if (mode === "tick") { await nightlyOrTick("tick"); await finals(); }
+const hashOf = (v) => crypto.createHash("sha1").update(JSON.stringify(v)).digest("hex").slice(0, 12);
+/** Rebuild any week whose app totals were added or changed since its replay was made. */
+async function truthCheck() {
+  const st = await S.state();
+  const season = st.league_season;
+  const idx = rd("index.json", { leagues: {} });
+  for (const [leagueId, L] of Object.entries(idx.leagues)) for (const w of Object.keys(L.seasons[season]?.weeks || {})) {
+    const dir = weekDir(leagueId, season, Number(w));
+    const t = rd(`${dir}/app-totals.json`);
+    if (t && rd(`${dir}/final.json`)?.truthHash !== hashOf(t)) { log(`w${w}: app totals changed, rebuilding`); await replay(Number(w)); }
+  }
+}
+
+if (mode === "nightly") { await nightlyOrTick("nightly"); await finals(); await truthCheck(); }
+else if (mode === "tick") { await nightlyOrTick("tick"); await truthCheck(); }
 else if (mode === "replay") await replay(opt("week"));
 else { console.error("usage: snapshot.mjs nightly|tick|replay --data <dir> [--week N]"); process.exit(2); }

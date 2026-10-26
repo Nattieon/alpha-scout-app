@@ -77,7 +77,8 @@ async function draw() {
   let finalLine = "";
   if (final) {
     const fa = final.matchups.find((x) => x.rosterId === me.rosterId), fb = final.matchups.find((x) => x.rosterId === them?.rosterId);
-    if (fa && fb) finalLine = `<div class="h-final ${fa.points > fb.points ? "won" : "lost"}">Final: <b>${esc(me.name)} ${f1(fa.points)}</b> – ${f1(fb.points)} ${esc(them.name)} · ${fa.points > fb.points ? "won" : fa.points < fb.points ? "lost" : "tied"}</div>`;
+    if (fa && fb) finalLine = `<div class="h-final ${fa.points > fb.points ? "won" : "lost"}">Final: <b>${esc(me.name)} ${f1(fa.points)}</b> – ${f1(fb.points)} ${esc(them.name)} · ${fa.points > fb.points ? "won" : fa.points < fb.points ? "lost" : "tied"}
+      ${final.truthHash ? "" : `<div class="muted" style="font-size:12.5px;margin-top:2px">From Sleeper's public data, which is unreliable for Lock-In until the Sleeper app's final numbers are added.</div>`}</div>`;
   }
   // win % through the week
   const strip = ok.map((m) => {
