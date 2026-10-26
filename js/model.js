@@ -335,12 +335,13 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     if (c.cushion === "auto") return Math.max(0, ...theirSlots.map((x) => Math.sqrt(Math.max(x.value?.variance || 0, 0))));
     return Math.max(Number(c.cushion) || 0, 0);
   };
-  function decide(t, theirs, cushion) {
+  function decide(t, theirs, cushion, pointsOnly = false) {
     t.cushion = cushion;
     for (const s of t.slots) {
       if (s.kind !== "pending") continue;
       const others = t.slots.filter((o) => o !== s).map((o) => o.value);
-      s.call = lockCall(s.score, s.contGames, useMatchup ? others : null, useMatchup ? theirs : null, cushion);
+      const vs = useMatchup && !pointsOnly && theirs;
+      s.call = lockCall(s.score, s.contGames, vs ? others : null, vs ? theirs : null, cushion);
       s.bar = s.call.bar;
       s.value = s.call.verdict === "LOCK" && !s.forcedPass ? { mean: s.score, variance: 0 } : slotMoments(s.contGames);
     }
@@ -392,11 +393,22 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
 
   // Opponent bench swaps are a setting (on by default). Turned off, his bench is ignored and
   // the two sides no longer mirror each other exactly.
+  // Each team's full plan when it simply maximizes points (locks, swaps, late swaps): the other team's
+  // win-aware calls are made against this, not against a team that never swaps.
+  const fullPlan = (slots, match, roster, bench) => {
+    const clone = slots.map((s) => ({ ...s }));
+    const t = prepare(clone, match, roster, bench);
+    decide(t, null, 0, true);
+    finish(t);
+    return clone;
+  };
+  const evMineSlots = fullPlan(mySlots, myMatch, myRoster, true);
+  const evOppSlots = fullPlan(oppSlots, oppMatch, oppRoster, !!c.oppSwaps);
+  const evMine = evMineSlots.map((s) => s.value), evOpp = evOppSlots.map((s) => s.value);
   const mine = prepare(mySlots, myMatch, myRoster, true);
   const opp = prepare(oppSlots, oppMatch, oppRoster, !!c.oppSwaps);
-  const evMine = mySlots.map((s) => s.value), evOpp = oppSlots.map((s) => s.value);
-  decide(mine, evOpp, cushionAgainst(oppSlots));
-  decide(opp, evMine, cushionAgainst(mySlots));
+  decide(mine, evOpp, cushionAgainst(evOppSlots));
+  decide(opp, evMine, cushionAgainst(evMineSlots));
   const { plan, swaps } = finish(mine);
   const { swaps: oppSwaps } = finish(opp);
   const { candidates } = mine;
