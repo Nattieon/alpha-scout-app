@@ -276,8 +276,13 @@ async function loadLogs(pids, season, fresh) {
   return out;
 }
 
+function savedCfg() {
+  const saved = store.get("cfg", {});
+  if ((saved.cfgv || 1) < 2) delete saved.oppSwaps;   // v2: opponent swaps default to on (keeps both sides consistent)
+  return saved;
+}
 function cfg() {
-  const c = { ...DEFAULTS, ...store.get("cfg", {}) };
+  const c = { ...DEFAULTS, ...savedCfg() };
   c.b2bFlags = ctx ? store.get(`b2bflags.${ctx.leagueId}`, {}) : {};
   return c;
 }
@@ -586,7 +591,7 @@ $("tab-me").addEventListener("click", () => { view = "me"; renderLineup(model); 
 $("tab-opp").addEventListener("click", () => { view = "opp"; renderLineup(model); });
 $("refresh").addEventListener("click", async () => { $("refresh").textContent = "Refreshing…"; try { await load(true); } finally { $("refresh").textContent = "Refresh"; } });
 const saveCfg = () => {
-  const c = { ...DEFAULTS, ...store.get("cfg", {}) };
+  const c = { ...DEFAULTS, ...savedCfg(), cfgv: 2 };
   c.mode = $("cfg-mode").value;
   c.projBasis = $("cfg-proj").value;
   c.oppSwaps = $("cfg-opp").value === "on";

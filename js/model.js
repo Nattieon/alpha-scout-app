@@ -3,7 +3,7 @@ import { buildShape, lockCall, percentileOf, slotMoments, slotValue, winProbabil
 import { availabilityProfile, gameSitRisks, shiftDay } from "./availability.js?v=__V__";
 import { canFill, planSlots } from "./swaps.js?v=__V__";
 
-export const DEFAULTS = { baseDnp: 0.04, pairRest: 0.19, injuryDecay: 0.7, mode: "win", cvPrior: 0.30, projBasis: "next", oppSwaps: false, b2bFlags: {} };
+export const DEFAULTS = { baseDnp: 0.04, pairRest: 0.19, injuryDecay: 0.7, mode: "win", cvPrior: 0.30, projBasis: "next", oppSwaps: true, b2bFlags: {} };
 
 // ------------------------------------------------------------------ scoring
 const BONUS = {
@@ -186,7 +186,7 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     return g.projectedOut ? 0 : (p.pBar || p.actualAvg || 0);
   }
 
-  function slotsFor(match, mine) {
+  function slotsFor(match) {
     if (!match) return [];
     return match.starters.map((pid, i) => {
       const label = slotLabels[i] || "UTIL";
@@ -241,15 +241,9 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
           const bar = slotValue(rem);
           Object.assign(s, { ambiguous: true, score: lastDone.fp, games: rem, bar,
             pctScore: p.pct(lastDone.fp), pctBar: p.pct(bar) });
-          if (mine) {
-            Object.assign(s, { kind: "pending", value: slotMoments(rem) });
-          } else if (userOpen) {
-            Object.assign(s, { kind: "open", manual: true, value: slotMoments(rem) });
-          } else {
-            const assumeLocked = lastDone.fp >= bar;   // a rational opponent locks anything above his bar
-            Object.assign(s, { kind: assumeLocked ? "assumed-locked" : "assumed-open",
-              value: assumeLocked ? { mean: lastDone.fp, variance: 0 } : slotMoments(rem) });
-          }
+          // A decision for whichever team owns him. "Not locked" (mark "open") means it isn't locked:
+          // the model then counts the slot as passed, on either side.
+          Object.assign(s, { kind: "pending", forcedPass: userOpen, value: slotMoments(rem) });
         }
       }
       if (userOpen && s.kind !== "pending" && s.kind !== "final") s.manual = true;
@@ -267,12 +261,14 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     }).sort((a, b) => (b.nextProj ?? -1) - (a.nextProj ?? -1));
   }
 
-  let mySlots = slotsFor(myMatch, true);
-  const oppSlots = slotsFor(oppMatch, false);
+  const oppRoster = oppMatch && raw.rosters.find((r) => r.roster_id === oppMatch.roster_id);
+  const mySlots = slotsFor(myMatch);
+  const oppSlots = slotsFor(oppMatch);
   const yesterday = shiftDay(today, -1);
+  const useMatchup = c.mode === "win" && oppSlots.length > 0;
 
-  /** Swap candidates for one team: players in open slots + bench players with games left. */
-  function swapCandidates(slots, match, roster, openKinds) {
+  /** Swap candidates for one team: players in open slots + (optionally) bench players with games left. */
+  function swapCandidates(slots, match, roster, openKinds, bench = true) {
     const reserveIds = new Set(roster?.reserve || []);
     const out = [];
     for (const s of slots) {
@@ -280,7 +276,7 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
       const games = s.games || futureGames(s.p, yesterday);
       out.push({ key: s.pid, p: s.p, positions: s.p.positions, games, value: slotValue(games), from: s.label, starter: true });
     }
-    for (const pid of match ? (match.players || []) : []) {
+    if (bench) for (const pid of match ? (match.players || []) : []) {
       if (!pid || match.starters.includes(pid) || reserveIds.has(pid)) continue;
       const bp = player(pid);
       const games = futureGames(bp, yesterday);
@@ -289,94 +285,87 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     return out;
   }
 
-  // Opponent's bench swaps (setting). He's assumed to play it straight: lock when the score
-  // beats what keeping the slot open is worth with his bench, otherwise swap in his best option.
-  const oppSwaps = [];
-  if (c.oppSwaps && oppMatch) {
-    const OPP_OPEN = new Set(["open", "none", "final", "empty", "assumed-locked", "assumed-open"]);
-    const oppRoster = raw.rosters.find((r) => r.roster_id === oppMatch.roster_id);
-    const cands = swapCandidates(oppSlots, oppMatch, oppRoster, OPP_OPEN);
-    const byKeyO = new Map(cands.map((x) => [x.key, x]));
-    const rows = oppSlots.filter((s) => OPP_OPEN.has(s.kind)).map((s) => ({
+  // ---------------------------------------------------------------- team plans
+  // Both teams go through exactly the same steps, so the matchup reads the same from either
+  // side (your win % + theirs = 100%). Only what's displayed differs.
+  //  1. prepare: each open slot's best holder for the rest of the week (bench swaps, level 1),
+  //     and each just-finished game's value if passed (with the bench available).
+  //  2. decide:  lock or pass each just-finished game, against the other team's step-1 values.
+  //  3. finish:  re-plan with the locked slots taken out; list the swaps.
+  const OPEN = new Set(["pending", "open", "none", "final", "empty"]);
+  function prepare(slots, match, roster, bench) {
+    const candidates = swapCandidates(slots, match, roster, OPEN, bench);
+    const byKey = new Map(candidates.map((x) => [x.key, x]));
+    const planRows = (lockedKeys = new Set()) => slots.filter((s) => OPEN.has(s.kind) && !lockedKeys.has(s.i)).map((s) => ({
       key: s.i, label: s.label, current: s.pid || null,
-      keepScore: s.kind.startsWith("assumed") ? s.score : s.kind === "final" ? s.value.mean : null,
+      keepScore: s.kind === "pending" ? (s.forcedPass ? null : s.score) : s.kind === "final" ? s.value.mean : null,
     }));
-    const oplan = planSlots(rows, cands);
-    for (const s of oppSlots) {
-      if (!OPP_OPEN.has(s.kind)) continue;
-      const occ = byKeyO.get(oplan.assign[s.i]) || null;
-      if (oplan.keep[s.i]) {
-        if (s.kind.startsWith("assumed")) Object.assign(s, { kind: "assumed-locked", value: { mean: s.score, variance: 0 } });
-      } else if (occ && occ.key !== s.pid) {
-        if (s.kind === "assumed-locked") s.kind = "assumed-open";
+    const firstPlan = planSlots(planRows(), candidates);
+    for (const s of slots) if (s.kind === "pending") {
+      const { assign } = firstPlan.openValue(s.i);
+      const occ = byKey.get(assign[s.i]);
+      s.contGames = occ ? (occ.key === s.pid ? s.games : occ.games) : [];
+      s.contBy = occ && occ.key !== s.pid ? occ : null;
+      s.value = !s.forcedPass && s.score >= slotValue(s.contGames) ? { mean: s.score, variance: 0 } : slotMoments(s.contGames);
+    }
+    return { slots, candidates, byKey, planRows };
+  }
+  function decide(t, theirs) {
+    for (const s of t.slots) {
+      if (s.kind !== "pending") continue;
+      const others = t.slots.filter((o) => o !== s).map((o) => o.value);
+      s.call = lockCall(s.score, s.contGames, useMatchup ? others : null, useMatchup ? theirs : null);
+      s.bar = s.call.bar;
+      s.value = s.call.verdict === "LOCK" && !s.forcedPass ? { mean: s.score, variance: 0 } : slotMoments(s.contGames);
+    }
+  }
+  function finish(t) {
+    const { slots, candidates, byKey, planRows } = t;
+    const lockedNow = new Set(slots.filter((s) => s.kind === "pending" && s.call.verdict === "LOCK" && !s.forcedPass).map((s) => s.i));
+    const lockedPlayers = new Set(slots.filter((s) => lockedNow.has(s.i)).map((s) => s.pid));
+    const plan = planSlots(planRows(lockedNow), candidates.filter((x) => !lockedPlayers.has(x.key)));
+    const swaps = [];
+    for (const s of slots) {
+      if (!OPEN.has(s.kind) || lockedNow.has(s.i)) continue;
+      const occ = byKey.get(plan.assign[s.i]) || null;
+      const keepNow = plan.keep[s.i];
+      if (occ && occ.key !== s.pid) {
         s.swapIn = occ;
         s.value = slotMoments(occ.games);
-        oppSwaps.push({ slot: s, into: occ, out: s.p || null, deadline: occ.games[0]?.date });
-      } else if (occ && s.kind === "assumed-locked") {
-        Object.assign(s, { kind: "assumed-open", value: slotMoments(s.games) });
+        const without = s.kind === "pending" ? slotValue(s.games) : s.kind === "final" ? s.value.mean : (byKey.get(s.pid)?.value ?? 0);
+        const stay = s.kind === "final" ? s.lastDone?.fp ?? 0 : s.kind === "pending" ? slotValue(s.games) : (byKey.get(s.pid)?.value ?? 0);
+        const gain = occ.value - Math.max(stay, 0);
+        // Games the current player still gets before the incoming player's first game: no need to
+        // swap yet. Let him play them, lock a big one, and only swap if he falls short.
+        const deadline = occ.games[0]?.date;
+        const keepFirst = s.p ? (s.games || []).filter((g) => deadline && g.date < deadline) : [];
+        if (gain >= 1) swaps.push({ slot: s, into: occ, out: s.p || null, gain, deadline, without, keepFirst });
+      } else if (keepNow && s.kind === "final") {
+        s.value = { mean: s.lastDone?.fp ?? s.value.mean, variance: 0 };
       } else if (!occ && s.kind !== "final") {
         s.value = { mean: 0, variance: 0 };
       }
     }
+    swaps.sort((a, b) => (a.deadline || "").localeCompare(b.deadline || "") || b.gain - a.gain);
+    return { plan, swaps };
+  }
+
+  // Opponent bench swaps are a setting (on by default). Turned off, his bench is ignored and
+  // the two sides no longer mirror each other exactly.
+  const mine = prepare(mySlots, myMatch, myRoster, true);
+  const opp = prepare(oppSlots, oppMatch, oppRoster, !!c.oppSwaps);
+  const evMine = mySlots.map((s) => s.value), evOpp = oppSlots.map((s) => s.value);
+  decide(mine, evOpp);
+  decide(opp, evMine);
+  const { plan, swaps } = finish(mine);
+  const { swaps: oppSwaps } = finish(opp);
+  const { candidates } = mine;
+  // The opponent's just-finished games are shown as guesses of what he'll do.
+  for (const s of oppSlots) if (s.kind === "pending") {
+    if (s.forcedPass) { s.kind = "open"; s.manual = true; }
+    else s.kind = s.call.verdict === "LOCK" ? "assumed-locked" : "assumed-open";
   }
   const theirs = oppSlots.map((s) => s.value);
-  const useMatchup = c.mode === "win" && oppSlots.length > 0;
-
-  // ---------------------------------------------------------------- bench swaps (level 1)
-  // Every open slot can be handed to a bench player (or another open starter) before his
-  // next game. The plan picks one player per open slot for the rest of the week.
-  const OPEN = new Set(["pending", "open", "none", "final", "empty"]);
-  const candidates = swapCandidates(mySlots, myMatch, myRoster, OPEN);
-  const byKey = new Map(candidates.map((x) => [x.key, x]));
-  const planRows = (lockedKeys = new Set()) => mySlots.filter((s) => OPEN.has(s.kind) && !lockedKeys.has(s.i)).map((s) => ({
-    key: s.i, label: s.label, current: s.pid || null,
-    keepScore: s.kind === "pending" ? s.score : s.kind === "final" ? s.value.mean : null,
-  }));
-
-  // My pending slots: compare locking the score with keeping the slot open (bench included).
-  const firstPlan = planSlots(planRows(), candidates);
-  for (const s of mySlots) if (s.kind === "pending") {
-    const { assign } = firstPlan.openValue(s.i);
-    const occ = byKey.get(assign[s.i]);
-    s.contGames = occ ? (occ.key === s.pid ? s.games : occ.games) : [];
-    s.contBy = occ && occ.key !== s.pid ? occ : null;
-    s.value = s.score >= slotValue(s.contGames) ? { mean: s.score, variance: 0 } : slotMoments(s.contGames);
-  }
-  for (const s of mySlots) {
-    if (s.kind !== "pending") continue;
-    const others = mySlots.filter((o) => o !== s).map((o) => o.value);
-    s.call = lockCall(s.score, s.contGames, useMatchup ? others : null, useMatchup ? theirs : null);
-    s.bar = s.call.bar;
-    s.value = s.call.verdict === "LOCK" ? { mean: s.score, variance: 0 } : slotMoments(s.contGames);
-  }
-
-  // Final plan, with the slots we're locking taken out.
-  const lockedNow = new Set(mySlots.filter((s) => s.kind === "pending" && s.call.verdict === "LOCK").map((s) => s.i));
-  const lockedPlayers = new Set(mySlots.filter((s) => lockedNow.has(s.i)).map((s) => s.pid));
-  const plan = planSlots(planRows(lockedNow), candidates.filter((x) => !lockedPlayers.has(x.key)));
-  const swaps = [];
-  for (const s of mySlots) {
-    if (!OPEN.has(s.kind) || lockedNow.has(s.i)) continue;
-    const occ = byKey.get(plan.assign[s.i]) || null;
-    const keepNow = plan.keep[s.i];
-    if (occ && occ.key !== s.pid) {
-      s.swapIn = occ;
-      s.value = slotMoments(occ.games);
-      const without = s.kind === "pending" ? slotValue(s.games) : s.kind === "final" ? s.value.mean : (byKey.get(s.pid)?.value ?? 0);
-      const stay = s.kind === "final" ? s.lastDone?.fp ?? 0 : s.kind === "pending" ? slotValue(s.games) : (byKey.get(s.pid)?.value ?? 0);
-      const gain = occ.value - Math.max(stay, 0);
-      // Games the current player still gets before the incoming player's first game: no need to
-      // swap yet. Let him play them, lock a big one, and only swap if he falls short.
-      const deadline = occ.games[0]?.date;
-      const keepFirst = s.p ? (s.games || []).filter((g) => deadline && g.date < deadline) : [];
-      if (gain >= 1) swaps.push({ slot: s, into: occ, out: s.p || null, gain, deadline, without, keepFirst });
-    } else if (keepNow && s.kind === "final") {
-      s.value = { mean: s.lastDone?.fp ?? s.value.mean, variance: 0 };
-    } else if (!occ && s.kind !== "final") {
-      s.value = { mean: 0, variance: 0 };
-    }
-  }
-  swaps.sort((a, b) => (a.deadline || "").localeCompare(b.deadline || "") || b.gain - a.gain);
 
   // Tonight's bars: the score that should be locked when tonight's game ends.
   // Passing keeps the slot open for his later games or for a free bench player.

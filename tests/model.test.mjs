@@ -291,8 +291,8 @@ test("opponent bench swaps are a setting", () => {
     matchups: raw.matchups.map((m) => (m.roster_id === 2 ? { ...m, players: [...m.starters, "oppBench"] } : m)),
     projections: [...raw.projections, withPos(proj("oppBench", "CCC", 6, 50), ["PG", "SG", "SF", "PF", "C"])],
   };
-  const off = buildModel(r, "me");
-  const on = buildModel(r, "me", { oppSwaps: true });
+  const off = buildModel(r, "me", { oppSwaps: false });
+  const on = buildModel(r, "me");                           // on by default
   assert.equal(off.oppSwaps.length, 0);
   assert.ok(on.oppSwaps.some((x) => x.into.key === "oppBench"));
   assert.ok(on.opp.slots.some((x) => x.swapIn?.key === "oppBench"));
@@ -304,5 +304,22 @@ test("any team's side of the week can be viewed", () => {
   assert.equal(m.me.name, "Them");
   assert.equal(m.opp.name, "Me");
   assert.deepEqual(m.me.slots.map((s) => s.pid).filter(Boolean), ["oppHot", "oppCold"]);
-  assert.ok(Math.abs(m.win + buildModel(raw, "me").win - 1) < 0.15);   // roughly the mirror image
+});
+
+test("win % is the same matchup from either side: yours + theirs = 100%", () => {
+  const withPos = (row, pos) => ({ ...row, player: { ...row.player, fantasy_positions: pos } });
+  const r = {   // give both teams a bench, so swaps are planned on both sides
+    ...raw,
+    matchups: raw.matchups.map((m) => ({ ...m, players: [...m.starters, m.roster_id === 1 ? "myBench" : "oppBench"] })),
+    projections: [...raw.projections, withPos(proj("myBench", "AAA", 5, 30), ["PG", "SG"]), withPos(proj("oppBench", "CCC", 6, 50), ["SF", "PF"])],
+  };
+  const cases = [
+    [{}, {}], [{ mode: "ev" }, {}],
+    [{}, { pending: "open" }], [{}, { oppHot: "open", oppCold: "locked" }], [{}, { pending: "2026-10-20" }],
+  ];
+  for (const [cfg, marks] of cases) {
+    const a = buildModel(r, "me", cfg, marks), b = buildModel({ ...r, viewRosterId: 2 }, "me", cfg, marks);
+    assert.ok(Math.abs(a.win + b.win - 1) < 1e-9, `${JSON.stringify([cfg, marks])}: ${a.win} + ${b.win}`);
+    assert.ok(Math.abs(a.me.proj - b.opp.proj) < 1e-9 && Math.abs(a.opp.proj - b.me.proj) < 1e-9);
+  }
 });

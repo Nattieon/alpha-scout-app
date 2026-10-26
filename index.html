@@ -38,6 +38,7 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.45 var(--body); -we
 .wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
 [hidden] { display: none !important; }
 button, input, select { font: inherit; color: inherit; }
+select { max-width: 100%; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .num { font-variant-numeric: tabular-nums; }
@@ -172,8 +173,8 @@ form.find input { flex: 1 1 220px; min-width: 0; background: var(--surface); bor
 details.settings { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
 details.settings summary { cursor: pointer; font-weight: 600; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
-label.f { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
-label.f input, label.f select { background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 8px; color: var(--fg); }
+label.f { min-width: 0; display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+label.f input, label.f select { width: 100%; min-width: 0; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 8px; color: var(--fg); }
 .foot { font-size: 12.5px; color: var(--faint); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .empty-note { background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; padding: 14px; color: var(--muted); font-size: 14px; }
 .skeleton { height: 120px; border-radius: 14px; background: linear-gradient(90deg, var(--surface), var(--raised), var(--surface)); background-size: 200% 100%; animation: sh 1.4s infinite; }
@@ -235,8 +236,8 @@ label.f input, label.f select { background: var(--raised); border: 1px solid var
         </label>
         <label class="f">Opponent's bench swaps
           <select id="cfg-opp">
-            <option value="off">Don't model them</option>
-            <option value="on">Assume he makes his best swaps</option>
+            <option value="on">Assume he makes his best swaps (both sides read the same)</option>
+            <option value="off">Don't model them (your win % reads higher)</option>
           </select>
         </label>
         <label class="f">League default: sits an ordinary game (%)
@@ -253,7 +254,7 @@ label.f input, label.f select { background: var(--raised); border: 1px solid var
         resting back-to-backs (95%); it stays on until you turn it off. League defaults below fill in for players with little history.
         <b>Bench swaps:</b> any open slot can go to a bench player before his next game. The app picks the best player for each open slot for the rest of the week
         (positions respected, each player used once), so a lock bar is what the slot is worth with your whole bench available, and <b>Swaps before tip-off</b>
-        lists the moves the calls assume you'll make. Your opponent's swaps are off by default; turn them on in the settings above.
+        lists the moves the calls assume you'll make. Your opponent gets the same treatment, so the win % is the same matchup from either side (yours + theirs = 100%).
         By the rules, only a player's <b>latest</b> game can still be locked; an earlier game counts only if you locked it back then. So the lineup picker does two jobs:
         record a lock you made at the time (any game, earlier ones included), or say his latest game isn't locked: either he started and it's still your call,
         or it was played from your <b>bench</b> and can't count (same as ticking "He wasn't in my starting lineup" on his card).

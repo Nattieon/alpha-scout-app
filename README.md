@@ -69,9 +69,11 @@ best player for each open slot for the rest of the week: positions respected (G 
 F = SF/PF, UTIL = anyone), each player used once, solved exactly with the Hungarian
 algorithm. A slot's lock bar is therefore what keeping it open is worth with your whole
 bench available. **Swaps before tip-off** lists the moves the calls assume you'll make.
-Your opponent's swaps are a setting (**Opponent's bench swaps**), off by default. When it's
-on, his open slots get the same treatment, which lowers your win probability against a
-deep bench.
+Both teams go through exactly the same steps: best bench swaps, then a lock-or-pass call on
+each just-finished game, made against the other team's plan. So the win probability is a
+property of the matchup: viewed from either side, the two numbers add up to 100%. The
+opponent's swaps can be switched off in settings (**Opponent's bench swaps**). That makes your
+side read higher, and the two sides then no longer mirror each other.
 
 **Win-probability mode** (the default) also uses your opponent's slots. Locked
 scores count exactly; the rest are modeled the same way. The call picks whichever
@@ -105,7 +107,7 @@ Sleeper reports each slot's current score, not whether it's locked:
 
 ## Development
 ```bash
-node --test tests/*.test.mjs        # 44 tests, no dependencies
+node --test tests/*.test.mjs        # 45 tests, no dependencies
 python3 -m http.server              # then open http://localhost:8000
 ```
 Every push to `main` runs the tests and deploys to GitHub Pages.
