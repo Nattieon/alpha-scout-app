@@ -78,7 +78,8 @@ async function draw() {
   if (final) {
     const fa = final.matchups.find((x) => x.rosterId === me.rosterId), fb = final.matchups.find((x) => x.rosterId === them?.rosterId);
     if (fa && fb) finalLine = `<div class="h-final ${fa.points > fb.points ? "won" : "lost"}">Final: <b>${esc(me.name)} ${f1(fa.points)}</b> – ${f1(fb.points)} ${esc(them.name)} · ${fa.points > fb.points ? "won" : fa.points < fb.points ? "lost" : "tied"}
-      ${final.truthHash ? "" : `<div class="muted" style="font-size:12.5px;margin-top:2px">From Sleeper's public data, which is unreliable for Lock-In until the Sleeper app's final numbers are added.</div>`}</div>`;
+      ${final.truthHash ? "" : `<div class="muted" style="font-size:12.5px;margin-top:2px">From Sleeper's matchup data, which is unreliable for Lock-In. The official totals arrive once Sleeper updates the standings.</div>`}
+      ${[me, them].filter((t) => final.truth?.[t.rosterId] === "ambiguous").map((t) => `<div class="muted" style="font-size:12.5px;margin-top:2px">${esc(t.name)}: the score fits ${final.candidates?.[t.rosterId]?.length || "several"} different sets of locks, so the "what happened" lines for this team may be off. The projected total shown under the score in the Sleeper app settles it.</div>`).join("")}</div>`;
   }
   // win % through the week
   const strip = ok.map((m) => {
