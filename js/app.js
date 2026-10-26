@@ -115,7 +115,9 @@ function rememberView() {
   const rid = myRosterId(ctx.raw.rosters);
   const entry = { u: ctx.user.username || ctx.user.display_name, l: ctx.leagueId, r: rid, mine: viewingMine(),
     label: `${model.me.name}${model.opp ? ` vs ${model.opp.name}` : ""}`, league: ctx.raw.league.name };
-  const list = store.get("recent", []).filter((x) => !(x.l === entry.l && x.r === entry.r));
+  const oppR = ctx.raw.matchups.find((x) => x.matchup_id && x.roster_id !== rid && x.matchup_id === ctx.raw.matchups.find((y) => y.roster_id === rid)?.matchup_id)?.roster_id;
+  entry.key = `${entry.l}:${[rid, oppR].sort().join("-")}`;
+  const list = store.get("recent", []).filter((x) => (x.key || `${x.l}:${x.r}`) !== entry.key && !(x.l === entry.l && (x.r === rid || x.r === oppR)));
   store.set("recent", [entry, ...list].slice(0, 8));
   if (entry.mine) { const m = me(); store.set("me", { ...m, view: { l: ctx.leagueId } }); }
   $("who").textContent = "Matchups ▾";
@@ -149,18 +151,22 @@ function openSwitcher() {
   const cur = raw ? myRosterId(raw.rosters) : null;
   const m = me();
   // this league, every pairing this week
-  let leagueHtml = "";
+  let leagueHtml = "", s_pairs = null;
   if (raw) {
     const byId = new Map();
     raw.matchups.filter((x) => x.matchup_id).forEach((x) => { if (!byId.has(x.matchup_id)) byId.set(x.matchup_id, []); byId.get(x.matchup_id).push(x); });
     const owner = (rid) => raw.rosters.find((x) => x.roster_id === rid);
     const isMe = (rid) => { const r = owner(rid); return !!(m && r && (r.owner_id === m.user_id || (r.co_owners || []).includes(m.user_id))); };
-    const side = (x) => `<button class="side${x.roster_id === cur ? " on" : ""}" data-r="${x.roster_id}">
-        <span>${esc(teamName(raw, x.roster_id))}${isMe(x.roster_id) ? ' <span class="tag">you</span>' : ""}</span><b class="num">${f1(x.points)}</b></button>`;
-    leagueHtml = `<div class="sw-sec"><h3>${esc(raw.league.name)} · week ${raw.week}</h3><p class="muted">Tap a team to see the week from its side.</p>
-      <div class="pairs">${[...byId.values()].map((pair) => `<div class="pair">${pair.map(side).join('<span class="v">vs</span>')}</div>`).join("")}</div></div>`;
+    const curPair = raw.matchups.find((x) => x.roster_id === cur)?.matchup_id;
+    const pairs = [...byId.entries()].sort(([a, pa], [b, pb]) => (pb.some((x) => isMe(x.roster_id)) - pa.some((x) => isMe(x.roster_id))) || a - b);
+    const line = (x) => `<span class="pt"><span class="nm">${esc(teamName(raw, x.roster_id))}${isMe(x.roster_id) ? ' <span class="tag">you</span>' : ""}</span><b class="num">${f1(x.points)}</b></span>`;
+    leagueHtml = `<div class="sw-sec"><h3>${esc(raw.league.name)} · week ${raw.week}</h3>
+      <div class="pairs">${pairs.map(([id, pair]) => `<button class="pair-btn${id === curPair ? " on" : ""}" data-pair="${id}">${pair.map(line).join("")}</button>`).join("")}</div>
+      <p class="muted">Pick a matchup, then choose which side is "you" on the matchup screen.</p></div>`;
+    s_pairs = { byId, isMe };
   }
-  const recent = store.get("recent", []).filter((x) => !(raw && x.l === ctx.leagueId && x.r === cur));
+  const curOpp = raw?.matchups.find((x) => x.roster_id !== cur && x.matchup_id && x.matchup_id === raw.matchups.find((y) => y.roster_id === cur)?.matchup_id)?.roster_id;
+  const recent = store.get("recent", []).filter((x) => !(raw && x.l === ctx.leagueId && (x.r === cur || x.r === curOpp)));
   const recentHtml = recent.length ? `<div class="sw-sec"><h3>Recent</h3><div class="rows">${recent.map((x, i) =>
     `<button class="row-btn" data-recent="${i}"><span>${esc(x.label)}${x.mine ? ' <span class="tag">you</span>' : ""}</span><span class="muted">${esc(x.league)}</span></button>`).join("")}</div></div>` : "";
   el.innerHTML = `
@@ -175,7 +181,14 @@ function openSwitcher() {
     <p class="muted sw-foot">"You" is <b>${esc(m?.username || "—")}</b> on Sleeper: that's whose team the app opens by default. <button class="linkish" id="sw-me">Change</button></p>`;
   $("sw-close").onclick = closeSwitcher;
   if ($("sw-mine")) $("sw-mine").onclick = goMine;
-  el.querySelectorAll(".side").forEach((b) => (b.onclick = () => openLeague(ctx.user.username || ctx.user.display_name, ctx.leagueId, Number(b.dataset.r))));
+  el.querySelectorAll(".pair-btn").forEach((b) => (b.onclick = () => {
+    const pair = s_pairs.byId.get(Number(b.dataset.pair)) || s_pairs.byId.get(b.dataset.pair);
+    // default side: your team if it's in this matchup, else whichever side you're on now, else the first team
+    const pick = pair.find((x) => s_pairs.isMe(x.roster_id)) || pair.find((x) => x.roster_id === cur) || pair[0];
+    if (pick.roster_id === cur) return closeSwitcher();
+    setSide(pick.roster_id);
+    closeSwitcher();
+  }));
   el.querySelectorAll("[data-recent]").forEach((b) => (b.onclick = () => { const x = recent[Number(b.dataset.recent)]; openLeague(x.u, x.l, x.r); }));
   $("sw-find").onsubmit = (e) => { e.preventDefault(); switcherLeagues($("sw-user").value); };
   $("sw-me").onclick = () => { store.del("me"); store.del("view"); history.replaceState(null, "", location.pathname); showOnboard(""); };
@@ -293,6 +306,7 @@ function setMark(pid, value) {
 
 function rebuild() {
   model = buildModel(ctx.raw, ctx.user.user_id, cfg(), getMarks());
+  ctx.shownRoster = myRosterId(ctx.raw.rosters);
   render();
 }
 
@@ -308,11 +322,42 @@ function render() {
   $("tab-me").textContent = mine ? "You" : m.me.name;
   $("tab-opp").textContent = mine ? "Opponent" : m.opp?.name || "Opponent";
   renderBoard(m); renderDecide(m); renderSwaps(m); renderTonight(m); renderLineup(m);
-  if (!mine) $("board").insertAdjacentHTML("afterbegin", `<div class="viewing">Viewing <b>${esc(m.me.name)}</b>'s side: calls, swaps and "your" lineup are theirs.
-    <button class="linkish" id="back-mine">Back to my matchup</button></div>`);
-  if ($("back-mine")) $("back-mine").onclick = goMine;
+  renderSides(m, mine);
   const c = cfg();
   $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-opp").value = c.oppSwaps ? "on" : "off"; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.pairRest * 100);
+}
+
+/** "You are: [A] [B]" — which side of this matchup the calls, swaps and "your" lineup belong to. */
+function renderSides(m, mine) {
+  const raw = ctx.raw, m0 = me();
+  const cur = myRosterId(raw.rosters);
+  const pairId = raw.matchups.find((x) => x.roster_id === cur)?.matchup_id;
+  const pair = pairId ? raw.matchups.filter((x) => x.matchup_id === pairId) : [];
+  const isMe = (rid) => { const r = raw.rosters.find((x) => x.roster_id === rid); return !!(m0 && r && (r.owner_id === m0.user_id || (r.co_owners || []).includes(m0.user_id))); };
+  const hasMine = pair.some((x) => isMe(x.roster_id));
+  if (pair.length < 2 && mine) return;
+  const btns = pair.map((x) => `<button role="radio" aria-checked="${x.roster_id === cur}" data-side="${x.roster_id}">${esc(teamName(raw, x.roster_id))}${isMe(x.roster_id) ? ' <span class="tag">your team</span>' : ""}</button>`).join("");
+  const mineInLeague = raw.rosters.some((r) => isMe(r.roster_id));
+  $("board").insertAdjacentHTML("afterbegin", `<div class="sides"><span class="lbl">You are</span>
+    <div class="seg" role="radiogroup" aria-label="Which side is you">${btns}</div>
+    ${!hasMine && m0 ? `<button class="linkish" id="back-mine">${mineInLeague ? "Back to my matchup" : "My league"}</button>` : ""}</div>`);
+  $("board").querySelectorAll("[data-side]").forEach((b) => (b.onclick = () => { if (Number(b.dataset.side) !== cur) setSide(Number(b.dataset.side)); }));
+  if ($("back-mine")) $("back-mine").onclick = goMine;
+}
+
+/** Flip to the other side of the matchup on screen (no reload: both sides' logs are already loaded). */
+function setSide(rid) {
+  ctx.rosterId = rid; ctx.raw.viewRosterId = rid;
+  const u = ctx.user.username || ctx.user.display_name;
+  store.set("view", { u, l: ctx.leagueId, r: rid });
+  history.replaceState(null, "", `?u=${encodeURIComponent(u)}&l=${ctx.leagueId}&r=${rid}`);
+  view = "me";
+  const pairOf = (r) => ctx.raw.matchups.find((x) => x.roster_id === r)?.matchup_id;
+  if (pairOf(rid) !== pairOf(model?.me?.rosterId ?? ctx.shownRoster)) {   // a different matchup: fetch its players' logs
+    $("board").innerHTML = '<div class="skeleton"></div>';
+    load(false).then(rememberView); return;
+  }
+  rebuild(); rememberView();
 }
 
 function renderBoard(m) {
