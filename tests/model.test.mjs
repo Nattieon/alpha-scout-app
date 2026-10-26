@@ -343,3 +343,25 @@ test("'not locked through' marks close earlier lock windows without a guess", ()
   const a = buildModel(raw, "me", {}, { lockedEarly: "pass:2026-10-20" }), b = buildModel({ ...raw, viewRosterId: 2 }, "me", {}, { lockedEarly: "pass:2026-10-20" });
   assert.ok(Math.abs(a.win + b.win - 1) < 1e-9);
 });
+
+test("score now shows locked games (as the Sleeper app does); banked never counts a planned swap", () => {
+  const m = buildModel(raw, "me", {}, { lockedEarly: "2026-10-20" });
+  const le = m.me.slots.find((x) => x.pid === "lockedEarly");
+  assert.equal(le.now, fp(40));                                   // locked Tue, though Sleeper's data shows Thu
+  assert.ok(Math.abs(m.me.points - m.me.slots.reduce((t, x) => t + (x.now || 0), 0)) < 1e-9);
+  // a finished slot with a bench player swapped in is not banked
+  const withPos = (row, pos) => ({ ...row, player: { ...row.player, fantasy_positions: pos } });
+  const r = { ...raw, today: "2026-10-24",
+    schedule: raw.schedule.map((g) => ({ ...g, status: g.date < "2026-10-24" ? "complete" : "pre_game" })),
+    matchups: raw.matchups.map((mm) => (mm.roster_id === 1 ? { ...mm, starters: mm.starters.slice(0, 5), starters_points: mm.starters_points.slice(0, 5), players: [...mm.starters.slice(0, 5), "benchG"] } : mm)),
+    stats: [...raw.stats, stat("final", "DDD", 4, null)],                       // his last game (Fri): DNP
+    projections: [...raw.projections, withPos(proj("benchG", "AAA", 5, 40), ["PG", "SG", "G"])] };
+  const m2 = buildModel(r, "me", {}, { final: "pass:2026-10-22" });    // Thu not locked; Fri (his last) a DNP
+  const fin = m2.me.slots.find((x) => x.pid === "final");
+  assert.equal(fin.kind, "final");
+  assert.equal(fin.swapIn?.key, "benchG");                          // a bench guard with a Sat game takes the slot
+  assert.equal(fin.now, 0);                                        // the slot shows 0 now...
+  const bankedSlots = m2.me.slots.filter((x) => (x.kind === "locked" && x.certain) || (x.kind === "final" && !x.swapIn));
+  assert.ok(!bankedSlots.includes(fin));                           // ...and his expected score isn't banked
+  assert.ok(Math.abs(m2.me.banked - bankedSlots.reduce((t, x) => t + (x.lastDone?.fp ?? x.value.mean), 0)) < 1e-9);
+});

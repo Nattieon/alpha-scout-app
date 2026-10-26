@@ -418,11 +418,22 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
   };
   for (const x of [...mySlots, ...oppSlots]) x.shownProj = c.projBasis === "smart" ? x.value.mean : slotShown(x);
   const projOf = (slots) => slots.reduce((t, x) => t + x.shownProj, 0);
-  const banked = (slots) => slots.filter((x) => (x.kind === "locked" && x.certain) || x.kind === "final").reduce((t, x) => t + x.value.mean, 0);
+  // Banked: scores that can't change any more (locks you entered, finished slots nobody will swap into).
+  const banked = (slots) => slots.filter((x) => (x.kind === "locked" && x.certain) || (x.kind === "final" && !x.swapIn)).reduce((t, x) => t + (x.kind === "final" ? (x.lastDone?.fp ?? 0) : x.value.mean), 0);
+  // Score now, as the Sleeper app shows it: a locked slot shows its locked game (Sleeper's public data
+  // shows his latest game instead), a finished slot its last game, anything else its latest game.
+  const nowScore = (x) => {
+    if (x.kind === "locked" || x.kind === "assumed-locked") return x.lockedGame?.fp ?? x.score ?? x.value.mean;
+    if (x.kind === "final") return x.lastDone?.fp ?? 0;
+    if (x.kind === "live") return x.liveFp ?? 0;
+    return x.shown ?? 0;
+  };
+  for (const x of [...mySlots, ...oppSlots]) x.now = nowScore(x);
+  const pointsOf = (slots) => slots.reduce((t, x) => t + (x.now || 0), 0);
   return {
     week, weekDates, today, scoring, mode: useMatchup ? "win" : "ev", projBasis: c.projBasis,
-    me: myMatch && { rosterId: myMatch.roster_id, name: userName(myMatch.roster_id), points: myMatch.points, proj: projOf(mySlots), banked: banked(mySlots), slots: mySlots, bench: benchFor(myMatch) },
-    opp: oppMatch && { rosterId: oppMatch.roster_id, name: userName(oppMatch.roster_id), points: oppMatch.points, proj: projOf(oppSlots), banked: banked(oppSlots), slots: oppSlots, bench: benchFor(oppMatch) },
+    me: myMatch && { rosterId: myMatch.roster_id, name: userName(myMatch.roster_id), points: pointsOf(mySlots), sleeperPoints: myMatch.points, proj: projOf(mySlots), banked: banked(mySlots), slots: mySlots, bench: benchFor(myMatch) },
+    opp: oppMatch && { rosterId: oppMatch.roster_id, name: userName(oppMatch.roster_id), points: pointsOf(oppSlots), sleeperPoints: oppMatch.points, proj: projOf(oppSlots), banked: banked(oppSlots), slots: oppSlots, bench: benchFor(oppMatch) },
     win, missingRoster: !myRoster, noMatchup: !!myRoster && !oppMatch, swaps, oppSwaps, oppSwapsModeled: !!c.oppSwaps,
     whatIf(slot, score) {
       const others = mySlots.filter((o) => o !== slot).map((o) => o.value);
