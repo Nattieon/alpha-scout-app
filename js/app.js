@@ -1,5 +1,6 @@
 import * as S from "./sleeper.js?v=__V__";
 import { buildModel, DEFAULTS, dow, md, normalizeMarks, todayET } from "./model.js?v=__V__";
+import { openHistory } from "./history.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -79,6 +80,7 @@ async function findLeagues(username, { auto = false, asMe = false } = {}) {
 // ------------------------------------------------------------------ league
 async function openLeague(username, leagueId, rosterId = null) {
   closeSwitcher();
+  $("history").hidden = true;
   $("onboard").hidden = true; $("dash").hidden = false;
   $("board").innerHTML = '<div class="skeleton"></div>';
   ["decide", "swaps", "tonight"].forEach((id) => ($(id).innerHTML = ""));
@@ -134,6 +136,16 @@ function teamName(raw, rid) {
   return u ? (u.metadata?.team_name || u.display_name) : `Team ${rid}`;
 }
 
+function showHistory() {
+  closeSwitcher();
+  const m = me(), raw = ctx.raw;
+  const mine = m && raw.rosters.find((r) => r.owner_id === m.user_id || (r.co_owners || []).includes(m.user_id));
+  $("dash").hidden = true; $("history").hidden = false;
+  window.scrollTo(0, 0);
+  openHistory($("history"), { leagueId: ctx.leagueId, mineRosterId: mine?.roster_id ?? null, preferRosterId: myRosterId(raw.rosters),
+    onClose: () => { $("history").hidden = true; $("dash").hidden = false; } });
+}
+
 /** Back to the app user's own matchup: this league if he has a team here, else his last league. */
 function goMine() {
   const m = me();
@@ -171,7 +183,7 @@ function openSwitcher() {
     `<button class="row-btn" data-recent="${i}"><span>${esc(x.label)}${x.mine ? ' <span class="tag">you</span>' : ""}</span><span class="muted">${esc(x.league)}</span></button>`).join("")}</div></div>` : "";
   el.innerHTML = `
     <div class="sw-head"><b>Switch matchup</b><button class="chip" id="sw-close" aria-label="Close">Close</button></div>
-    ${raw && !viewingMine() && m ? `<button class="btn" id="sw-mine">Back to my matchup</button>` : ""}
+    <div class="sw-actions">${raw && !viewingMine() && m ? `<button class="btn" id="sw-mine">Back to my matchup</button>` : ""}${raw ? `<button class="btn ghost" id="sw-hist">History</button>` : ""}</div>
     ${leagueHtml}
     <div class="sw-sec"><h3>Leagues</h3>
       <form class="find" id="sw-find"><input id="sw-user" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Any Sleeper username" value="${esc(m?.username || "")}">
@@ -181,6 +193,7 @@ function openSwitcher() {
     <p class="muted sw-foot">"You" is <b>${esc(m?.username || "—")}</b> on Sleeper: that's whose team the app opens by default. <button class="linkish" id="sw-me">Change</button></p>`;
   $("sw-close").onclick = closeSwitcher;
   if ($("sw-mine")) $("sw-mine").onclick = goMine;
+  if ($("sw-hist")) $("sw-hist").onclick = showHistory;
   el.querySelectorAll(".pair-btn").forEach((b) => (b.onclick = () => {
     const pair = s_pairs.byId.get(Number(b.dataset.pair)) || s_pairs.byId.get(b.dataset.pair);
     // default side: your team if it's in this matchup, else whichever side you're on now, else the first team

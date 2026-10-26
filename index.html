@@ -83,6 +83,30 @@ h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .12em; color: v
 .linkish { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
 .sw-foot { margin: 0; font-size: 13px; }
 
+/* history */
+.history { display: grid; gap: 14px; }
+.h-head { display: flex; justify-content: space-between; align-items: center; }
+.h-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.h-controls label.f { flex: 1 1 160px; }
+.h-strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.h-moment { flex: 0 0 auto; display: grid; gap: 2px; justify-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; font-size: 12.5px; color: var(--muted); }
+.h-moment b { font: 600 18px/1 var(--display); color: var(--fg); }
+.h-moment i { font-style: normal; font-size: 10.5px; color: var(--live); text-transform: uppercase; letter-spacing: .08em; }
+.h-moment.on { border-color: var(--accent); }
+.h-final { font-size: 14px; padding: 8px 12px; border-radius: 10px; background: var(--surface); border-left: 3px solid var(--faint); }
+.h-final.won { border-left-color: var(--lock); } .h-final.lost { border-left-color: var(--risk); }
+.h-note { margin: 0; font-size: 13px; color: var(--muted); border-left: 3px solid var(--pass); padding: 2px 10px; }
+.history h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+.h-dec { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.h-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; font-size: 13.5px; min-width: 0; }
+.h-card.mine { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.h-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.h-row .pill { margin-left: auto; }
+.h-card .ok { color: var(--lock); } .h-card .warn { color: var(--pass); }
+.h-ev { margin: 0; padding-left: 18px; font-size: 13.5px; display: grid; gap: 4px; }
+.sw-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.sw-actions .btn { flex: 1 1 160px; }
+
 /* onboarding */
 .hero { padding-block: 40px 8px; display: grid; gap: 14px; max-width: 560px; }
 .hero h1 { font-size: clamp(38px, 9vw, 64px); line-height: .95; font-weight: 700; text-transform: uppercase; }
@@ -203,6 +227,8 @@ label.f input, label.f select { width: 100%; min-width: 0; background: var(--rai
       <div class="leagues" id="leagues"></div>
     </section>
   </main>
+
+  <main id="history" class="history" hidden></main>
 
   <main id="dash" hidden>
     <section class="board" id="board"><div class="skeleton"></div></section>

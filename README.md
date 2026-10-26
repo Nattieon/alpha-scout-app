@@ -25,6 +25,14 @@ From that it shows four things:
 side), to your other leagues, or to anyone's leagues by Sleeper username. The app reopens on
 whatever you looked at last, so you only type a username once.
 
+**History** (in the Matchups panel) shows what the app said at any saved moment: every
+matchup's win % through the week, each lock-or-pass call next to what the team actually
+did, lineup moves, injury-tag changes and adds/drops. A scheduled GitHub job saves the
+snapshots to the `data` branch: a full one every night (~4:30am ET, when every player who
+played is at his lock decision) and a light lineup check every 30 minutes on game days
+(a full snapshot only when something changed). Each nightly also stores the model's inputs,
+so new math can be re-run on old days. `scripts/snapshot.mjs` documents the layout.
+
 Nothing to install, no accounts, no server. Everything runs in your browser
 against Sleeper's public read-only API. Settings and your lock marks stay in your
 browser only.
