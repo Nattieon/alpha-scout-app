@@ -1,0 +1,20 @@
+name: Lab changed
+
+# A push to the experimental branch: rebuild the site (main deploys both versions) and re-score the lab.
+on:
+  push:
+    branches: [experimental]
+
+permissions:
+  actions: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rebuild the site and the lab scorecard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run pages.yml --repo "${{ github.repository }}" --ref main
+          gh workflow run snapshots.yml --repo "${{ github.repository }}" --ref main -f mode=calibrate

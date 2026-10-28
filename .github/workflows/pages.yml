@@ -1,5 +1,7 @@
 name: Test and deploy
 
+# One site, two versions: `main` at the root, `experimental` at /lab/ (if that branch exists).
+# Only main may deploy, so a push to `experimental` asks main to rebuild (lab.yml).
 on:
   push:
     branches: [main]
@@ -15,32 +17,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+      - name: Check out the lab (experimental branch)
+        id: lab
+        run: |
+          if git ls-remote --exit-code --heads "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" experimental >/dev/null; then
+            git clone --depth 1 --branch experimental "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" lab
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: node --test tests/*.test.mjs
+      - name: Test the standard app
+        working-directory: main
+        run: node --test tests/*.test.mjs
+      - name: Test the lab
+        if: steps.lab.outputs.exists == 'true'
+        working-directory: lab
+        run: node --test tests/*.test.mjs
+      - name: Collect site files
+        run: |
+          mkdir _site
+          (cd main && cp -r index.html manifest.webmanifest icon.svg icon-180.png icon-512.png .nojekyll js ../_site/)
+          # Cache-bust: every deploy gets new module URLs, so phones never run stale code.
+          V=$(git -C main rev-parse --short=7 HEAD)
+          sed -i "s/__V__/$V/g" _site/index.html _site/js/*.js
+          if [ -d lab ]; then
+            mkdir _site/lab
+            (cd lab && cp -r index.html manifest.webmanifest icon.svg icon-180.png icon-512.png js ../_site/lab/)
+            L=$(git -C lab rev-parse --short=7 HEAD)
+            sed -i "s/__V__/lab-$L/g" _site/lab/index.html _site/lab/js/*.js
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
 
   deploy:
-    needs: test
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Collect site files
-        run: |
-          mkdir _site
-          cp -r index.html manifest.webmanifest icon.svg icon-180.png icon-512.png .nojekyll js _site/
-          # Cache-bust: every deploy gets new module URLs, so phones never run stale code.
-          sed -i "s/__V__/${GITHUB_SHA::7}/g" _site/index.html _site/js/*.js
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

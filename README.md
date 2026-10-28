@@ -123,6 +123,20 @@ Sleeper doesn't keep past lineups either. So:
   this to the expected final. The win probability always uses the full model.
 - **Bench** players are listed under each lineup with their games and next-game projection.
 
+## The lab (experiments you can roll back)
+The `experimental` branch is deployed at **/lab/** next to the standard app, with its own settings
+and lock marks (it copies your username and matchup on first visit, nothing else). To try an idea,
+change the formula on `experimental`; pushing it rebuilds the site and re-scores the lab. To drop
+the idea, reset or delete the branch. To keep it, merge it into `main`.
+
+The snapshot job scores both formulas on the same finished weeks (History → "How the formula has
+held up"):
+- **Win % (Brier):** how well each night's odds matched how matchups ended. Lower is better; a coin
+  flip scores 0.250.
+- **Lock calls:** over every lock-or-pass call, the points from following it minus the points from
+  doing the opposite, using what actually happened. A pass plays on with that formula's own later
+  bars.
+
 ## Development
 ```bash
 node --test tests/*.test.mjs        # 56 tests, no dependencies

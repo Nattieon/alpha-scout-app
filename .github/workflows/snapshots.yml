@@ -48,6 +48,13 @@ jobs:
           echo "mode=$m" >> "$GITHUB_OUTPUT"
       - name: Snapshot
         run: node app/scripts/snapshot.mjs ${{ steps.mode.outputs.mode }} --data data ${{ inputs.week && format('--week {0}', inputs.week) || '' }}
+      - name: Score the lab formula (experimental branch) on the same weeks
+        continue-on-error: true
+        run: |
+          if git ls-remote --exit-code --heads "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" experimental >/dev/null; then
+            git clone --depth 1 --branch experimental "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" lab
+            node lab/scripts/snapshot.mjs calibrate --variant lab --data data
+          fi
       - name: Save
         working-directory: data
         run: |

@@ -110,6 +110,11 @@ h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .12em; color: v
 .cu-hint { margin: 0; font-size: 12.5px; }
 #cu-auto[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 
+/* lab version */
+html.lab .brand span { color: var(--live); }
+html.lab .wrap::before { content: "LAB · experimental formula · separate settings and lock marks"; display: block; font: 600 12px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--live); border: 1px dashed var(--live); border-radius: 8px; padding: 8px 10px; margin-top: 10px; }
+.h-tab tr.cur td { font-weight: 600; }
+
 /* history */
 .history { display: grid; gap: 14px; }
 .h-head { display: flex; justify-content: space-between; align-items: center; }
@@ -307,6 +312,7 @@ label.f input, label.f select { width: 100%; min-width: 0; background: var(--rai
           <input id="cfg-b2b" type="number" min="0" max="90" step="1">
         </label>
       </div>
+      <p class="muted" style="font-size:13.5px"><a id="lab-link" href="./lab/">Try the lab version</a>: the experimental formula, with its own settings and lock marks.</p>
       <p class="muted" style="font-size:13.5px;max-width:70ch">
         <b>Sit risk</b> is per player, from his own log (last season + this one): how often he sits ordinary games, how often he rests one night of a
         back-to-back and which night, how much he has missed overall, and whether he's just back from a long absence. The two nights of a back-to-back are linked:

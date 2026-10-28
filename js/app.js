@@ -1,6 +1,7 @@
 import * as S from "./sleeper.js?v=__V__";
 import { buildModel, DEFAULTS, dow, md, normalizeMarks, todayET } from "./model.js?v=__V__";
 import { openHistory } from "./history.js?v=__V__";
+import { LAB } from "./lab.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -12,11 +13,22 @@ const ord = (q) => { const n = Math.min(99, Math.max(1, Math.round(q * 100))); c
 const pctLabel = (q, p) => (q === null || q === undefined ? "" : `${ord(q)} pct of his last ${p.nHistory}`);
 
 // ------------------------------------------------------------------ storage (best effort)
+// The lab version keeps its own settings, marks and views, so experimenting never touches the real ones.
+const NS = LAB ? "as.lab." : "as.";
 const store = {
-  get(k, d) { try { const v = localStorage.getItem("as." + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { try { localStorage.setItem("as." + k, JSON.stringify(v)); } catch { /* private mode */ } },
-  del(k) { try { localStorage.removeItem("as." + k); } catch { /* ignore */ } },
+  get(k, d) { try { const v = localStorage.getItem(NS + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(NS + k, JSON.stringify(v)); } catch { /* private mode */ } },
+  del(k) { try { localStorage.removeItem(NS + k); } catch { /* ignore */ } },
 };
+if (LAB) {
+  document.documentElement.classList.add("lab");
+  addEventListener("DOMContentLoaded", () => { const a = document.getElementById("lab-link"); if (a) { a.href = "../"; a.textContent = "Back to the standard app"; a.parentElement.lastChild.textContent = ": the formula you use every day."; } });
+  document.title = "Alpha Scout LAB";
+  const b = document.querySelector(".brand span");
+  if (b) b.textContent = "Lab";
+  // first visit: start from the real app's username and matchup (copied, not shared)
+  try { if (localStorage.getItem("as.lab.me") === null) for (const k of ["me", "view", "username", "league", "recent"]) { const v = localStorage.getItem("as." + k); if (v !== null) localStorage.setItem("as.lab." + k, v); } } catch { /* ignore */ }
+}
 
 let ctx = null;        // {user, leagueId, rosterId|null, raw}
 let model = null;

@@ -1,6 +1,7 @@
 // History: what the app showed at any saved moment (nightly snapshots, mid-day changes, replayed
 // weeks), every lock-or-pass decision with what the team actually did, and how it ended.
 import { dow } from "./model.js?v=__V__";
+import { LAB } from "./lab.js?v=__V__";
 
 const DATA = "https://raw.githubusercontent.com/Nattieon/alpha-scout-app/data/";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -42,7 +43,7 @@ function bind() { const b = H.el.querySelector("#h-close"); if (b) b.onclick = (
 /** Every saved moment for a week, oldest first: {file, at, label, kind}. */
 function moments(W, dir) {
   const out = [];
-  for (const d of W.replay || []) out.push({ file: `${dir}/replay/${d}.json`, at: `${shiftDay(d, 1)}T04:30`, kind: "replay", label: `After ${dow(d)}`, night: d });
+  for (const d of W.replay || []) out.push({ file: `${dir}${LAB ? "/lab" : ""}/replay/${d}.json`, at: `${shiftDay(d, 1)}T04:30`, kind: "replay", label: `After ${dow(d)}`, night: d });
   for (const d of W.nightly || []) out.push({ file: `${dir}/nightly/${d}.json`, at: `${d}T04:30`, kind: "nightly", label: `After ${dow(shiftDay(d, -1))}`, night: shiftDay(d, -1) });
   for (const s of W.ticks || []) { const at = `${s.slice(0, 13)}:${s.slice(13)}`; out.push({ file: `${dir}/ticks/${s}.json`, at, kind: "tick", label: `${dow(s.slice(0, 10))} ${clock(s.slice(11))} ET` }); }
   // a nightly and a replay of the same night: keep the real one
@@ -59,7 +60,7 @@ async function draw() {
   const dir = `leagues/${H.leagueId}/${season}/w${String(H.week).padStart(2, "0")}`;
   const ms = moments(W, dir);
   if (!ms.length) { el.innerHTML = header() + `<p class="empty-note">Nothing saved for week ${H.week} yet.</p>`; bind(); return; }
-  const [snaps, final, events] = await Promise.all([Promise.all(ms.map((m) => get(m.file))), W.final ? get(`${dir}/final.json`) : null, get(`${dir}/events.json`)]);
+  const [snaps, final, events] = await Promise.all([Promise.all(ms.map((m) => get(m.file))), W.final ? (LAB ? get(`${dir}/lab/final.json`).then((f) => f || get(`${dir}/final.json`)) : get(`${dir}/final.json`)) : null, get(`${dir}/events.json`)]);
   ms.forEach((m, i) => { m.snap = snaps[i]; if (m.snap?.at && m.kind !== "replay") m.at = m.snap.at; });
   const ok = ms.filter((m) => m.snap).sort((a, b) => a.at.localeCompare(b.at));
   // which matchup: the one with the preferred team in it, else the first
@@ -99,9 +100,9 @@ async function draw() {
   const evs = (events || []).filter((e) => e.at > prevAt && e.at <= cur.at && (e.type !== "lineup" || rids.has(e.rosterId)));
   const evHtml = evs.length ? `<h3>Changes since the previous moment</h3><ul class="h-ev">${evs.map(eventLine).join("")}</ul>` : "";
 
-  const cal = await get("calibration.json");
+  const [cal, calLab] = await Promise.all([get("calibration.json"), get("calibration-lab.json")]);
   el.innerHTML = `${header()}
-    ${calibrationBox(cal)}
+    ${calibrationBox(cal, calLab)}
     <div class="h-controls">
       <label class="f">Week <select id="h-week">${weeks.map((w) => `<option value="${w}"${w === H.week ? " selected" : ""}>Week ${w}</option>`).join("")}</select></label>
       <label class="f">Matchup <select id="h-pair">${pairs.map((x) => `<option value="${x.teams[0].rosterId}"${hasSide(x, H.side) ? " selected" : ""}>${esc(x.teams.map((t) => t.name).join(" vs "))}</option>`).join("")}</select></label>
@@ -169,11 +170,23 @@ function eventLine(e) {
 }
 
 /** League-wide: how well the win % has held up so far (finished weeks, replayed with the current math). */
-function calibrationBox(c) {
+function calibrationBox(c, lab) {
   if (!c || !c.nights) return "";
   const rows = c.buckets.filter((b) => b.n).map((b) => `<tr><td>${esc(b.range)}</td><td class="num">${b.n}</td><td class="num">${pct(b.predicted)}</td><td class="num">${pct(b.actual)}</td></tr>`).join("");
-  return `<details class="h-cal"><summary>How the win % has held up · ${c.matchups} matchup${c.matchups === 1 ? "" : "s"}, ${c.weeks} week${c.weeks === 1 ? "" : "s"} · Brier ${c.brier?.toFixed(3)} <span class="muted">(coin flip 0.250, lower is better)</span></summary>
-    <p class="muted">Every night of every finished week, replayed with the current math, against how the matchup ended. The favourite's predicted chance vs how often favourites actually won:</p>
-    <table class="h-tab"><thead><tr><th>Favourite at</th><th>Nights</th><th>Predicted</th><th>Won</th></tr></thead><tbody>${rows}</tbody></table>
+  const dec = (x) => x?.decisions?.calls ? `${x.decisions.right}/${x.decisions.calls} calls right · ${x.decisions.points >= 0 ? "+" : ""}${f1(x.decisions.points)} pts` : "–";
+  const sign = (v) => `${v >= 0 ? "+" : ""}${f1(v)}`;
+  // Standard vs lab, on the same finished weeks
+  const vs = lab?.nights ? `<table class="h-tab"><thead><tr><th>Formula</th><th>Win % (Brier)</th><th>Lock calls vs the opposite</th></tr></thead><tbody>
+      <tr${LAB ? "" : ' class="cur"'}><td>Standard</td><td class="num">${c.brier?.toFixed(3)}</td><td class="num">${dec(c)}</td></tr>
+      <tr${LAB ? ' class="cur"' : ""}><td>Lab</td><td class="num">${lab.brier?.toFixed(3)}</td><td class="num">${dec(lab)}</td></tr></tbody></table>
+    <p class="muted">Lower Brier is better (a coin flip scores 0.250). "Lock calls" adds up, over every lock-or-pass call, the points from following it minus the points from doing the opposite, using what actually happened (a pass plays on with that formula's own later bars). Difference: ${sign((lab.decisions?.points ?? 0) - (c.decisions?.points ?? 0))} pts for the lab.</p>` : "";
+  const mine = LAB && lab?.nights ? lab : c;
+  const callRows = (mine.decisions?.best || []).concat(mine.decisions?.worst || []).map((x) => `<tr><td>${esc(x.player)}</td><td>${esc(x.team)}</td><td>${dow(x.game)} ${f1(x.score)}</td><td>${esc(x.verdict)}</td><td class="num">${sign(x.gain)}</td></tr>`).join("");
+  return `<details class="h-cal"><summary>How the formula has held up · ${c.matchups} matchup${c.matchups === 1 ? "" : "s"}, ${c.weeks} week${c.weeks === 1 ? "" : "s"} · Brier ${(LAB && lab?.nights ? lab : c).brier?.toFixed(3)} · ${dec(mine)}</summary>
+    ${vs}
+    <p class="muted">Win %: every night of every finished week, replayed with the ${LAB ? "lab" : "current"} math, against how the matchup ended. The favourite's predicted chance vs how often favourites actually won:</p>
+    <table class="h-tab"><thead><tr><th>Favourite at</th><th>Nights</th><th>Predicted</th><th>Won</th></tr></thead><tbody>${(LAB && lab?.nights ? lab : c).buckets.filter((b) => b.n).map((b) => `<tr><td>${esc(b.range)}</td><td class="num">${b.n}</td><td class="num">${pct(b.predicted)}</td><td class="num">${pct(b.actual)}</td></tr>`).join("") || rows}</tbody></table>
+    ${callRows ? `<p class="muted">Best and worst lock calls (following the call vs the opposite):</p>
+    <table class="h-tab"><thead><tr><th>Player</th><th>Team</th><th>Game</th><th>Call</th><th>Gain</th></tr></thead><tbody>${callRows}</tbody></table>` : ""}
     <p class="muted">${esc(c.note)}</p></details>`;
 }

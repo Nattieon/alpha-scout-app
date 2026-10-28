@@ -30,12 +30,17 @@ import crypto from "node:crypto";
 import * as S from "../js/sleeper.js";
 import { buildModel, DEFAULTS, fantasyPoints, todayET } from "../js/model.js";
 import { solveCounted } from "../js/truth.js";
+import { lockBars } from "../js/lockmath.js";
 
 const V1 = "https://api.sleeper.app/v1";
 const args = process.argv.slice(2);
 const mode = args[0];
 const opt = (k, d = null) => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : d; };
 const DATA = path.resolve(opt("data", "data"));
+// --variant lab: the experimental formula (the lab app). It only replays finished weeks and scores them,
+// into <week>/lab/ and calibration-lab.json, so the main snapshots are never touched.
+const VARIANT = opt("variant", "");
+const vdir = (dir) => (VARIANT ? `${dir}/${VARIANT}` : dir);
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const CONFIG = JSON.parse(fs.readFileSync(opt("config", path.join(HERE, "snapshot.config.json")), "utf8"));
 const MODEL_VERSION = (() => { try { return execSync("git rev-parse --short=7 HEAD", { cwd: HERE, stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); } catch { return "dev"; } })();
@@ -208,6 +213,11 @@ function slotOut(s) {
   if (s.tonight?.bar !== undefined) o.tonightBar = r2(s.tonight.bar);
   if (s.plan?.length) o.plan = s.plan.map((x) => ({ who: x.who, name: x.name, d: x.date, tip: x.tip ? x.tip.slice(11) : null, mu: r2(x.mu), bar: r2(x.bar) }));
   if (s.call?.cushion) o.call.cushion = r2(s.call.cushion);
+  if (s.call && s.contGames?.length) {
+    // what passing meant: the games the slot would go on to (whose, when) and the bar to lock each
+    const bars = lockBars(s.contGames);
+    o.cont = s.contGames.map((g, k) => ({ who: g.who || s.pid, d: g.date, bar: bars[k] !== undefined ? r2(bars[k]) : null }));
+  }
   if (s.p?.injury) o.injury = s.p.injury;
   return o;
 }
@@ -396,6 +406,13 @@ async function replay(week) {
       });
       return mk;
     };
+    // every rostered player's actual score in each of his team's games this week (0 = didn't play):
+    // the scorecard uses it to see how each lock-or-pass call turned out
+    const actuals = {};
+    for (const m of raw.matchups) for (const pid of m.players || []) {
+      if (!pid || pid === "0" || actuals[pid]) continue;
+      actuals[pid] = Object.fromEntries((teamDates[teamOf[pid]] || []).map((d) => [d, r2(fpOn[pid]?.[d] ?? 0)]));
+    }
     for (const D of weekDates) {
       const rawD = {
         ...raw, today: shift(D, 1),
@@ -415,15 +432,15 @@ async function replay(week) {
       };
       const snap = { at: `${shift(D, 1)}T04:30`, today: rawD.today, week: raw.week, season, league: raw.league.name, leagueId, model: MODEL_VERSION, cfg: CFG, kind: "replay",
         caveats: ["Rebuilt from Sleeper's finalized week: locks are the real ones, but mid-week lineup moves aren't known (the final lineup is assumed all week).", "Injury tags are today's, not the ones shown that night."],
-        unknownSlots: unknown, matchups: runMatchups(rawD, CFG, marksFor(D)) };
-      wr(`${dir}/replay/${D}.json`, snap);
-      touchIndex(leagueId, raw.league.name, season, raw.week, "replay", D);
+        unknownSlots: unknown, matchups: runMatchups(rawD, CFG, marksFor(D)), actuals };
+      wr(`${vdir(dir)}/replay/${D}.json`, snap);
+      if (!VARIANT) touchIndex(leagueId, raw.league.name, season, raw.week, "replay", D);
     }
     // the actual final, for "what happened"
-    wr(`${dir}/final.json`, { week: raw.week, fetched: NOW.toISOString(), source: appTotals ? appTotals.source : "sleeper public data (unreliable for Lock-In)",
-      truth, candidates, truthHash: appTotals ? hashOf(appTotals) : null, modelHash: MODEL_HASH, tipHash: weekTipHash(raw.tipoffs, weekDates),
+    wr(`${vdir(dir)}/final.json`, { variant: VARIANT || null, week: raw.week, fetched: NOW.toISOString(), source: appTotals ? appTotals.source : "sleeper public data (unreliable for Lock-In)",
+      truth, candidates, truthHash: appTotals ? hashOf(appTotals) : null, modelHash: MODEL_HASH, scorecard: 1, tipHash: weekTipHash(raw.tipoffs, weekDates),
       matchups: finalMatchups.map((m) => ({ rosterId: m.roster_id, matchupId: m.matchup_id, points: m.points, starters: m.starters, starters_points: m.starters_points })), counted });
-    touchIndex(leagueId, raw.league.name, season, raw.week, "final");
+    if (!VARIANT) touchIndex(leagueId, raw.league.name, season, raw.week, "final");
     log(`${raw.league.name} w${raw.week}: replayed ${weekDates.length} nights${appTotals ? `, totals (${appTotals.source}): ${JSON.stringify(truth)}` : ""}${unknown.length ? `, ${unknown.length} slot(s) whose counted game couldn't be matched` : ""}`);
   }
 }
@@ -494,9 +511,10 @@ async function truthCheck() {
   for (const [leagueId, L] of Object.entries(idx.leagues)) for (const w of Object.keys(L.seasons[season]?.weeks || {})) {
     const W = L.seasons[season].weeks[w];
     const dir = weekDir(leagueId, season, Number(w));
-    const t = weekTotals(dir), fin = rd(`${dir}/final.json`);
+    const t = weekTotals(dir), fin = rd(`${vdir(dir)}/final.json`);
     if (!t) continue;
     if (fin?.truthHash !== hashOf(t)) { log(`w${w}: totals changed, rebuilding`); await replay(Number(w)); }
+    else if (!fin?.scorecard) { log(`w${w}: adding scorecard data to its replay`); await replay(Number(w)); }
     else if (fin?.modelHash !== MODEL_HASH) { log(`w${w}: the math changed, rebuilding its replay`); await replay(Number(w)); }
     else if (W.replay?.length && fin?.tipHash !== weekTipHash(rd(`tipoffs/${season}.json`), [...W.replay].sort())) { log(`w${w}: tip-off times changed, rebuilding its replay`); await replay(Number(w)); }
   }
@@ -507,16 +525,17 @@ async function truthCheck() {
 function calibrate() {
   const idx = rd("index.json", { leagues: {} });
   const pts = [];   // {p: favourite's win %, y: favourite won, nightsLeft, week}
+  const calls = [], seenCalls = new Set();
   let weeks = 0, matchups = 0;
   for (const [leagueId, L] of Object.entries(idx.leagues)) for (const [season, S_] of Object.entries(L.seasons)) for (const [w, W] of Object.entries(S_.weeks)) {
     const dir = weekDir(leagueId, season, Number(w));
-    const fin = rd(`${dir}/final.json`);
+    const fin = rd(`${vdir(dir)}/final.json`);
     if (!fin?.truthHash || !W.replay?.length) continue;   // only weeks whose final is known for sure
     const pointsOf = Object.fromEntries(fin.matchups.map((m) => [m.rosterId, m.points]));
     const nights = [...W.replay].sort();
     weeks++;
     nights.slice(0, -1).forEach((d, k) => {
-      const snap = rd(`${dir}/replay/${d}.json`);
+      const snap = rd(`${vdir(dir)}/replay/${d}.json`);
       for (const m of snap?.matchups || []) {
         if (m.teams.length < 2 || m.win === null) continue;
         const [a, b] = m.teams, pa = pointsOf[a.rosterId], pb = pointsOf[b.rosterId];
@@ -526,7 +545,32 @@ function calibrate() {
         if (k === 0) matchups++;
       }
     });
+    // Lock calls: each just-finished game's call, the first night it came up. Following the call vs doing
+    // the opposite, with real results. Passing plays on with the formula's own later bars.
+    for (const d of nights) {
+      const snap = rd(`${vdir(dir)}/replay/${d}.json`);
+      const act = snap?.actuals || {};
+      for (const m of snap?.matchups || []) for (const t of m.teams) for (const sl of t.slots) {
+        if (!sl.call || !sl.cont?.length || sl.forcedPass) continue;
+        const key = `${w}:${t.rosterId}:${sl.pid}:${sl.decisionGame}`;
+        if (seenCalls.has(key)) continue;
+        seenCalls.add(key);
+        let passValue = 0;
+        for (const [i, g] of sl.cont.entries()) {
+          const fp = act[g.who]?.[g.d] ?? 0;
+          if (i === sl.cont.length - 1 || (g.bar !== null && fp >= g.bar)) { passValue = fp; break; }
+        }
+        const lockValue = sl.score;
+        const lock = sl.call.verdict === "LOCK";
+        const gain = lock ? lockValue - passValue : passValue - lockValue;
+        calls.push({ week: Number(w), team: t.name, player: sl.name, game: sl.decisionGame, verdict: sl.call.verdict, score: lockValue, passValue: r2(passValue), gain: r2(gain) });
+      }
+    }
   }
+  const callsRight = calls.filter((c) => c.gain >= 0).length;
+  const decisions = { calls: calls.length, right: callsRight, points: r2(calls.reduce((t, c) => t + c.gain, 0)),
+    locks: calls.filter((c) => c.verdict === "LOCK").length, passes: calls.filter((c) => c.verdict === "PASS").length,
+    best: [...calls].sort((a, b) => b.gain - a.gain).slice(0, 5), worst: [...calls].sort((a, b) => a.gain - b.gain).slice(0, 5) };
   const mean = (xs) => (xs.length ? xs.reduce((t, x) => t + x, 0) / xs.length : null);
   const brier = mean(pts.map((x) => (x.p - x.y) ** 2));
   const buckets = [[0.5, 0.6], [0.6, 0.7], [0.7, 0.8], [0.8, 0.9], [0.9, 1.01]].map(([lo, hi]) => {
@@ -537,15 +581,20 @@ function calibrate() {
     const xs = pts.filter((x) => x.nightsLeft === k);
     return { nightsLeft: k, n: xs.length, brier: r3(mean(xs.map((x) => (x.p - x.y) ** 2))), predicted: r3(mean(xs.map((x) => x.p))), actual: r3(mean(xs.map((x) => x.y))) };
   });
-  wr("calibration.json", { updated: NOW.toISOString(), modelHash: MODEL_HASH, weeks, matchups, nights: pts.length,
-    brier: r3(brier), coinFlipBrier: 0.25, buckets, byNightsLeft,
-    note: "Each matchup counts once per night, so nights of the same matchup aren't independent; read with care until there are several weeks." });
-  log(`calibration: ${weeks} week(s), ${matchups} matchups, ${pts.length} matchup-nights, Brier ${r3(brier)}`);
+  const calFile = `calibration${VARIANT ? `-${VARIANT}` : ""}.json`;
+  const body = { variant: VARIANT || "standard", modelHash: MODEL_HASH, weeks, matchups, nights: pts.length,
+    brier: r3(brier), coinFlipBrier: 0.25, buckets, byNightsLeft, decisions,
+    note: "Each matchup counts once per night, so nights of the same matchup aren't independent; read with care until there are several weeks." };
+  const prev = rd(calFile);
+  const same = prev && (({ updated, ...rest }) => JSON.stringify(rest) === JSON.stringify(body))(prev);
+  if (!same) wr(calFile, { ...body, updated: NOW.toISOString() });   // unchanged: no rewrite, no commit
+  log(`calibration${VARIANT ? ` (${VARIANT})` : ""}: ${weeks} week(s), ${matchups} matchups, ${pts.length} matchup-nights, Brier ${r3(brier)}; lock calls ${decisions.right}/${decisions.calls} right, ${decisions.points >= 0 ? "+" : ""}${decisions.points} pts vs the opposite`);
 }
 
-process.on("exit", () => { try { wr(`runs/last-${mode}.json`, { at: NOW.toISOString(), model: MODEL_VERSION, modelHash: MODEL_HASH, log: LOG }); } catch { /* ignore */ } });
+if (VARIANT && !["calibrate", "replay"].includes(mode)) { console.error("--variant only replays and scores finished weeks (calibrate, replay)"); process.exit(2); }
+process.on("exit", () => { try { wr(`runs/last-${mode}${VARIANT ? `-${VARIANT}` : ""}.json`, { at: NOW.toISOString(), model: MODEL_VERSION, modelHash: MODEL_HASH, log: LOG }); } catch { /* ignore */ } });
 if (mode === "nightly") { await nightlyOrTick("nightly"); await finals(); await truthCheck(); calibrate(); }
 else if (mode === "tick") { await nightlyOrTick("tick"); await finals(); await truthCheck(); calibrate(); }
-else if (mode === "calibrate") { await saveTipoffs((await S.state()).league_season, { force: true }); await truthCheck(); calibrate(); }
+else if (mode === "calibrate") { if (!VARIANT) await saveTipoffs((await S.state()).league_season, { force: true }); await truthCheck(); calibrate(); }
 else if (mode === "replay") await replay(opt("week"));
 else { console.error("usage: snapshot.mjs nightly|tick|replay --data <dir> [--week N]"); process.exit(2); }
