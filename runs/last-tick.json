@@ -1,1 +1,1 @@
-{"at":"2026-10-28T05:41:32.909Z","model":"177c1e6","modelHash":"1c6d1778fe","log":["Noob w2: tick 2026-10-28T01:41, 1 events: lineup","calibration: 1 week(s), 5 matchups, 25 matchup-nights, Brier 0.141"]}
+{"at":"2026-10-28T15:53:27.323Z","model":"7e28ecf","modelHash":"1c6d1778fe","log":["Noob w2: tick 2026-10-28T11:53, 7 events: lineup, lineup, lineup, lineup, lineup, injury, transaction","calibration: 1 week(s), 5 matchups, 25 matchup-nights, Brier 0.17; lock calls 126/161 right, +2431.35 pts vs the opposite"]}
