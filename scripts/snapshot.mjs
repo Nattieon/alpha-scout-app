@@ -174,6 +174,12 @@ async function leagueRaw(leagueId, { week, season, refreshLogs }) {
     Promise.all(weeks.map((w) => S.weekStats(season, w, true))), Promise.all(weeks.map((w) => S.weekProjections(season, w, true))),
   ]);
   const scoring = league.scoring_settings || {};
+  // a finished week's confirmed lineups (see replay): Sleeper's matchups data can't be trusted for them
+  const saved = rd(`${weekDir(leagueId, season, week)}/lineups.json`, {});
+  for (const m of matchups) {
+    const l = saved[m.roster_id];
+    if (l) { m.starters = l.starters; m.players = [...new Set([...(l.players || m.players || []), ...l.starters])]; }
+  }
   const reserve = new Set(rosters.flatMap((r) => r.reserve || []));
   const pids = [...new Set(matchups.flatMap((m) => [...(m.starters || []), ...(m.players || [])]))].filter((p) => p && p !== "0" && !reserve.has(p));
   const want = new Set(matchups.flatMap((m) => [...(m.starters || []), ...(m.players || [])]));
@@ -218,6 +224,7 @@ function slotOut(s) {
     const bars = lockBars(s.contGames);
     o.cont = s.contGames.map((g, k) => ({ who: g.who || s.pid, d: g.date, bar: bars[k] !== undefined ? r2(bars[k]) : null }));
   }
+  if (s.call && s.games?.length) { const b = lockBars(s.games); o.own = s.games.map((g, k) => ({ d: g.date, bar: b[k] !== undefined ? r2(b[k]) : null })); }
   if (s.p?.injury) o.injury = s.p.injury;
   return o;
 }
@@ -368,6 +375,9 @@ async function replay(week) {
     const dir = weekDir(leagueId, season, raw.week);
     // The Sleeper app's own totals (score + projection per team), when someone has entered them:
     // they decide which game counted in each slot. Sleeper's public final is only a fallback.
+    // Sleeper's matchups data is unreliable for Lock-In: it can even return different lineups for a past
+    // week. Once a team's lineup is confirmed by the totals, it's saved and used from then on.
+    const saved = rd(`${dir}/lineups.json`, {});
     const appTotals = weekTotals(dir);
     const truth = {}, candidates = {};
     if (appTotals) {
@@ -380,10 +390,14 @@ async function replay(week) {
           games: pid && pid !== "0" ? (teamDates[teamOf[pid]] || []).sort().map((d) => ({ date: d, fp: fpOn[pid]?.[d] ?? 0, pj: pjOn[pid]?.[d] ?? 0 })) : [] }));
         const sols = solveCounted(slots, t, { limit: 6 });
         truth[m.roster_id] = sols.length === 1 ? "solved" : sols.length ? "ambiguous" : "no match";
-        if (sols.length === 1) Object.assign(counted, sols[0]);
+        if (sols.length === 1) {
+          Object.assign(counted, sols[0]);
+          if (!saved[m.roster_id] && !VARIANT) saved[m.roster_id] = { starters: m.starters, players: m.players };
+        }
         else if (sols.length) candidates[m.roster_id] = sols;   // History lists these; app totals with projections settle it
       }
     }
+    if (!VARIANT && Object.keys(saved).length) wr(`${dir}/lineups.json`, saved);
     const finalMatchups = raw.matchups.map((m) => {
       const t = appTotals?.teams?.[m.roster_id];
       if (!t) return m;
@@ -438,7 +452,7 @@ async function replay(week) {
     }
     // the actual final, for "what happened"
     wr(`${vdir(dir)}/final.json`, { variant: VARIANT || null, week: raw.week, fetched: NOW.toISOString(), source: appTotals ? appTotals.source : "sleeper public data (unreliable for Lock-In)",
-      truth, candidates, truthHash: appTotals ? hashOf(appTotals) : null, modelHash: MODEL_HASH, scorecard: 1, tipHash: weekTipHash(raw.tipoffs, weekDates),
+      truth, candidates, truthHash: appTotals ? hashOf(appTotals) : null, modelHash: MODEL_HASH, scorecard: 2, tipHash: weekTipHash(raw.tipoffs, weekDates),
       matchups: finalMatchups.map((m) => ({ rosterId: m.roster_id, matchupId: m.matchup_id, points: m.points, starters: m.starters, starters_points: m.starters_points })), counted });
     if (!VARIANT) touchIndex(leagueId, raw.league.name, season, raw.week, "final");
     log(`${raw.league.name} w${raw.week}: replayed ${weekDates.length} nights${appTotals ? `, totals (${appTotals.source}): ${JSON.stringify(truth)}` : ""}${unknown.length ? `, ${unknown.length} slot(s) whose counted game couldn't be matched` : ""}`);
@@ -514,7 +528,7 @@ async function truthCheck() {
     const t = weekTotals(dir), fin = rd(`${vdir(dir)}/final.json`);
     if (!t) continue;
     if (fin?.truthHash !== hashOf(t)) { log(`w${w}: totals changed, rebuilding`); await replay(Number(w)); }
-    else if (!fin?.scorecard) { log(`w${w}: adding scorecard data to its replay`); await replay(Number(w)); }
+    else if ((fin?.scorecard || 0) < 2) { log(`w${w}: adding scorecard data to its replay`); await replay(Number(w)); }
     else if (fin?.modelHash !== MODEL_HASH) { log(`w${w}: the math changed, rebuilding its replay`); await replay(Number(w)); }
     else if (W.replay?.length && fin?.tipHash !== weekTipHash(rd(`tipoffs/${season}.json`), [...W.replay].sort())) { log(`w${w}: tip-off times changed, rebuilding its replay`); await replay(Number(w)); }
   }
@@ -555,10 +569,15 @@ function calibrate() {
         const key = `${w}:${t.rosterId}:${sl.pid}:${sl.decisionGame}`;
         if (seenCalls.has(key)) continue;
         seenCalls.add(key);
+        // Passing: the slot plays on with its own player and real bench backups. If the plan handed the
+        // slot to another starter (a reshuffle), judge the call on the player's own games instead.
+        const starters = new Set(t.slots.map((x) => x.pid).filter(Boolean));
+        const usesStarter = sl.cont.some((g) => g.who !== sl.pid && starters.has(g.who));
+        const seq = usesStarter ? (sl.own || []).map((g) => ({ ...g, who: sl.pid })) : sl.cont;
         let passValue = 0;
-        for (const [i, g] of sl.cont.entries()) {
+        for (const [i, g] of seq.entries()) {
           const fp = act[g.who]?.[g.d] ?? 0;
-          if (i === sl.cont.length - 1 || (g.bar !== null && fp >= g.bar)) { passValue = fp; break; }
+          if (i === seq.length - 1 || (g.bar !== null && fp >= g.bar)) { passValue = fp; break; }
         }
         const lockValue = sl.score;
         const lock = sl.call.verdict === "LOCK";
