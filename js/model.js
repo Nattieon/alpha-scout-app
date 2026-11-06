@@ -367,12 +367,28 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
         moves: r.moved ? { pid: r.moved, name: nameOf(r.moved), to: r.movedTo === s.i ? s.label : rowsLeft.find((x) => x.key === r.movedTo)?.label || "bench" } : null,
         opens: r.newcomer ? { pid: r.newcomer, name: nameOf(r.newcomer) } : null };
     };
-    for (const s of slots) if (lockedNow.has(s.i)) s.lockInto = bestLockSlot(s, rows, free);
-    // tonight's "lock if he scores ≥ …": where to lock him if he does
+    // Several locks at once can't all take the same slot: place them one at a time, the biggest gain
+    // first (then the biggest flexibility gain), each on the lineup the earlier ones leave.
+    let lockRows = rows;
+    const toPlace = slots.filter((s) => lockedNow.has(s.i));
+    while (toPlace.length) {
+      const recs = toPlace.map((s) => ({ s, r: bestLockSlot(s, lockRows, free) }));
+      const pick = recs.filter((x) => x.r).sort((a, b) => b.r.gain - a.r.gain || (a.r.reason === "flex" ? 0 : 1))[0];
+      if (!pick) break;
+      pick.s.lockInto = pick.r;
+      const alt = lockRows.find((r) => r.key === pick.r.key);
+      const occFits = !!alt.current && canFill(pick.s.label, posOf(alt.current));
+      lockRows = [...lockRows.filter((r) => r.key !== alt.key),
+        { key: pick.s.i, label: pick.s.label, current: occFits ? alt.current : null, keepScore: occFits ? alt.keepScore : null }];
+      toPlace.splice(toPlace.indexOf(pick.s), 1);
+    }
+    // tonight's "lock if he scores ≥ …": where to lock him if he does (on the lineup after the locks above)
     for (const s of slots) {
       if (lockedNow.has(s.i) || !s.p || !OPEN.has(s.kind) && s.kind !== "live") continue;
       if (!(s.kind === "live" || s.games?.[0]?.date === today)) continue;
-      s.lockIntoTonight = bestLockSlot(s, rows.filter((r) => r.key !== s.i), free.filter((x) => x.key !== s.pid));
+      const moved = lockRows.find((r) => r.key === s.i && r.current !== s.pid);
+      if (moved || !lockRows.some((r) => r.key === s.i) && s.kind !== "live") continue;   // his slot was taken by a lock above
+      s.lockIntoTonight = bestLockSlot(s, lockRows.filter((r) => r.key !== s.i), free.filter((x) => x.key !== s.pid));
     }
     const swaps = [];
     for (const s of slots) {

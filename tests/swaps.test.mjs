@@ -97,3 +97,15 @@ test("lock slot: on a points tie, keep the flexible slot open", async () => {
   // already in the most specific slot he fits: nothing to recommend
   assert.equal(chooseLockSlot({ key: "PG", label: "PG", positions: ["PG"] }, [{ key: "U", label: "UTIL", current: null, keepScore: null }], [], () => []), null);
 });
+
+test("lock slot: two locked centers can't both take the one C slot", async () => {
+  const { chooseLockSlot } = await import("../js/swaps.js");
+  const pos = { sab: ["C", "PF"] };
+  const rows = [{ key: "C", label: "C", current: "sab", keepScore: null }];
+  const cands = [{ key: "sab", positions: ["C", "PF"], value: 40 }];
+  const first = chooseLockSlot({ key: "U1", label: "UTIL", positions: ["C"] }, rows, cands, (k) => pos[k] || []);
+  assert.equal(first.label, "C");
+  // after the first center takes C (Sabonis moves to his UTIL), the second has nowhere better
+  const after = [{ key: "U1", label: "UTIL", current: "sab", keepScore: null }];
+  assert.equal(chooseLockSlot({ key: "U2", label: "UTIL", positions: ["C"] }, after, cands, (k) => pos[k] || []), null);
+});
