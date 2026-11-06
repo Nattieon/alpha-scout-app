@@ -71,3 +71,29 @@ test("lock bar for a pending slot = value of keeping it open with the bench", ()
   assert.equal(value, 35);
   assert.equal(assign.F, "x");
 });
+
+test("lock slot: take the specific slot so a bench big can use UTIL", async () => {
+  const { chooseLockSlot } = await import("../js/swaps.js");
+  // Haliburton (PG/SG) is in UTIL and gets locked. PG holds a weak PG; a strong C sits on the bench, C slot full.
+  const me = { key: "U", label: "UTIL", positions: ["PG", "SG"] };
+  const rows = [{ key: "PG", label: "PG", current: "weakPG", keepScore: null }];
+  const cands = [{ key: "weakPG", positions: ["PG"], value: 20 }, { key: "benchC", positions: ["C"], value: 45 }];
+  const pos = (k) => cands.find((c) => c.key === k)?.positions || [];
+  const r = chooseLockSlot(me, rows, cands, pos);
+  assert.equal(r.label, "PG");
+  assert.equal(r.reason, "points");
+  assert.ok(Math.abs(r.gain - 25) < 1e-9);          // benchC (45) gets UTIL instead of weakPG (20)
+  assert.equal(r.newcomer, "benchC");
+  assert.equal(r.moved, "weakPG");
+});
+
+test("lock slot: on a points tie, keep the flexible slot open", async () => {
+  const { chooseLockSlot } = await import("../js/swaps.js");
+  const me = { key: "U", label: "UTIL", positions: ["PG"] };
+  const rows = [{ key: "PG", label: "PG", current: null, keepScore: null }];
+  const r = chooseLockSlot(me, rows, [], () => []);
+  assert.equal(r.label, "PG");
+  assert.equal(r.reason, "flex");
+  // already in the most specific slot he fits: nothing to recommend
+  assert.equal(chooseLockSlot({ key: "PG", label: "PG", positions: ["PG"] }, [{ key: "U", label: "UTIL", current: null, keepScore: null }], [], () => []), null);
+});

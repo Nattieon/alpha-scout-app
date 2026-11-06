@@ -1,7 +1,7 @@
 // Turns raw Sleeper data into slot states, per-game projections and lock calls.
 import { buildShape, lockBars, lockCall, percentileOf, slotMoments, slotValue, winProbability } from "./lockmath.js?v=__V__";
 import { availabilityProfile, gameSitRisks, shiftDay } from "./availability.js?v=__V__";
-import { canFill, planSlots } from "./swaps.js?v=__V__";
+import { canFill, chooseLockSlot, planSlots } from "./swaps.js?v=__V__";
 import { addBackups, chainOf } from "./chains.js?v=__V__";
 
 export const DEFAULTS = { baseDnp: 0.04, pairRest: 0.19, injuryDecay: 0.7, mode: "win", cvPrior: 0.30, projBasis: "next", oppSwaps: true, cushion: 0, b2bFlags: {} };
@@ -355,6 +355,25 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     const rows = planRows(lockedNow);
     const groups = addBackups(rows.filter((r) => !plan.keep[r.key]),
       Object.fromEntries(rows.filter((r) => !plan.keep[r.key]).map((r) => [r.key, plan.assign[r.key] ? [byKey.get(plan.assign[r.key])] : []])), free);
+    // Which slot to lock him in. A locked player holds his slot all week, so try every slot he can
+    // fill (its player moves into the one he leaves), re-plan the rest of the week each way, and pick
+    // the best; on a tie, the most specific slot, so flexible ones (UTIL, G, F) stay open.
+    const posOf = (pid) => byKey.get(pid)?.positions || slots.find((x) => x.pid === pid)?.p?.positions || [];
+    const nameOf = (pid) => byKey.get(pid)?.p?.name || slots.find((x) => x.pid === pid)?.p?.name || pid;
+    const bestLockSlot = (s, rowsLeft, candLeft) => {
+      const r = chooseLockSlot({ key: s.i, label: s.label, positions: s.p?.positions }, rowsLeft, candLeft, posOf);
+      if (!r) return null;
+      return { ...r, from: s.label,
+        moves: r.moved ? { pid: r.moved, name: nameOf(r.moved), to: r.movedTo === s.i ? s.label : rowsLeft.find((x) => x.key === r.movedTo)?.label || "bench" } : null,
+        opens: r.newcomer ? { pid: r.newcomer, name: nameOf(r.newcomer) } : null };
+    };
+    for (const s of slots) if (lockedNow.has(s.i)) s.lockInto = bestLockSlot(s, rows, free);
+    // tonight's "lock if he scores ≥ …": where to lock him if he does
+    for (const s of slots) {
+      if (lockedNow.has(s.i) || !s.p || !OPEN.has(s.kind) && s.kind !== "live") continue;
+      if (!(s.kind === "live" || s.games?.[0]?.date === today)) continue;
+      s.lockIntoTonight = bestLockSlot(s, rows.filter((r) => r.key !== s.i), free.filter((x) => x.key !== s.pid));
+    }
     const swaps = [];
     for (const s of slots) {
       if (!OPEN.has(s.kind) || lockedNow.has(s.i)) continue;

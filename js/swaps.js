@@ -16,6 +16,13 @@ const SLOT_FITS = {
   C: ["C"], GF: ["SG", "SF", "G", "F"], FC: ["SF", "PF", "C", "F"],
 };
 
+/** How many kinds of player a slot takes (UTIL: anyone). Lower = more specific. */
+export function slotFlex(slotLabel) {
+  const slot = String(slotLabel || "").toUpperCase();
+  if (slot === "UTIL" || slot === "FLEX") return 99;
+  return (SLOT_FITS[slot] || [slot]).length;
+}
+
 /** Can a player with these Sleeper fantasy positions fill this starting slot? */
 export function canFill(slotLabel, positions) {
   const slot = String(slotLabel || "").toUpperCase();
@@ -112,4 +119,34 @@ export function planSlots(slots, candidates) {
     return { value: withOpen.total - without.total, assign: withOpen.assign };
   };
   return plan;
+}
+
+/**
+ * Which slot to lock a player in. He holds it all week, so try every open slot he can fill (its current
+ * player moves into the slot he leaves, if he fits there), re-plan the rest of the week each way, and
+ * pick the most points; on a tie, the most specific slot, so flexible ones (UTIL, G, F) stay open.
+ *  me:   {key, label, positions}   the slot he's in now (already out of `rows`)
+ *  rows/candidates: the rest of the lineup, as for planSlots (without him)
+ * Returns null to lock him where he is, else {key, label, gain, reason, moved, movedTo, newcomer}.
+ */
+export function chooseLockSlot(me, rows, candidates, positionsOf) {
+  const base = planSlots(rows, candidates);
+  const used = new Set(Object.values(base.assign).filter(Boolean));
+  let best = null;
+  for (const alt of rows) {
+    if (alt.label === me.label || !canFill(alt.label, me.positions)) continue;
+    const occFits = !!alt.current && canFill(me.label, positionsOf(alt.current));
+    const rows2 = [...rows.filter((r) => r.key !== alt.key),
+      { key: me.key, label: me.label, current: occFits ? alt.current : null, keepScore: occFits ? alt.keepScore : null }];
+    const p2 = planSlots(rows2, candidates);
+    const gain = p2.total - base.total;
+    const tighter = slotFlex(alt.label) < slotFlex(me.label);
+    if (!(gain > 0.5 || (gain > -0.05 && tighter))) continue;
+    if (best && (gain < best.gain - 0.05 || (Math.abs(gain - best.gain) <= 0.05 && slotFlex(alt.label) >= slotFlex(best.label)))) continue;
+    const movedTo = alt.current ? Object.entries(p2.assign).find(([, k]) => k === alt.current)?.[0] : undefined;
+    best = { key: alt.key, label: alt.label, gain: Math.max(gain, 0), reason: gain > 0.5 ? "points" : "flex",
+      moved: alt.current || null, movedTo: movedTo === undefined ? null : rows2.find((r) => String(r.key) === movedTo)?.key ?? null,
+      newcomer: Object.values(p2.assign).find((k) => k && !used.has(k)) || null };
+  }
+  return best;
 }

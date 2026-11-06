@@ -554,7 +554,7 @@ function renderDecide(m) {
         <div class="stat"><small>${dow(g.date)} ${g.home ? "vs" : "@"} ${esc(g.opp)}</small><b class="num">${f1(s.score)}</b>${s.pctScore != null ? `<span class="pct">${pctLabel(s.pctScore, s.p)}</span>` : ""}</div>
         <div class="stat"><small>Bar · ${s.games.length} left</small><b class="num">${f1(c.bar)}</b>${s.pctBar != null ? `<span class="pct">≈ his ${ord(s.pctBar)} pct</span>` : ""}</div>
       </div>
-      ${winRow}${flip}${viaSwap}
+      ${winRow}${flip}${lock ? lockSlotNote(s.lockInto) : ""}${viaSwap}
       <div class="why">${whyLines(s.games).map((x) => `<div>${x}</div>`).join("")}
         <div>Passing: ${pct(c.pBelow)} chance he ends the week lower than ${f1(s.score)}.</div></div>
       <div class="marks">
@@ -577,6 +577,16 @@ function planLine(s) {
   s.plan.forEach((x, k) => { const last = days.at(-1); const step = { ...x, k }; if (last && last.date === x.date) last.steps.push(step); else days.push({ date: x.date, steps: [step] }); });
   const stepText = (x) => `<b>${esc(shortName(x.name))}</b>${tipLabel(x)}${x.bar != null ? ` (lock ≥ ${f1(x.bar)})` : x.k === s.plan.length - 1 ? " (counts if still open)" : ""}`;
   return days.map((d) => `<div class="${d.steps.length > 1 ? "lsw" : "muted"}">${dow(d.date)}: ${d.steps.map(stepText).join('<span class="arrow"> → </span>')}</div>`).join("");
+}
+
+/** "Lock him in at PG, not UTIL": where a lock should go so the rest of the week has the most room. */
+function lockSlotNote(x, { tonight = false } = {}) {
+  if (!x) return "";
+  const move = x.moves ? ` Move <b>${esc(shortName(x.moves.name))}</b> ${x.moves.to === "bench" ? "to the bench" : `to ${esc(x.moves.to)}`} first.` : "";
+  const why = x.reason === "points"
+    ? `That's worth <b class="num">+${f1(x.gain)}</b> over the rest of the week${x.opens ? `: it opens a spot for <b>${esc(shortName(x.opens.name))}</b>` : ""}.`
+    : `Same points either way, but it keeps the more flexible ${esc(x.from)} slot unlocked for later moves.`;
+  return `<div class="flip lockslot">${tonight ? "If you lock him, lock" : "Lock"} him in at <b>${esc(x.label)}</b>, not ${esc(x.from)}.${move} ${why}</div>`;
 }
 
 function renderSwaps(m) {
@@ -635,7 +645,7 @@ function renderTonight(m) {
     const evNote = Math.abs(t.bar - t.evBar) >= 0.5 ? `<div class="flip">Points-only bar is ${f1(t.evBar)}; your matchup moves it to ${f1(t.bar)}.</div>` : "";
     return `<article class="card">${head}
       <div class="duel">${liveLine}<div class="stat"><small>Then ${t.after.length} more game${t.after.length > 1 ? "s" : ""}</small><b class="num">${f1(t.after.reduce((a, g) => a + g.mu, 0) / t.after.length)}</b></div></div>
-      ${evNote}${benchNote}
+      ${evNote}${lockSlotNote(s.lockIntoTonight, { tonight: true })}${benchNote}
       <div class="whatif"><label for="wi-${s.i}">If he finishes with</label><input id="wi-${s.i}" data-wi="${s.i}" type="number" inputmode="decimal" step="0.5" placeholder="${f1(t.bar)}"> <span id="wo-${s.i}" class="muted">→ type a score</span></div>
     </article>`;
   }).join("")}</div>`;
