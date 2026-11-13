@@ -62,8 +62,11 @@ export async function seasonPlayers(scoring, { fresh = false } = {}) {
   const sums = await Promise.all(weeks.map((w) => weekSummary(season, w, scoring,
     { complete, final: w < current && weekEnd[w] && shiftDay(weekEnd[w], 3) < today, fresh: fresh || w >= current - 1 })));
   const by = new Map();
+  // Sleeper's stats include each NBA team's totals as a "player" (position TEAM): not players, leave out
+  const isTeam = (pid, meta) => !/^\d+$/.test(pid) || (meta?.[2] || []).includes("TEAM");
   for (const s of sums) {
     for (const [pid, gs] of Object.entries(s.games)) {
+      if (isTeam(pid, s.meta[pid])) continue;
       const p = by.get(pid) || { pid, games: [] };
       p.games.push(...gs);
       const [name, team, pos] = s.meta[pid];
