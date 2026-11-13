@@ -28,3 +28,15 @@ test("automatic minimum: 40% of a typical team's games, at least 1", () => {
   assert.equal(autoMinGames(2), 1);
   assert.equal(autoMinGames(15), 6);
 });
+
+test("NBA team totals in Sleeper's stats are not players", async () => {
+  const S = await import("../js/sleeper.js");
+  const { seasonPlayers } = await import("../js/rankings.js");
+  const rows = [
+    { player_id: "LAL", date: "2026-10-21", game_id: "g1", team: "LAL", stats: { min: 240, pts: 120 }, player: { first_name: "Los Angeles", last_name: "Lakers", fantasy_positions: ["TEAM"] } },
+    { player_id: "1234", date: "2026-10-21", game_id: "g1", team: "LAL", stats: { min: 30, pts: 20 }, player: { first_name: "A", last_name: "Player", fantasy_positions: ["PG"] } },
+  ];
+  globalThis.fetch = async (url) => ({ ok: true, json: async () => (url.includes("/state/") ? { league_season: "2026", week: 1 } : url.includes("/schedule/") ? [{ game_id: "g1", week: 1, date: "2026-10-21", status: "complete", home: { team: "LAL" }, away: { team: "BOS" } }] : rows) });
+  const d = await seasonPlayers({ pts: 1 }, { fresh: true });
+  assert.deepEqual(d.players.map((p) => p.pid), ["1234"]);
+});
