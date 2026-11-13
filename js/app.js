@@ -1,6 +1,7 @@
 import * as S from "./sleeper.js?v=__V__";
 import { buildModel, DEFAULTS, dow, md, normalizeMarks, todayET } from "./model.js?v=__V__";
 import { openHistory } from "./history.js?v=__V__";
+import { openRankings, rankMap, seasonPlayers } from "./rankings.js?v=__V__";
 import { LAB } from "./lab.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
@@ -94,7 +95,7 @@ async function findLeagues(username, { auto = false, asMe = false } = {}) {
 // ------------------------------------------------------------------ league
 async function openLeague(username, leagueId, rosterId = null) {
   closeSwitcher();
-  $("history").hidden = true;
+  $("history").hidden = true; $("rankings").hidden = true;
   $("onboard").hidden = true; $("dash").hidden = false;
   $("board").innerHTML = '<div class="skeleton"></div>';
   ["decide", "swaps", "tonight"].forEach((id) => ($(id).innerHTML = ""));
@@ -111,6 +112,7 @@ async function openLeague(username, leagueId, rosterId = null) {
     $("who").hidden = false; $("who").textContent = "Matchups ▾";
     await load(false);
     rememberView();
+    refreshRankBadges();
     clearInterval(timer);
     timer = setInterval(() => { if (document.visibilityState === "visible") load(true); }, 120000);
   } catch (err) {
@@ -149,6 +151,36 @@ function teamName(raw, rid) {
   const u = r && raw.users.find((x) => x.user_id === r.owner_id);
   return u ? (u.metadata?.team_name || u.display_name) : `Team ${rid}`;
 }
+
+// ------------------------------------------------------------------ rankings
+let ranks = null;          // {pid: rank} for the open league's scoring (badges in the lineups)
+let ranksKey = null;
+function refreshRankBadges() {
+  const sc = ctx?.raw?.league?.scoring_settings;
+  if (!sc) return;
+  seasonPlayers(sc).then((d) => {
+    ranks = rankMap(d); ranksKey = ctx.leagueId;
+    if (model && !$("dash").hidden) renderLineup(model);
+  }).catch(() => { /* badges are optional */ });
+}
+function rankBadge(pid) {
+  const r = ranks && ranksKey === ctx?.leagueId ? ranks[pid] : undefined;
+  if (!r) return "";
+  return ` <span class="rkb${r <= 70 ? " t70" : ""}" title="Season rank by fantasy points per game">#${r}</span>`;
+}
+function showRankings() {
+  closeSwitcher();
+  const raw = ctx.raw;
+  const owners = {};
+  for (const r of raw.rosters) for (const pid of [...(r.players || []), ...(r.reserve || [])]) owners[pid] = { rosterId: r.roster_id, team: teamName(raw, r.roster_id) };
+  const m = me();
+  const mine = m && raw.rosters.find((r) => r.owner_id === m.user_id || (r.co_owners || []).includes(m.user_id));
+  $("dash").hidden = true; $("history").hidden = true; $("rankings").hidden = false;
+  window.scrollTo(0, 0);
+  openRankings($("rankings"), { scoring: raw.league.scoring_settings, owners, myRosterId: mine?.roster_id ?? myRosterId(raw.rosters), leagueName: raw.league.name,
+    onClose: () => { $("rankings").hidden = true; $("dash").hidden = false; refreshRankBadges(); } });
+}
+$("open-rankings").addEventListener("click", () => { if (ctx?.raw) showRankings(); });
 
 function showHistory() {
   closeSwitcher();
@@ -197,7 +229,7 @@ function openSwitcher() {
     `<button class="row-btn" data-recent="${i}"><span>${esc(x.label)}${x.mine ? ' <span class="tag">you</span>' : ""}</span><span class="muted">${esc(x.league)}</span></button>`).join("")}</div></div>` : "";
   el.innerHTML = `
     <div class="sw-head"><b>Switch matchup</b><button class="chip" id="sw-close" aria-label="Close">Close</button></div>
-    <div class="sw-actions">${raw && !viewingMine() && m ? `<button class="btn" id="sw-mine">Back to my matchup</button>` : ""}${raw ? `<button class="btn ghost" id="sw-hist">History</button>` : ""}</div>
+    <div class="sw-actions">${raw && !viewingMine() && m ? `<button class="btn" id="sw-mine">Back to my matchup</button>` : ""}${raw ? `<button class="btn ghost" id="sw-hist">History</button><button class="btn ghost" id="sw-rank">Rankings</button>` : ""}</div>
     ${leagueHtml}
     <div class="sw-sec"><h3>Leagues</h3>
       <form class="find" id="sw-find"><input id="sw-user" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Any Sleeper username" value="${esc(m?.username || "")}">
@@ -208,6 +240,7 @@ function openSwitcher() {
   $("sw-close").onclick = closeSwitcher;
   if ($("sw-mine")) $("sw-mine").onclick = goMine;
   if ($("sw-hist")) $("sw-hist").onclick = showHistory;
+  if ($("sw-rank")) $("sw-rank").onclick = showRankings;
   el.querySelectorAll(".pair-btn").forEach((b) => (b.onclick = () => {
     const pair = s_pairs.byId.get(Number(b.dataset.pair)) || s_pairs.byId.get(b.dataset.pair);
     // default side: your team if it's in this matchup, else whichever side you're on now, else the first team
@@ -716,7 +749,7 @@ function renderLineup(m) {
     return `<div class="row">
       <div class="slot">${esc(s.label)}</div>
       <div style="min-width:0">
-        <div class="pname" style="font-size:16.5px">${esc(s.p.name)} <span class="pmeta">${esc(s.p.team || "FA")}${s.p.injury ? ` · <span class="warn">${esc(s.p.injury)}</span>` : ""}</span></div>
+        <div class="pname" style="font-size:16.5px">${esc(s.p.name)}${rankBadge(s.pid)} <span class="pmeta">${esc(s.p.team || "FA")}${s.p.injury ? ` · <span class="warn">${esc(s.p.injury)}</span>` : ""}</span></div>
         <div class="games">${gameChips(s)}</div>
         ${availLine(s.p)}
         ${lockPicker(s)}
@@ -727,7 +760,7 @@ function renderLineup(m) {
   const bench = (side.bench || []).map((b) => `<div class="row bench">
       <div class="slot">BN</div>
       <div style="min-width:0">
-        <div class="pname" style="font-size:15.5px">${esc(b.p.name)} <span class="pmeta">${esc(b.p.team || "FA")}${b.p.injury ? ` · <span class="warn">${esc(b.p.injury)}</span>` : ""}</span></div>
+        <div class="pname" style="font-size:15.5px">${esc(b.p.name)}${rankBadge(b.pid)} <span class="pmeta">${esc(b.p.team || "FA")}${b.p.injury ? ` · <span class="warn">${esc(b.p.injury)}</span>` : ""}</span></div>
         <div class="games">${gameChips({ p: b.p, kind: "bench" })}</div>
       </div>
       <div class="val"><span class="state open">Bench</span><b class="num">${b.nextProj != null ? f1(b.nextProj) : "–"}</b><small>next game</small></div>

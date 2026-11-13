@@ -33,6 +33,12 @@ played is at his lock decision) and a light lineup check every 30 minutes on gam
 (a full snapshot only when something changed). Each nightly also stores the model's inputs,
 so new math can be re-run on old days. `scripts/snapshot.mjs` documents the layout.
 
+**Rankings** (button next to Lineups, or in the Matchups panel) ranks every NBA player by fantasy
+points per game this season, in your league's scoring, completed games only. Tier lines at top
+10/30/50/70/90/120/150; filters for position, free agents, your team or any team; ▲▼ shows the move
+since a week ago. It refreshes every 5 minutes while open. Players in the lineups carry their rank
+(#23). A minimum games played (auto: 40% of a typical team's games) keeps two-game streaks out.
+
 Nothing to install, no accounts, no server. Everything runs in your browser
 against Sleeper's public read-only API. Settings and your lock marks stay in your
 browser only.
