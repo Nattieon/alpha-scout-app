@@ -427,9 +427,9 @@ function renderCushion(m) {
         <button type="button" class="chip" id="cu-auto" aria-pressed="false"></button>
       </div>
       <input type="range" id="cu-range" min="0" max="${CU_MAX}" step="1" aria-describedby="cu-hint">
-      <div class="cu-scale num"><span>0 · best odds to win</span><span>${CU_MAX} pts</span></div>
+      <div class="cu-scale num"><span>0 = off</span><span>${CU_MAX} pts</span></div>
       <div id="cu-effect" class="cu-effect" aria-live="polite"></div>
-      <p id="cu-hint" class="cu-hint muted">Calls treat a lead smaller than the cushion as one move from gone, and play it like a deficit. The win % above stays the plain chance to win.</p>`;
+      <p id="cu-hint" class="cu-hint muted">A lead smaller than this isn't treated as safe, so the advice plays it like you're behind. The chance to win at the top doesn't change. Below: what it does to tonight's lines.</p>`;
     const range = $("cu-range");
     let raf = 0;
     const live = () => {
@@ -474,15 +474,15 @@ function renderCushion(m) {
   for (const x of m.me.slots) {
     if (x.kind === "pending" && x.call) {
       const was = b[x.i]?.call?.verdict;
-      items.push(`<span class="cu-item${was && was !== x.call.verdict ? " changed" : ""}">${esc(shortName(x.p.name))} <b class="${x.call.verdict === "LOCK" ? "lock" : "pass"}">${x.call.verdict}</b></span>`);
+      items.push(`<span class="cu-item${was && was !== x.call.verdict ? " changed" : ""}">${esc(shortName(x.p.name))} <b class="${x.call.verdict === "LOCK" ? "lock" : "pass"}">${x.call.verdict === "LOCK" ? "LOCK" : "RIDE"}</b></span>`);
     }
     if (x.tonight?.bar !== undefined && !x.tonight.final) {
       const was = b[x.i]?.tonight?.bar;
       const moved = was !== undefined && Math.abs(was - x.tonight.bar) >= 0.05;
-      items.push(`<span class="cu-item${moved ? " changed" : ""}">${esc(shortName(x.p.name))} lock ≥ <b class="num">${f1(x.tonight.bar)}</b>${moved ? ` <span class="muted num">(${f1(was)})</span>` : ""}</span>`);
+      items.push(`<span class="cu-item${moved ? " changed" : ""}">${esc(shortName(x.p.name))} <b class="num">${f1(x.tonight.bar)}+</b>${moved ? ` <span class="muted num">(${f1(was)})</span>` : ""}</span>`);
     }
   }
-  $("cu-effect").innerHTML = items.length ? items.join("") : `<span class="muted">No lock decisions or games tonight to move.</span>`;
+  $("cu-effect").innerHTML = items.length ? items.join("") : `<span class="muted">Nothing tonight for it to change.</span>`;
 }
 
 /** Flip to the other side of the matchup on screen (no reload: both sides' logs are already loaded). */
@@ -513,7 +513,7 @@ function lockSlotNote(x, { tonight = false } = {}) {
 
 // ------------------------------------------------------------------ plain-language helpers
 const tipOf = (g) => (g?.tip ? clockET(g.tip.slice(11)) : "");
-const whenOf = (g, today) => (g ? `${g.date === today ? "tonight" : dow(g.date)}${g.tip ? ` ${tipOf(g)}` : ""}` : "");
+const whenOf = (g, today, cap = false) => (g ? `${g.date === today ? (cap ? "Tonight" : "tonight") : dow(g.date)}${g.tip ? ` ${tipOf(g)}` : ""}` : "");
 const vsOf = (g) => (g ? `${g.home ? "vs" : "@"} ${esc(g.opp)}` : "");
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 /** How often he reaches a score, from its percentile among his games: "about 1 game in 5". */
@@ -522,7 +522,8 @@ function often(q) {
   const r = 1 - q;
   if (r >= 0.6) return "most of his games";
   if (r >= 0.4) return "about half his games";
-  return `about 1 game in ${Math.max(2, Math.round(1 / Math.max(r, 0.01)))}`;
+  if (r < 0.05) return "rarely";
+  return `about 1 game in ${Math.max(2, Math.round(1 / r))}`;
 }
 /** "Mon: 15% chance he sits (back-to-back)", only for games where it matters. */
 function sitLines(games) {
@@ -649,15 +650,15 @@ function tonightItem(s, m) {
       line: `Listed <span class="warn">${esc(s.p.injury)}</span>. Tonight is his last game, so if he sits this slot scores 0. Start someone healthy.`, sub: `${whenOf(g, m.today)} ${vsOf(g)}` });
   }
   const after = t.after.length ? t.after.reduce((a, x) => a + x.mu, 0) / t.after.length : 0;
-  const line = `Lock if he scores <b class="num">${f1(t.bar)}</b>+, otherwise ride.${live ? ` <span class="state live">Live ${f1(s.liveFp)}</span>` : ""}`;
-  const sub = [`${live ? "Playing now" : whenOf(g, m.today)} ${vsOf(g)}`, t.pctBar != null ? `He gets there in ${often(t.pctBar)}` : ""].filter(Boolean).join(" · ");
+  const line = live ? `Playing now ${vsOf(g)} · <span class="state live">Live ${f1(s.liveFp)}</span>` : `${whenOf(g, m.today, true)} ${vsOf(g)}`;
+  const sub = `${t.pctBar != null ? `He gets there in ${often(t.pctBar)}. ` : ""}Below it, let it ride.`;
   const why = [];
   why.push(`<div>${live ? "" : `Projected tonight: <b class="num">${f1(s.games?.[0]?.mu)}</b>. `}${t.afterBy ? `If you don't lock, swap in <b>${esc(shortName(t.afterBy.p.name))}</b> for ${t.after.map((x) => dow(x.date)).join("/")}` : `After tonight: ${plural(t.after.length, "more game")}`}, worth about <b class="num">${f1(after)}</b> each.</div>`);
   if (Math.abs(t.bar - t.evBar) >= 0.5) why.push(`<div class="muted">On points alone the line would be ${f1(t.evBar)}; the matchup moves it.</div>`);
   if (typeof lockSlotNote === "function") why.push(lockSlotNote(s.lockIntoTonight, { tonight: true }));
   why.push(...sitLines(s.games?.slice(1)));
   why.push(`<div class="whatif"><label for="wi-${s.i}">Check a score:</label><input id="wi-${s.i}" data-wi="${s.i}" type="number" inputmode="decimal" step="0.5" placeholder="${f1(t.bar)}"> <span id="wo-${s.i}" class="muted"></span></div>`);
-  return todoItem({ pill: `${f1(t.bar)}+`, pillCls: "line", title: esc(s.p.name), line, sub, body: why.join("") });
+  return todoItem({ pill: `<small>LOCK AT</small>${f1(t.bar)}+`, pillCls: "line", title: esc(s.p.name), line, sub, body: why.join("") });
 }
 
 function swapItem(w, m) {
