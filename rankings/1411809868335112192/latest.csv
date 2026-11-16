@@ -19,14 +19,14 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 18,Bam Adebayo,MIA,C/PF,13,50.58,657.55,33.76,55.16,BillVu,29,11
 19,Jalen Brunson,NYK,PG,13,50.22,652.8,34.35,56,Tuyết Phạm,26,7
 20,Devin Booker,PHX,PG/SG,12,49.82,597.8,33.48,49.77,Thảo kế toán ,18,-2
-21,Donovan Mitchell,CLE,PG/SG,13,48.94,636.25,33.05,50.31,Akari my beloved,23,2
-22,Austin Reaves,LAL,PG/SG,12,48.9,586.85,35.28,52.77,BillVu,22,0
-23,Ty Jerome,MEM,PG/SG,11,48.71,535.8,30.51,39.07,Scammer,17,-6
-24,Jalen Johnson,ATL,PF/SF,11,48.37,532.05,34.33,43.13,LeThanos 🧑🏾‍🦲👑,20,-4
-25,Davion Mitchell,MIA,PG,13,47.36,615.7,35.73,54.66,Thảo kế toán ,39,14
-26,Darius Acuff Jr.,SAC,PG/SG,13,47.02,611.25,36.83,47.98,Scammer,21,-5
-27,Kyrie Irving,DAL,PG/SG,11,46.59,512.5,30.78,45.17,High School Team,33,6
-28,Zion Williamson,NOP,PF/SF,14,46.46,650.45,31.71,42.13,Tuyết Phạm,24,-4
+21,Zion Williamson,NOP,PF/SF,13,49.15,638.9,32.64,47.92,Tuyết Phạm,24,3
+22,Donovan Mitchell,CLE,PG/SG,13,48.94,636.25,33.05,50.31,Akari my beloved,23,1
+23,Austin Reaves,LAL,PG/SG,12,48.9,586.85,35.28,52.77,BillVu,22,-1
+24,Ty Jerome,MEM,PG/SG,11,48.71,535.8,30.51,39.07,Scammer,17,-7
+25,Jalen Johnson,ATL,PF/SF,11,48.37,532.05,34.33,43.13,LeThanos 🧑🏾‍🦲👑,20,-5
+26,Davion Mitchell,MIA,PG,13,47.36,615.7,35.73,54.66,Thảo kế toán ,39,13
+27,Darius Acuff Jr.,SAC,PG/SG,13,47.02,611.25,36.83,47.98,Scammer,21,-6
+28,Kyrie Irving,DAL,PG/SG,11,46.59,512.5,30.78,45.17,High School Team,33,5
 29,Paul George,BOS,PF/SF/SG,11,46.07,506.75,29.65,41.6,Scammer,30,1
 30,Pascal Siakam,IND,C/PF,13,45.75,594.8,32.25,51.09,High School Team,37,7
 31,Kevin Durant,HOU,PF/SF,14,45.59,638.25,33.86,47.29,Thảo kế toán ,34,3
@@ -71,11 +71,11 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 70,Onyeka Okongwu,ATL,C/PF,14,37.33,522.65,30.41,45.34,Tuyết Phạm,72,2
 71,Lauri Markkanen,UTA,PF/SF,8,36.68,293.45,30.85,34.91,Akari my beloved,70,-1
 72,Jabari Smith Jr.,HOU,C/PF,14,36.6,512.35,33.96,29.09,BillVu,54,-18
-73,Jeremiah Fears,NOP,PG/SG,15,36.39,545.9,29.47,37.6,Akari my beloved,84,11
-74,Ausar Thompson,DET,SF/SG,11,36.36,399.95,27.84,41.2,BillVu,105,31
-75,Fred VanVleet,HOU,PG,11,36.29,399.2,30.35,34.39,Akari my beloved,86,11
-76,Donovan Clingan,POR,C,12,36.19,434.25,25.37,34.41,LeThanos 🧑🏾‍🦲👑,77,1
-77,VJ Edgecombe,PHI,PG/SG,13,35.81,465.55,33.46,41.51,BillVu,82,5
+73,Ausar Thompson,DET,SF/SG,11,36.36,399.95,27.84,41.2,BillVu,105,32
+74,Fred VanVleet,HOU,PG,11,36.29,399.2,30.35,34.39,Akari my beloved,86,12
+75,Donovan Clingan,POR,C,12,36.19,434.25,25.37,34.41,LeThanos 🧑🏾‍🦲👑,77,2
+76,VJ Edgecombe,PHI,PG/SG,13,35.81,465.55,33.46,41.51,BillVu,82,6
+77,Jeremiah Fears,NOP,PG/SG,14,35.32,494.5,29.47,38.74,Akari my beloved,84,7
 78,Trey Murphy III,NOP,SF/SG,9,35.29,317.65,32.81,41.81,Patriot,80,2
 79,Wendell Carter Jr.,ORL,C,12,35.24,422.9,32.68,38.21,Thảo kế toán ,69,-10
 80,OG Anunoby,NYK,PF/SF,13,35.16,457.1,33.7,33.87,bringbackbensimmons,76,-4
@@ -125,7 +125,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 124,Matas Buzelis,CHI,PF/SF,12,27.73,332.75,26.81,31.8,Tuyết Phạm,133,9
 125,Toumani Camara,POR,PF/SF/SG,12,27.71,332.55,29.08,27.65,Pls No More Injury,151,26
 126,Tari Eason,HOU,SF/SG,14,27.6,386.45,24.81,25.71,Free agent,131,5
-127,Jamal Shead,TOR,PG/SG,13,27.54,358,24.04,35.33,High School Team,119,-8
+127,Jamal Shead,TOR,PG/SG,13,27.54,358,24.04,35.33,Free agent,119,-8
 128,Meleek Thomas,CLE,PG/SF/SG,11,27.08,297.85,23.47,29.34,Pls No More Injury,142,14
 129,Jordan Goodwin,PHX,SF/SG,8,27.04,216.3,20.34,29.43,Free agent,164,35
 130,Collin Murray-Boyles,TOR,C/PF,12,26.92,323.05,24.27,32.48,Free agent,144,14
@@ -174,7 +174,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 173,Kelly Oubre Jr.,IND,PF/SF,12,23.45,281.35,24.42,28.79,Free agent,212,39
 174,Jordan Poole,NOP,PG/SG,8,23.4,187.2,20.43,22,Free agent,201,27
 175,Moritz Wagner,BKN,C,12,23.38,280.55,18.33,23.34,Free agent,186,11
-176,Jalen Green,PHX,SF/SG,12,23.27,279.2,26.63,20.67,Free agent,160,-16
+176,Jalen Green,PHX,SF/SG,12,23.27,279.2,26.63,20.67,High School Team,160,-16
 177,Brayden Burries,MIL,PG/SG,14,23.18,324.55,21.94,23.31,Free agent,161,-16
 178,Keldon Johnson,SAS,PF/SF,14,23.13,323.85,24.53,30.54,Free agent,208,30
 179,Obi Toppin,IND,PF/SF,11,23.05,253.55,20.13,16.27,Free agent,135,-44
