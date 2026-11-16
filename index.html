@@ -265,6 +265,52 @@ label.f input, label.f select { width: 100%; min-width: 0; background: var(--rai
 @keyframes sh { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
 @media (max-width: 420px) { .duel { grid-template-columns: 1fr 1fr; } .stat b { font-size: 21px; } }
+
+/* plain-language layout */
+.nav { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin-top: -6px; }
+.nav button { flex: 1; border: 0; background: none; border-radius: 9px; padding: 9px 8px; font-weight: 600; color: var(--muted); }
+.nav button[aria-current="page"] { background: var(--raised); color: var(--fg); }
+.hint { margin: 0; font-size: 13px; color: var(--muted); }
+.section h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); margin-top: 4px; }
+.todos { display: grid; gap: 8px; }
+.todo { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.todo[open] { border-color: var(--faint); }
+.todo summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.todo summary::-webkit-details-marker { display: none; }
+.todo-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.todo-title { font: 600 18px/1.15 var(--display); }
+.todo-line { font-size: 14.5px; }
+.todo-sub { font-size: 12.5px; color: var(--muted); }
+.todo-body { padding: 0 14px 14px; display: grid; gap: 8px; font-size: 13.5px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; margin: 0 0 0; }
+.todo-body b { color: var(--fg); }
+.todo-body .flip { color: var(--fg); }
+.duo { display: flex; gap: 14px; flex-wrap: wrap; }
+.pill.line { background: color-mix(in srgb, var(--lock) 16%, var(--raised)); color: var(--lock); }
+.pill.swap { background: color-mix(in srgb, var(--accent) 20%, var(--raised)); color: var(--accent); }
+.pill.sm { font-size: 12px; padding: 4px 7px; }
+.btn.sm { padding: 7px 14px; font-size: 14px; }
+.asks { display: grid; gap: 6px; }
+.ask-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid color-mix(in srgb, var(--pass) 45%, var(--line)); border-radius: 12px; padding: 10px 12px; }
+.ask-row .ask-btns { margin: 0; }
+.sides-mini { font-size: 13px; }
+.notme { font-size: 13.5px; background: var(--raised); border-radius: 10px; padding: 8px 10px; }
+.lhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lrow { border-top: 1px solid var(--line); }
+.lrow:first-child { border-top: 0; }
+.lsum { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; list-style: none; cursor: pointer; }
+.lsum::-webkit-details-marker { display: none; }
+.lname { font: 600 17px/1.15 var(--display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lname .inj { font: 600 12px var(--body); }
+.lstat { margin-top: 3px; letter-spacing: .06em; }
+.ldet { padding: 0 12px 12px 62px; display: grid; gap: 6px; }
+.lrow.bench { opacity: .85; }
+.benchhead { padding: 7px 12px; background: var(--raised); font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); }
+.picker { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+details.settings .cushion { margin-top: 12px; }
+.how { margin-top: 14px; display: grid; gap: 6px; max-width: 70ch; }
+.how p { margin: 0; font-size: 13.5px; color: var(--muted); }
+.how b { color: var(--fg); }
+@media (max-width: 420px) { .ldet { padding-left: 12px; } }
 </style>
 </head>
 <body>
@@ -273,12 +319,17 @@ label.f input, label.f select { width: 100%; min-width: 0; background: var(--rai
     <a class="brand" href="./" id="home"><b>ALPHA SCOUT</b><span>Lock-In</span></a>
     <button class="chip" id="who" hidden aria-expanded="false" aria-controls="switcher"></button>
   </header>
+  <nav class="nav" id="nav" hidden aria-label="Views">
+    <button id="nav-dash" aria-current="page">Matchup</button>
+    <button id="nav-rank">Rankings</button>
+    <button id="nav-hist">History</button>
+  </nav>
   <section class="switcher" id="switcher" hidden aria-label="Switch matchup"></section>
 
   <main id="onboard" hidden>
     <section class="hero">
       <h1>Lock it or <em>let it ride</em></h1>
-      <p>Enter your Sleeper username. Alpha Scout pulls your Lock-In matchup and tells you which games to lock, using your league's own scoring and your opponent's locked scores.</p>
+      <p>For Sleeper Lock-In leagues. Type your Sleeper username and the app tells you, night by night, which scores to lock and which to let ride.</p>
       <form class="find" id="find">
         <input id="username" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Sleeper username" required>
         <button class="btn" type="submit">Find my leagues</button>
@@ -293,77 +344,57 @@ label.f input, label.f select { width: 100%; min-width: 0; background: var(--rai
 
   <main id="dash" hidden>
     <section class="board" id="board"><div class="skeleton"></div></section>
-    <section class="cushion" id="cushion" hidden aria-label="Safety cushion"></section>
-    <section class="section" id="decide"></section>
-    <section class="section" id="swaps"></section>
-    <section class="section" id="tonight"></section>
+    <section class="section" id="ask"></section>
+    <section class="section" id="todo"></section>
     <section class="section">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-        <h2>Lineups <button class="chip rk-open" id="open-rankings" type="button">Rankings</button></h2>
+      <div class="lhead">
+        <h2>Lineups</h2>
         <div class="tabs" role="tablist">
           <button role="tab" id="tab-me" aria-selected="true">You</button>
           <button role="tab" id="tab-opp" aria-selected="false">Opponent</button>
         </div>
       </div>
       <div class="lineup" id="lineup"></div>
+      <p class="hint">Tap a player for his games and to set what he locked.</p>
     </section>
     <details class="settings" id="settings">
-      <summary>How the calls work &amp; settings</summary>
+      <summary>Advanced</summary>
+      <section class="cushion" id="cushion" hidden aria-label="Safety cushion"></section>
       <div class="grid2">
-        <label class="f">Decide by
+        <label class="f">Goal
           <select id="cfg-mode">
-            <option value="win">Win probability (uses opponent's locks)</option>
-            <option value="ev">Max points (ignore matchup)</option>
+            <option value="win">Win this matchup (uses your opponent's scores)</option>
+            <option value="ev">Most points (ignore the matchup)</option>
           </select>
         </label>
         <label class="f">Projected totals on top
           <select id="cfg-proj">
-            <option value="next">Next-game projection for every slot not locked</option>
-            <option value="smart">Expected final (includes future locks and sit risk)</option>
+            <option value="next">Each open slot's next game</option>
+            <option value="smart">Expected final (future locks and sit risk)</option>
           </select>
         </label>
-        <label class="f">Opponent's bench swaps
+        <label class="f">Your opponent's bench swaps
           <select id="cfg-opp">
-            <option value="on">Assume he makes his best swaps (both sides read the same)</option>
-            <option value="off">Don't model them (your win % reads higher)</option>
+            <option value="on">Assume he makes his best swaps</option>
+            <option value="off">Ignore them (your chance reads higher)</option>
           </select>
         </label>
-        <label class="f">League default: sits an ordinary game (%)
+        <label class="f">How often a player sits a normal game, if unknown (%)
           <input id="cfg-base" type="number" min="0" max="30" step="1">
         </label>
-        <label class="f">League default: rests one night of a back-to-back (%)
+        <label class="f">How often he rests one night of a back-to-back, if unknown (%)
           <input id="cfg-b2b" type="number" min="0" max="90" step="1">
         </label>
       </div>
+      <div class="how">
+        <h3>How it works</h3>
+        <p><b>Lock or ride.</b> After a player's game, the app compares that score with what the rest of his week is likely worth: his remaining games, the chance he sits, and any bench player who could take his spot. If the score beats it, lock.</p>
+        <p><b>Playing to win.</b> When you're ahead, it locks a bit earlier to protect the lead. When you're behind, it takes more chances. Your opponent is worked out the same way, so both chances to win add up to 100%.</p>
+        <p><b>Locks you made.</b> Sleeper doesn't show locks until the week is over, so the app guesses earlier ones and asks you to confirm. For your opponent, open his lineup and set them from what you see in Sleeper.</p>
+        <p><b>Safety cushion.</b> Treats a lead smaller than this many points as not safe yet, so the advice plays it like you're behind.</p>
+        <p><b>Late swaps.</b> An open spot can change players before each tip-off. A backup plan says when a later game should replace an early one.</p>
+      </div>
       <p class="muted" style="font-size:13.5px"><a id="lab-link" href="./lab/">Try the lab version</a>: the experimental formula, with its own settings and lock marks.</p>
-      <p class="muted" style="font-size:13.5px;max-width:70ch">
-        <b>Sit risk</b> is per player, from his own log (last season + this one): how often he sits ordinary games, how often he rests one night of a
-        back-to-back and which night, how much he has missed overall, and whether he's just back from a long absence. The two nights of a back-to-back are linked:
-        once he plays night 1, a rest becomes more likely on night 2; if he sits night 1, night 2 is safe. Tap <b>Sits B2Bs?</b> on any player to mark him as
-        resting back-to-backs (95%); it stays on until you turn it off. League defaults below fill in for players with little history.
-        <b>Late swaps:</b> an open slot can change hands before every tip-off, so its plan can run through several players in tip-off order
-        ("keep Markkanen's 3:30 game if it beats 47; otherwise Reed at 7"). Tip-off times come from the NBA's schedule; without them, same-day games count as simultaneous.
-        <b>Safety cushion</b> (slider under the scoreboard): decide by the chance of winning by more than the cushion, so a lead one move could erase is played like a deficit.
-        The win % shown stays the plain chance to win.
-        <b>Bench swaps:</b> any open slot can go to a bench player before his next game. The app picks the best player for each open slot for the rest of the week
-        (positions respected, each player used once), so a lock bar is what the slot is worth with your whole bench available, and <b>Swaps before tip-off</b>
-        lists the moves the calls assume you'll make. Your opponent gets the same treatment, so the win % is the same matchup from either side (yours + theirs = 100%).
-        By the rules, only a player's <b>latest</b> game can still be locked; an earlier game counts only if you locked it back then. So the lineup picker does two jobs:
-        record a lock you made at the time (any game, earlier ones included), or say his latest game isn't locked: either he started and it's still your call,
-        or it was played from your <b>bench</b> and can't count (same as ticking "He wasn't in my starting lineup" on his card).
-        <b>Bar</b> = what the slot is worth if you pass: his remaining games this week, each with its own projection
-        (Rotowire via Sleeper, calibrated to how he's actually played), played optimally, including the chance he sits.
-        An open slot takes his <i>last</i> game even if he doesn't play, so DNP risk on the final game lowers the bar most.
-        Each player's spread comes from <b>his own game log</b> (last season + this one, in your league's scoring), so a boom-or-bust
-        player gets a higher bar than a steady one with the same average, and every score shows its <b>percentile</b> among his recent games.
-        In <b>win probability</b> mode the call can flip: with a safe lead it locks a little early to remove risk; when behind it passes to chase upside.
-        <b>Sleeper never shows locks</b> in its public data while the week is on: each slot shows the player's latest game, and locks are applied only when
-        the week is finalized (Monday morning). So for any earlier game nobody has marked, the app assumes a sensible manager: he locked the first game that beat
-        what the rest of his week was worth. That guess is made the same way for both teams. For your team it asks <i>Did you lock these?</i>; for your opponent,
-        copy his lock icons from Sleeper with the picker on each slot.
-        <b>Banked</b> counts only locks that are certain or that you entered. <b>Proj</b> adds Sleeper's next-game projection for every slot that isn't locked
-        (switch to expected final below); the win probability always uses the full model.
-      </p>
     </details>
     <div class="foot"><span id="updated"></span><span><button class="chip" id="refresh">Refresh</button></span></div>
   </main>

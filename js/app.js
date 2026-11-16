@@ -11,7 +11,6 @@ const shortName = (n) => { const w = String(n || "").split(" ").filter((x) => !/
 const f1 = (x) => (x === null || x === undefined || Number.isNaN(x) ? "–" : (Math.round(x * 10) / 10).toFixed(1));
 const pct = (x) => `${Math.round(x * 100)}%`;
 const ord = (q) => { const n = Math.min(99, Math.max(1, Math.round(q * 100))); const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
-const pctLabel = (q, p) => (q === null || q === undefined ? "" : `${ord(q)} pct of his last ${p.nHistory}`);
 
 // ------------------------------------------------------------------ storage (best effort)
 // The lab version keeps its own settings, marks and views, so experimenting never touches the real ones.
@@ -54,7 +53,7 @@ async function boot() {
 function showOnboard(username = "", { auto = false } = {}) {
   clearInterval(timer);
   closeSwitcher();
-  $("dash").hidden = true; $("onboard").hidden = false; $("who").hidden = true;
+  $("dash").hidden = true; $("history").hidden = true; $("rankings").hidden = true; $("nav").hidden = true; $("onboard").hidden = false; $("who").hidden = true;
   $("username").value = username;
   $("find-msg").textContent = ""; $("leagues").innerHTML = "";
   if (username && auto) findLeagues(username, { auto: true });
@@ -96,15 +95,15 @@ async function findLeagues(username, { auto = false, asMe = false } = {}) {
 async function openLeague(username, leagueId, rosterId = null) {
   closeSwitcher();
   $("history").hidden = true; $("rankings").hidden = true;
-  $("onboard").hidden = true; $("dash").hidden = false;
+  $("onboard").hidden = true; $("dash").hidden = false; $("nav").hidden = false; setNav("dash");
   $("board").innerHTML = '<div class="skeleton"></div>';
-  ["decide", "swaps", "tonight"].forEach((id) => ($(id).innerHTML = ""));
+  ["ask", "todo"].forEach((id) => ($(id).innerHTML = ""));
   $("lineup").innerHTML = "";
   try {
     const user = await S.findUser(username);
     const name = user.username || username;
-    if (!me()) store.set("me", { username: name, user_id: user.user_id });
-    store.set("username", me().username); store.set("league", leagueId);
+    if (me()) store.set("username", me().username);
+    store.set("league", leagueId);
     ctx = { user, leagueId, rosterId: rosterId ?? null };
     store.set("view", { u: name, l: leagueId, r: ctx.rosterId });
     history.replaceState(null, "", `?u=${encodeURIComponent(name)}&l=${leagueId}${ctx.rosterId != null ? `&r=${ctx.rosterId}` : ""}`);
@@ -175,21 +174,25 @@ function showRankings() {
   for (const r of raw.rosters) for (const pid of [...(r.players || []), ...(r.reserve || [])]) owners[pid] = { rosterId: r.roster_id, team: teamName(raw, r.roster_id) };
   const m = me();
   const mine = m && raw.rosters.find((r) => r.owner_id === m.user_id || (r.co_owners || []).includes(m.user_id));
-  $("dash").hidden = true; $("history").hidden = true; $("rankings").hidden = false;
+  $("dash").hidden = true; $("history").hidden = true; $("rankings").hidden = false; setNav("rank");
   window.scrollTo(0, 0);
   openRankings($("rankings"), { scoring: raw.league.scoring_settings, owners, myRosterId: mine?.roster_id ?? myRosterId(raw.rosters), leagueName: raw.league.name,
-    onClose: () => { $("rankings").hidden = true; $("dash").hidden = false; refreshRankBadges(); } });
+    onClose: showDash });
 }
-$("open-rankings").addEventListener("click", () => { if (ctx?.raw) showRankings(); });
+function setNav(which) { for (const k of ["dash", "rank", "hist"]) { const b = $(`nav-${k}`); if (k === which) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); } }
+function showDash() { $("history").hidden = true; $("rankings").hidden = true; $("dash").hidden = false; setNav("dash"); refreshRankBadges(); }
+$("nav-dash").addEventListener("click", () => { closeSwitcher(); if (ctx?.raw) showDash(); });
+$("nav-rank").addEventListener("click", () => { if (ctx?.raw) showRankings(); });
+$("nav-hist").addEventListener("click", () => { if (ctx?.raw) showHistory(); });
 
 function showHistory() {
   closeSwitcher();
   const m = me(), raw = ctx.raw;
   const mine = m && raw.rosters.find((r) => r.owner_id === m.user_id || (r.co_owners || []).includes(m.user_id));
-  $("dash").hidden = true; $("history").hidden = false;
+  $("dash").hidden = true; $("rankings").hidden = true; $("history").hidden = false; setNav("hist");
   window.scrollTo(0, 0);
   openHistory($("history"), { leagueId: ctx.leagueId, mineRosterId: mine?.roster_id ?? null, preferRosterId: myRosterId(raw.rosters),
-    onClose: () => { $("history").hidden = true; $("dash").hidden = false; } });
+    onClose: showDash });
 }
 
 /** Back to the app user's own matchup: this league if he has a team here, else his last league. */
@@ -220,7 +223,7 @@ function openSwitcher() {
     const line = (x) => `<span class="pt"><span class="nm">${esc(teamName(raw, x.roster_id))}${isMe(x.roster_id) ? ' <span class="tag">you</span>' : ""}</span><b class="num">${f1(x.points)}</b></span>`;
     leagueHtml = `<div class="sw-sec"><h3>${esc(raw.league.name)} · week ${raw.week}</h3>
       <div class="pairs">${pairs.map(([id, pair]) => `<button class="pair-btn${id === curPair ? " on" : ""}" data-pair="${id}">${pair.map(line).join("")}</button>`).join("")}</div>
-      <p class="muted">Pick a matchup, then choose which side is "you" on the matchup screen.</p></div>`;
+      </div>`;
     s_pairs = { byId, isMe };
   }
   const curOpp = raw?.matchups.find((x) => x.roster_id !== cur && x.matchup_id && x.matchup_id === raw.matchups.find((y) => y.roster_id === cur)?.matchup_id)?.roster_id;
@@ -229,14 +232,14 @@ function openSwitcher() {
     `<button class="row-btn" data-recent="${i}"><span>${esc(x.label)}${x.mine ? ' <span class="tag">you</span>' : ""}</span><span class="muted">${esc(x.league)}</span></button>`).join("")}</div></div>` : "";
   el.innerHTML = `
     <div class="sw-head"><b>Switch matchup</b><button class="chip" id="sw-close" aria-label="Close">Close</button></div>
-    <div class="sw-actions">${raw && !viewingMine() && m ? `<button class="btn" id="sw-mine">Back to my matchup</button>` : ""}${raw ? `<button class="btn ghost" id="sw-hist">History</button><button class="btn ghost" id="sw-rank">Rankings</button>` : ""}</div>
+    <div class="sw-actions">${raw && !viewingMine() && m ? `<button class="btn" id="sw-mine">Back to my matchup</button>` : ""}</div>
     ${leagueHtml}
     <div class="sw-sec"><h3>Leagues</h3>
       <form class="find" id="sw-find"><input id="sw-user" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Any Sleeper username" value="${esc(m?.username || "")}">
         <button class="btn ghost" type="submit">Look up</button></form>
       <div id="sw-msg" class="muted" role="status"></div><div class="rows" id="sw-leagues"></div></div>
     ${recentHtml}
-    <p class="muted sw-foot">"You" is <b>${esc(m?.username || "—")}</b> on Sleeper: that's whose team the app opens by default. <button class="linkish" id="sw-me">Change</button></p>`;
+    <p class="muted sw-foot">${m ? `You're <b>${esc(m.username)}</b> on Sleeper.` : "You haven't said who you are yet."} <button class="linkish" id="sw-me">${m ? "Not you?" : "Find my team"}</button></p>`;
   $("sw-close").onclick = closeSwitcher;
   if ($("sw-mine")) $("sw-mine").onclick = goMine;
   if ($("sw-hist")) $("sw-hist").onclick = showHistory;
@@ -392,15 +395,14 @@ function rebuild() {
 function render() {
   const m = model;
   if (m.missingRoster) {
-    $("board").innerHTML = `<p class="muted"><b>${esc(ctx.user.display_name)}</b> doesn't have a team in <b>${esc(ctx.raw.league.name)}</b>. Use <b>Matchups</b> to pick one.</p>`;
-    ["decide", "swaps", "tonight", "lineup"].forEach((id) => ($(id).innerHTML = ""));
+    $("board").innerHTML = `<p class="muted"><b>${esc(ctx.user.display_name)}</b> doesn't have a team in <b>${esc(ctx.raw.league.name)}</b>. Tap <b>Matchups</b> to pick one.</p>`;
+    ["ask", "todo", "lineup"].forEach((id) => ($(id).innerHTML = ""));
     return;
   }
   const mine = viewingMine();
   $("tab-me").textContent = mine ? "You" : m.me.name;
   $("tab-opp").textContent = mine ? "Opponent" : m.opp?.name || "Opponent";
-  renderBoard(m); renderCushion(m); renderDecide(m); renderSwaps(m); renderTonight(m); renderLineup(m);
-  renderSides(m, mine);
+  renderBoard(m); renderSides(m, mine); renderAsk(m); renderTodo(m); renderCushion(m); renderLineup(m);
   const c = cfg();
   $("cfg-mode").value = c.mode; $("cfg-proj").value = c.projBasis; $("cfg-opp").value = c.oppSwaps ? "on" : "off"; $("cfg-base").value = Math.round(c.baseDnp * 100); $("cfg-b2b").value = Math.round(c.pairRest * 100);
 }
@@ -483,24 +485,6 @@ function renderCushion(m) {
   $("cu-effect").innerHTML = items.length ? items.join("") : `<span class="muted">No lock decisions or games tonight to move.</span>`;
 }
 
-/** "You are: [A] [B]" — which side of this matchup the calls, swaps and "your" lineup belong to. */
-function renderSides(m, mine) {
-  const raw = ctx.raw, m0 = me();
-  const cur = myRosterId(raw.rosters);
-  const pairId = raw.matchups.find((x) => x.roster_id === cur)?.matchup_id;
-  const pair = pairId ? raw.matchups.filter((x) => x.matchup_id === pairId) : [];
-  const isMe = (rid) => { const r = raw.rosters.find((x) => x.roster_id === rid); return !!(m0 && r && (r.owner_id === m0.user_id || (r.co_owners || []).includes(m0.user_id))); };
-  const hasMine = pair.some((x) => isMe(x.roster_id));
-  if (pair.length < 2 && mine) return;
-  const btns = pair.map((x) => `<button role="radio" aria-checked="${x.roster_id === cur}" data-side="${x.roster_id}">${esc(teamName(raw, x.roster_id))}${isMe(x.roster_id) ? ' <span class="tag">your team</span>' : ""}</button>`).join("");
-  const mineInLeague = raw.rosters.some((r) => isMe(r.roster_id));
-  $("board").insertAdjacentHTML("afterbegin", `<div class="sides"><span class="lbl">You are</span>
-    <div class="seg" role="radiogroup" aria-label="Which side is you">${btns}</div>
-    ${!hasMine && m0 ? `<button class="linkish" id="back-mine">${mineInLeague ? "Back to my matchup" : "My league"}</button>` : ""}</div>`);
-  $("board").querySelectorAll("[data-side]").forEach((b) => (b.onclick = () => { if (Number(b.dataset.side) !== cur) setSide(Number(b.dataset.side)); }));
-  if ($("back-mine")) $("back-mine").onclick = goMine;
-}
-
 /** Flip to the other side of the matchup on screen (no reload: both sides' logs are already loaded). */
 function setSide(rid) {
   ctx.rosterId = rid; ctx.raw.viewRosterId = rid;
@@ -516,102 +500,7 @@ function setSide(rid) {
   rebuild(); rememberView();
 }
 
-function renderBoard(m) {
-  const range = m.weekDates.length ? `${md(m.weekDates[0])} – ${md(m.weekDates.at(-1))}` : "";
-  if (!m.opp) {
-    $("board").innerHTML = `<div class="board-top"><span>${esc(ctx.raw.league.name)} · Week ${m.week} · ${range}</span></div>
-      <div class="team"><div class="who">${esc(m.me.name)}</div><div class="pts num">${f1(m.me.points)}</div><div class="proj num">Projected finish ${f1(m.me.proj)}</div></div>
-      <p class="muted">No opponent this week, so calls maximize your points.</p>`;
-    return;
-  }
-  const w = m.win;
-  $("board").innerHTML = `
-    <div class="board-top"><span>${esc(ctx.raw.league.name)} · Week ${m.week} · ${range}</span><span>${m.mode === "win" ? "Calls play to win this matchup" : "Calls maximize points"} · Proj = ${m.projBasis === "smart" ? "expected final" : "next-game projections"}${m.oppSwapsModeled ? " · opponent swaps modeled" : ""}${m.cushion > 0 ? ` · ${f1(m.cushion)}-pt safety cushion` : ""}</span></div>
-    <div class="teams">
-      <div class="team"><div class="who">${esc(m.me.name)}</div><div class="pts num">${f1(m.me.points)}</div><div class="proj num">Banked ${f1(m.me.banked)} · Proj ${f1(m.me.proj)}</div></div>
-      <div class="vs">VS</div>
-      <div class="team r"><div class="who">${esc(m.opp.name)}</div><div class="pts num">${f1(m.opp.points)}</div><div class="proj num">Banked ${f1(m.opp.banked)} · Proj ${f1(m.opp.proj)}</div></div>
-    </div>
-    <div class="winbar" aria-label="Win probability">
-      <div class="lbl"><span><b class="num">${pct(w)}</b> to win</span><span class="muted num">${pct(1 - w)}</span></div>
-      <div class="track"><div class="me" style="width:${(w * 100).toFixed(1)}%"></div></div>
-    </div>`;
-}
-
-function whyLines(games) {
-  const out = [];
-  if (!games?.length) return out;
-  const next = games[0];
-  out.push(`Next: ${dow(next.date)} ${next.home ? "vs" : "@"} ${esc(next.opp)} · proj ${f1(next.mu)}`);
-  games.forEach((g, i) => {
-    if (!g.why.length && g.p < 0.1) return;
-    const prev = games[i - 1];
-    const linked = g.pIfPrevPlayed !== undefined && prev
-      ? ` (${pct(g.pIfPrevPlayed)} if he plays ${dow(prev.date)}, ${pct(g.pIfPrevSat)} if he sits it)` : "";
-    out.push(`<span class="${g.p >= 0.2 || (g.pIfPrevPlayed || 0) >= 0.3 ? "warn" : ""}">${dow(g.date)}: ${pct(g.p)} sit risk${linked}${g.why.length ? ` · ${esc(g.why.join(", "))}` : ""}</span>`);
-  });
-  return out;
-}
-
-function renderDecide(m) {
-  const pend = m.me.slots.filter((s) => s.kind === "pending");
-  // Sleeper never says what you locked, so earlier games are guessed. Your side: ask.
-  const guesses = viewingMine() ? m.me.slots.filter((s) => s.kind === "assumed-locked" && s.guess) : [];
-  const el = $("decide");
-  if (!pend.length && !guesses.length) { el.innerHTML = ""; return; }
-  const ask = guesses.length ? `<h2>Did you lock these?</h2>
-    <p class="muted" style="margin:0 0 8px;font-size:13.5px">Sleeper doesn't share locks until the week is final. These scores beat what the rest of his week was worth, so the app assumes you locked them.</p>
-    <div class="cards">${guesses.map((s) => `<div class="card ask">
-      <div><b>${esc(s.p.name)}</b><div class="muted" style="font-size:13px">${esc(s.label)} · ${esc(s.p.team || "")}</div></div>
-      <div class="num">${dow(s.lockedGame.date)} ${f1(s.lockedGame.fp)}${s.pctScore != null ? ` (${ord(s.pctScore)} pct)` : ""} · rest of week was worth ${f1(s.guessBar)}</div>
-      <div class="ask-btns"><button class="btn" data-yes="${esc(s.pid)}" data-date="${esc(s.lockedGame.date)}">Yes, locked</button>
-        <button class="btn ghost" data-no="${esc(s.pid)}" data-date="${esc(s.lockedGame.date)}">No</button></div></div>`).join("")}</div>` : "";
-  el.innerHTML = `${ask}${pend.length ? `<h2>Decide before his next game</h2>` : ""}<div class="cards">${pend.map((s) => {
-    const c = s.call, lock = c.verdict === "LOCK";
-    const g = s.lastDone;
-    const viaSwap = !lock && s.contBy ? `<div class="flip">Pass and swap in <b>${esc(s.contBy.p.name)}</b> (${s.contBy.from === "bench" ? "bench" : `from ${esc(s.contBy.from)}`}, ${s.contBy.games.map((x) => dow(x.date)).join("/")}). The bar counts that swap.</div>` : "";
-    const cushioned = c.cushion > 0 && (c.winIfLock >= c.winIfPass ? "LOCK" : "PASS") !== c.verdict;
-    const flip = cushioned ? `<div class="flip">Plain odds favour ${lock ? "passing" : "locking"}, but your lead is thinner than the ${f1(c.cushion)}-point safety cushion, so the call ${lock ? "locks" : "chases upside"}: win by ${f1(c.cushion)}+ ${pct(c.safeIfLock)} if you lock vs ${pct(c.safeIfPass)} if you pass.</div>`
-      : c.matchupFlip ? `<div class="flip">${lock ? "Below his bar, but locking protects your lead." : "Above his bar, but you need upside to come back."}</div>` : "";
-    const winRow = c.winIfLock !== undefined ? `
-      <div class="duel">
-        <div class="stat"><small>Win if you lock</small><b class="num">${pct(c.winIfLock)}</b></div>
-        <div class="stat"><small>Win if you pass</small><b class="num">${pct(c.winIfPass)}</b></div>
-      </div>` : "";
-    return `<article class="card ${lock ? "lock" : "pass"}">
-      <div class="card-head">
-        <div><div class="pname">${esc(s.p.name)}</div><div class="pmeta">${esc(s.label)} · ${esc(s.p.team || "")}${s.p.injury ? ` · <span class="warn">${esc(s.p.injury)}</span>` : ""}</div></div>
-        <span class="pill ${lock ? "lock" : "pass"}">${c.verdict}</span>
-      </div>
-      <div class="duel">
-        <div class="stat"><small>${dow(g.date)} ${g.home ? "vs" : "@"} ${esc(g.opp)}</small><b class="num">${f1(s.score)}</b>${s.pctScore != null ? `<span class="pct">${pctLabel(s.pctScore, s.p)}</span>` : ""}</div>
-        <div class="stat"><small>Bar · ${s.games.length} left</small><b class="num">${f1(c.bar)}</b>${s.pctBar != null ? `<span class="pct">≈ his ${ord(s.pctBar)} pct</span>` : ""}</div>
-      </div>
-      ${winRow}${flip}${lock ? lockSlotNote(s.lockInto) : ""}${viaSwap}
-      <div class="why">${whyLines(s.games).map((x) => `<div>${x}</div>`).join("")}
-        <div>Passing: ${pct(c.pBelow)} chance he ends the week lower than ${f1(s.score)}.</div></div>
-      <div class="marks">
-        <label class="toggle"><input type="checkbox" data-mark="${esc(s.pid)}" data-date="${esc(g.date)}"> I already locked this game</label>
-        <label class="toggle"><input type="checkbox" data-mark="${esc(s.pid)}" data-date="after:${esc(g.date)}"> He wasn't in my starting lineup for it</label>
-      </div>
-    </article>`;
-  }).join("")}</div>`;
-  el.querySelectorAll("[data-mark]").forEach((cb) => cb.addEventListener("change", () => setMark(cb.dataset.mark, cb.checked ? cb.dataset.date : null)));
-  el.querySelectorAll("[data-yes]").forEach((b) => (b.onclick = () => setMark(b.dataset.yes, b.dataset.date)));
-  el.querySelectorAll("[data-no]").forEach((b) => (b.onclick = () => setMark(b.dataset.no, `pass:${b.dataset.date}`)));
-}
-
-const tipLabel = (g) => (g.tip ? ` ${clockET(g.tip.slice(11))}` : "");
 const clockET = (hhmm) => { const [h, mi] = hhmm.split(":").map(Number); return `${((h + 11) % 12) + 1}${mi ? `:${String(mi).padStart(2, "0")}` : ""}${h < 12 ? "am" : "pm"} ET`; };
-/** One line per day: "Sun: Markkanen 3:30pm ET (lock ≥ 47.2) → Reed 7pm ET (counts)". Days with a
- *  backup come first in bold; days where only the main player plays are summarized. */
-function planLine(s) {
-  const days = [];
-  s.plan.forEach((x, k) => { const last = days.at(-1); const step = { ...x, k }; if (last && last.date === x.date) last.steps.push(step); else days.push({ date: x.date, steps: [step] }); });
-  const stepText = (x) => `<b>${esc(shortName(x.name))}</b>${tipLabel(x)}${x.bar != null ? ` (lock ≥ ${f1(x.bar)})` : x.k === s.plan.length - 1 ? " (counts if still open)" : ""}`;
-  return days.map((d) => `<div class="${d.steps.length > 1 ? "lsw" : "muted"}">${dow(d.date)}: ${d.steps.map(stepText).join('<span class="arrow"> → </span>')}</div>`).join("");
-}
-
 /** "Lock him in at PG, not UTIL": where a lock should go so the rest of the week has the most room. */
 function lockSlotNote(x, { tonight = false } = {}) {
   if (!x) return "";
@@ -622,111 +511,233 @@ function lockSlotNote(x, { tonight = false } = {}) {
   return `<div class="flip lockslot">${tonight ? "If you lock him, lock" : "Lock"} him in at <b>${esc(x.label)}</b>, not ${esc(x.from)}.${move} ${why}</div>`;
 }
 
-function renderSwaps(m) {
-  const el = $("swaps");
-  const swapSlots = new Set((m.swaps || []).map((w) => w.slot));
-  const plans = m.me.slots.filter((s) => s.planPlayers?.length >= 2 && !swapSlots.has(s));
-  if (!m.swaps?.length && !plans.length) { el.innerHTML = ""; return; }
-  const planCards = plans.map((s) => `<article class="card swap">
-      <div class="card-head"><div><div class="pname">${esc(s.label)}: late-swap plan</div>
-        <div class="pmeta">${esc(s.p?.name || "Empty slot")} stays in. On the days in bold, if his game falls short of the bar, swap in the next player before his later tip-off.</div></div>
-        <span class="pill soft num">${f1(s.value.mean)}</span></div>
-      <div class="plan">${planLine(s)}</div></article>`).join("");
-  el.innerHTML = `<h2>Swaps &amp; late-swap plans</h2>
-    <p class="muted" style="margin:0;font-size:13.5px">The calls and projections above assume you make these moves in Sleeper before each player's game. Each step's "lock ≥" is the score worth keeping; below it, move to the next player.</p>
-    <div class="cards">${planCards}${(m.swaps || []).map((w) => {
-      const g = w.into.games[0];
-      const outLine = w.out ? `for ${esc(w.out.name)}${w.slot.kind === "final" ? ` (his week is over: ${f1(w.slot.lastDone?.fp ?? 0)})` : w.slot.kind === "none" ? " (no games left)" : ""}` : "into an empty slot";
-      return `<article class="card swap">
-        <div class="card-head">
-          <div><div class="pname">${esc(w.into.p.name)} → ${esc(w.slot.label)}</div>
-            <div class="pmeta">${w.into.from === "bench" ? "From bench" : `Move from ${esc(w.into.from)}`} · ${outLine}</div></div>
-          <span class="pill soft">BY ${dow(w.deadline).toUpperCase()}</span>
-        </div>
-        <div class="duel">
-          <div class="stat"><small>Slot worth with him</small><b class="num">${f1(w.into.value)}</b></div>
-          <div class="stat"><small>Gain</small><b class="num">+${f1(w.gain)}</b></div>
-        </div>
-        ${w.keepFirst?.length && !(w.slot.planPlayers?.length >= 2) ? `<div class="flip">No rush: keep ${esc(w.out.name)} in for ${w.keepFirst.map((x) => dow(x.date)).join("/")}. Lock him if he scores ${f1(w.slot.tonight?.bar ?? w.into.value)}+; otherwise swap ${esc(w.into.p.name)} in before ${dow(w.deadline)}.</div>` : ""}
-        ${w.slot.planPlayers?.length >= 2 ? `<div class="plan">${planLine(w.slot)}</div>` : ""}
-        <div class="why"><div>${w.into.games.map((x) => `${dow(x.date)} ${x.home ? "vs" : "@"} ${esc(x.opp)} · proj ${f1(x.mu)}`).join(" · ")}</div>
-          ${whyLines(w.into.games).slice(1).map((x) => `<div>${x}</div>`).join("")}</div>
-      </article>`;
-    }).join("")}</div>`;
+// ------------------------------------------------------------------ plain-language helpers
+const tipOf = (g) => (g?.tip ? clockET(g.tip.slice(11)) : "");
+const whenOf = (g, today) => (g ? `${g.date === today ? "tonight" : dow(g.date)}${g.tip ? ` ${tipOf(g)}` : ""}` : "");
+const vsOf = (g) => (g ? `${g.home ? "vs" : "@"} ${esc(g.opp)}` : "");
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+/** How often he reaches a score, from its percentile among his games: "about 1 game in 5". */
+function often(q) {
+  if (q === null || q === undefined) return "";
+  const r = 1 - q;
+  if (r >= 0.6) return "most of his games";
+  if (r >= 0.4) return "about half his games";
+  return `about 1 game in ${Math.max(2, Math.round(1 / Math.max(r, 0.01)))}`;
+}
+/** "Mon: 15% chance he sits (back-to-back)", only for games where it matters. */
+function sitLines(games) {
+  return (games || []).filter((g) => g.p >= 0.1).map((g) =>
+    `<div class="${g.p >= 0.2 ? "warn" : ""}">${dow(g.date)}: ${pct(g.p)} chance he sits${g.why?.length ? ` (${esc(g.why.join(", "))})` : ""}</div>`);
+}
+/** Late-swap days in words: "Wed: if Missi scores under 26.3, swap in Markkanen (10pm ET)." Only days with a backup. */
+function planSentences(s) {
+  const days = [];
+  s.plan.forEach((x) => { const last = days.at(-1); if (last && last.date === x.date) last.steps.push(x); else days.push({ date: x.date, steps: [x] }); });
+  return days.filter((d) => d.steps.length > 1).map((d) => {
+    const parts = [];
+    for (let i = 0; i < d.steps.length - 1; i++) {
+      const a = d.steps[i], b = d.steps[i + 1];
+      parts.push(`if <b>${esc(shortName(a.name))}</b> scores under <b class="num">${f1(a.bar)}</b>, swap in <b>${esc(shortName(b.name))}</b>${b.tip ? ` (${clockET(b.tip.slice(11))})` : ""}`);
+    }
+    return `<div>${dow(d.date)}: ${parts.join("; then ")}.</div>`;
+  });
+}
+const todoItem = ({ pill, pillCls = "soft", title, line, sub = "", body = "", open = false }) => `
+  <details class="todo"${open ? " open" : ""}>
+    <summary>
+      <div class="todo-main"><div class="todo-title">${title}</div><div class="todo-line">${line}</div>${sub ? `<div class="todo-sub">${sub}</div>` : ""}</div>
+      <span class="pill ${pillCls}">${pill}</span>
+    </summary>
+    ${body ? `<div class="todo-body">${body}</div>` : ""}
+  </details>`;
+
+// ------------------------------------------------------------------ scoreboard
+function renderBoard(m) {
+  const range = m.weekDates.length ? `${md(m.weekDates[0])} – ${md(m.weekDates.at(-1))}` : "";
+  const top = `<div class="board-top"><span>${esc(ctx.raw.league.name)} · Week ${m.week} · ${range}</span></div>`;
+  if (!m.opp) {
+    $("board").innerHTML = `${top}
+      <div class="team"><div class="who">${esc(m.me.name)}</div><div class="pts num">${f1(m.me.points)}</div><div class="proj num">Projected ${f1(m.me.proj)}</div></div>
+      <p class="muted">No opponent this week, so the app goes for the most points.</p>`;
+    return;
+  }
+  const w = m.win;
+  $("board").innerHTML = `${top}
+    <div class="teams">
+      <div class="team"><div class="who">${esc(m.me.name)}</div><div class="pts num">${f1(m.me.points)}</div><div class="proj num">Projected ${f1(m.me.proj)}</div></div>
+      <div class="vs">VS</div>
+      <div class="team r"><div class="who">${esc(m.opp.name)}</div><div class="pts num">${f1(m.opp.points)}</div><div class="proj num">Projected ${f1(m.opp.proj)}</div></div>
+    </div>
+    <div class="winbar" aria-label="Chance to win">
+      <div class="lbl"><span><b class="num">${pct(w)}</b> chance to win</span><span class="muted num">${pct(1 - w)}</span></div>
+      <div class="track"><div class="me" style="width:${(w * 100).toFixed(1)}%"></div></div>
+    </div>`;
 }
 
-function renderTonight(m) {
-  const el = $("tonight");
-  // A pending slot whose last game is tonight is already covered by its decision card.
-  const list = m.me.slots.filter((s) => s.tonight && !(s.kind === "pending" && s.tonight.final));
-  if (!list.length) { el.innerHTML = ""; return; }
-  el.innerHTML = `<h2>Tonight · ${dow(m.today)} ${md(m.today)}</h2><div class="cards">${list.map((s) => {
-    const t = s.tonight;
-    const live = s.kind === "live";
-    const head = `<div class="card-head">
-        <div><div class="pname">${esc(s.p.name)}</div><div class="pmeta">${esc(s.label)} · ${esc(s.p.team || "")} ${live ? "·" : (s.games?.[0]?.home === false ? "@" : "vs")} ${live ? `<span class="state live">live</span>` : esc(t.opp)}${s.p.injury ? ` · <span class="warn">${esc(s.p.injury)}</span>` : ""}</div>
-        ${s.kind === "pending" ? `<div class="pmeta">If you pass on ${dow(s.lastDone.date)}'s ${f1(s.score)}</div>` : ""}
-        ${!t.final && t.pctBar != null ? `<div class="pmeta">Bar ≈ his ${ord(t.pctBar)}-percentile game</div>` : ""}</div>
-        ${t.final ? '<span class="pill soft">FINAL GAME</span>' : `<span class="pill soft num">LOCK ≥ ${f1(t.bar)}</span>`}
-      </div>`;
-    if (t.final) {
-      return `<article class="card">${head}<div class="why"><div>His last game this week: it counts automatically if the slot is still open.</div>
-        ${s.p.injury ? `<div class="warn">Listed ${esc(s.p.injury)}. If he sits, an open slot scores 0. Swap in a healthy starter.</div>` : ""}</div></article>`;
-    }
-    const liveLine = live ? `<div class="stat"><small>Live now</small><b class="num">${f1(s.liveFp)}</b></div>` : `<div class="stat"><small>Projected tonight</small><b class="num">${f1(s.games?.[0]?.mu)}</b></div>`;
-    const benchNote = t.afterBy ? `<div class="flip">If you pass, swap <b>${esc(t.afterBy.p.name)}</b> in (${t.afterBy.from === "bench" ? "bench" : `from ${esc(t.afterBy.from)}`}) for ${t.after.map((x) => dow(x.date)).join("/")}.</div>` : "";
-    const evNote = Math.abs(t.bar - t.evBar) >= 0.5 ? `<div class="flip">Points-only bar is ${f1(t.evBar)}; your matchup moves it to ${f1(t.bar)}.</div>` : "";
-    return `<article class="card">${head}
-      <div class="duel">${liveLine}<div class="stat"><small>Then ${t.after.length} more game${t.after.length > 1 ? "s" : ""}</small><b class="num">${f1(t.after.reduce((a, g) => a + g.mu, 0) / t.after.length)}</b></div></div>
-      ${evNote}${lockSlotNote(s.lockIntoTonight, { tonight: true })}${benchNote}
-      <div class="whatif"><label for="wi-${s.i}">If he finishes with</label><input id="wi-${s.i}" data-wi="${s.i}" type="number" inputmode="decimal" step="0.5" placeholder="${f1(t.bar)}"> <span id="wo-${s.i}" class="muted">→ type a score</span></div>
-    </article>`;
-  }).join("")}</div>`;
+/** Whose side the advice is for. Hidden on your own matchup; there it's a small "see their side" link. */
+function renderSides(m, mine) {
+  const raw = ctx.raw, m0 = me();
+  const cur = myRosterId(raw.rosters);
+  const pairId = raw.matchups.find((x) => x.roster_id === cur)?.matchup_id;
+  const pair = pairId ? raw.matchups.filter((x) => x.matchup_id === pairId) : [];
+  if (pair.length < 2) return;
+  const isMe = (rid) => { const r = raw.rosters.find((x) => x.roster_id === rid); return !!(m0 && r && (r.owner_id === m0.user_id || (r.co_owners || []).includes(m0.user_id))); };
+  const other = pair.find((x) => x.roster_id !== cur);
+  if (mine) {
+    $("board").insertAdjacentHTML("beforeend", `<div class="sides-mini"><button class="linkish" data-side="${other.roster_id}">See what ${esc(teamName(raw, other.roster_id))} should do</button></div>`);
+  } else {
+    const btns = pair.map((x) => `<button role="radio" aria-checked="${x.roster_id === cur}" data-side="${x.roster_id}">${esc(teamName(raw, x.roster_id))}${isMe(x.roster_id) ? ' <span class="tag">you</span>' : ""}</button>`).join("");
+    const mineInLeague = raw.rosters.some((r) => isMe(r.roster_id));
+    $("board").insertAdjacentHTML("beforeend", `<div class="sides"><span class="lbl">Advice for</span>
+      <div class="seg" role="radiogroup" aria-label="Whose advice">${btns}</div>
+      ${m0 && mineInLeague ? `<button class="linkish" id="back-mine">Back to my matchup</button>` : ""}</div>`);
+  }
+  if (!m0) {
+    $("board").insertAdjacentHTML("beforeend", `<div class="notme">Looking at <b>${esc(ctx.user.display_name || ctx.user.username)}</b>'s team.
+      <button class="linkish" id="is-me">That's me</button> · <button class="linkish" id="find-me">Find my team</button></div>`);
+    $("is-me").onclick = () => { store.set("me", { username: ctx.user.username || ctx.user.display_name, user_id: ctx.user.user_id }); rebuild(); rememberView(); };
+    $("find-me").onclick = () => showOnboard("");
+  }
+  $("board").querySelectorAll("[data-side]").forEach((b) => (b.onclick = () => { if (Number(b.dataset.side) !== cur) setSide(Number(b.dataset.side)); }));
+  if ($("back-mine")) $("back-mine").onclick = goMine;
+}
+
+// ------------------------------------------------------------------ "Did you lock these?"
+function renderAsk(m) {
+  const el = $("ask");
+  // Sleeper never says what you locked, so earlier games are guessed. Your side: ask.
+  const guesses = viewingMine() ? m.me.slots.filter((s) => s.kind === "assumed-locked" && s.guess) : [];
+  if (!guesses.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<h2>Did you lock these?</h2>
+    <p class="hint">Sleeper hides locks until the week is over. The app guessed these; tell it if it's wrong.</p>
+    <div class="asks">${guesses.map((s) => `<div class="ask-row">
+      <div><b>${esc(s.p.name)}</b> <span class="muted">${dow(s.lockedGame.date)} · <span class="num">${f1(s.lockedGame.fp)}</span></span></div>
+      <div class="ask-btns"><button class="btn sm" data-yes="${esc(s.pid)}" data-date="${esc(s.lockedGame.date)}">Yes</button>
+        <button class="btn sm ghost" data-no="${esc(s.pid)}" data-date="${esc(s.lockedGame.date)}">No</button></div></div>`).join("")}</div>`;
+  el.querySelectorAll("[data-yes]").forEach((b) => (b.onclick = () => setMark(b.dataset.yes, b.dataset.date)));
+  el.querySelectorAll("[data-no]").forEach((b) => (b.onclick = () => setMark(b.dataset.no, `pass:${b.dataset.date}`)));
+}
+
+// ------------------------------------------------------------------ what to do
+function decisionItem(s, m) {
+  const c = s.call, lock = c.verdict === "LOCK", g = s.lastDone, next = s.games?.[0];
+  const sh = esc(shortName(s.p.name));
+  const line = lock
+    ? `Lock his ${dow(g.date)} <b class="num">${f1(s.score)}</b>.`
+    : `Don't lock ${dow(g.date)}'s <b class="num">${f1(s.score)}</b>. ${s.contBy ? `Swap in <b>${esc(shortName(s.contBy.p.name))}</b> instead.` : `Let it ride: ${plural(s.games.length, "game")} left.`}`;
+  const sub = next ? `Decide before ${whenOf(next, m.today)}` : "";
+  const why = [];
+  if (c.winIfLock !== undefined) why.push(`<div class="duo"><span>Lock: <b class="num">${pct(c.winIfLock)}</b> to win</span><span>Ride: <b class="num">${pct(c.winIfPass)}</b> to win</span></div>`);
+  why.push(`<div>Riding the rest of his week is worth about <b class="num">${f1(c.bar)}</b> on average${s.contBy ? ` (with ${esc(shortName(s.contBy.p.name))} swapped in)` : ""}, counting the chance he sits. If you ride, there's a ${pct(c.pBelow)} chance he ends lower than ${f1(s.score)}.</div>`);
+  const cushioned = c.cushion > 0 && (c.winIfLock >= c.winIfPass ? "LOCK" : "PASS") !== c.verdict;
+  if (cushioned) why.push(`<div class="flip">Your lead is smaller than your ${f1(c.cushion)}-point safety cushion, so the app ${lock ? "plays it safe" : "takes the chance"}.</div>`);
+  else if (c.matchupFlip) why.push(`<div class="flip">${lock ? "On points alone you'd ride, but locking protects your lead." : "On points alone you'd lock, but you need upside to catch up."}</div>`);
+  if (lock && typeof lockSlotNote === "function") why.push(lockSlotNote(s.lockInto));
+  why.push(...sitLines(s.games));
+  why.push(`<div class="marks">
+      <label class="toggle"><input type="checkbox" data-mark="${esc(s.pid)}" data-date="${esc(g.date)}"> I already locked it</label>
+      <label class="toggle"><input type="checkbox" data-mark="${esc(s.pid)}" data-date="after:${esc(g.date)}"> He was on my bench that day</label></div>`);
+  return todoItem({ pill: lock ? "LOCK" : "RIDE", pillCls: lock ? "lock" : "pass", title: esc(s.p.name), line, sub, body: why.join("") });
+}
+
+function tonightItem(s, m) {
+  const t = s.tonight, live = s.kind === "live", g = live ? s.liveGame : s.games?.[0];
+  const sh = esc(shortName(s.p.name));
+  if (t.final) {
+    if (!s.p.injury) return "";
+    return todoItem({ pill: "CHECK", pillCls: "pass", title: esc(s.p.name),
+      line: `Listed <span class="warn">${esc(s.p.injury)}</span>. Tonight is his last game, so if he sits this slot scores 0. Start someone healthy.`, sub: `${whenOf(g, m.today)} ${vsOf(g)}` });
+  }
+  const after = t.after.length ? t.after.reduce((a, x) => a + x.mu, 0) / t.after.length : 0;
+  const line = `Lock if he scores <b class="num">${f1(t.bar)}</b>+, otherwise ride.${live ? ` <span class="state live">Live ${f1(s.liveFp)}</span>` : ""}`;
+  const sub = [`${live ? "Playing now" : whenOf(g, m.today)} ${vsOf(g)}`, t.pctBar != null ? `He gets there in ${often(t.pctBar)}` : ""].filter(Boolean).join(" · ");
+  const why = [];
+  why.push(`<div>${live ? "" : `Projected tonight: <b class="num">${f1(s.games?.[0]?.mu)}</b>. `}${t.afterBy ? `If you don't lock, swap in <b>${esc(shortName(t.afterBy.p.name))}</b> for ${t.after.map((x) => dow(x.date)).join("/")}` : `After tonight: ${plural(t.after.length, "more game")}`}, worth about <b class="num">${f1(after)}</b> each.</div>`);
+  if (Math.abs(t.bar - t.evBar) >= 0.5) why.push(`<div class="muted">On points alone the line would be ${f1(t.evBar)}; the matchup moves it.</div>`);
+  if (typeof lockSlotNote === "function") why.push(lockSlotNote(s.lockIntoTonight, { tonight: true }));
+  why.push(...sitLines(s.games?.slice(1)));
+  why.push(`<div class="whatif"><label for="wi-${s.i}">Check a score:</label><input id="wi-${s.i}" data-wi="${s.i}" type="number" inputmode="decimal" step="0.5" placeholder="${f1(t.bar)}"> <span id="wo-${s.i}" class="muted"></span></div>`);
+  return todoItem({ pill: `${f1(t.bar)}+`, pillCls: "line", title: esc(s.p.name), line, sub, body: why.join("") });
+}
+
+function swapItem(w, m) {
+  const g = w.into.games[0];
+  const into = esc(shortName(w.into.p.name));
+  const outTxt = w.out ? `for <b>${esc(shortName(w.out.name))}</b>${w.slot.kind === "final" ? " (his week is over)" : w.slot.kind === "none" ? " (no games left)" : ""}` : "in the empty spot";
+  const line = `Start <b>${into}</b> at ${esc(w.slot.label)} ${outTxt}${w.into.from !== "bench" ? ` (move him from ${esc(w.into.from)})` : ""}.`;
+  const sub = g ? `Before ${whenOf(g, m.today)} · about <b class="num">+${f1(w.gain)}</b> pts` : "";
+  const why = [];
+  if (w.keepFirst?.length && !(w.slot.planPlayers?.length >= 2))
+    why.push(`<div class="flip">No rush: keep ${esc(shortName(w.out.name))} in for ${w.keepFirst.map((x) => dow(x.date)).join("/")}. If he scores ${f1(w.slot.tonight?.bar ?? w.into.value)}+, lock him and skip the swap.</div>`);
+  if (w.slot.planPlayers?.length >= 2) why.push(...planSentences(w.slot));
+  why.push(`<div class="muted">${w.into.games.map((x) => `${dow(x.date)} ${vsOf(x)} · proj ${f1(x.mu)}`).join(" · ")}</div>`);
+  why.push(...sitLines(w.into.games));
+  return todoItem({ pill: "SWAP", pillCls: "swap", title: `${esc(w.into.p.name)} → ${esc(w.slot.label)}`, line, sub, body: why.join("") });
+}
+
+function planItem(s) {
+  const lines = planSentences(s);
+  if (!lines.length) return "";
+  return todoItem({ pill: "BACKUP", pillCls: "soft", title: `${esc(s.label)}: backup plan`,
+    line: `${esc(shortName(s.p?.name || "This slot"))} stays in. Some nights a later game can replace him.`, sub: "Tap for the nights", body: lines.join("") });
+}
+
+function renderTodo(m) {
+  const el = $("todo");
+  const today = m.today;
+  const pend = m.me.slots.filter((s) => s.kind === "pending" && s.call);
+  const tonight = m.me.slots.filter((s) => s.tonight && !(s.kind === "pending" && s.tonight.final)).map((s) => tonightItem(s, m)).filter(Boolean);
+  const swapSlots = new Set((m.swaps || []).map((w) => w.slot));
+  const moves = [...(m.swaps || []).map((w) => swapItem(w, m)), ...m.me.slots.filter((s) => s.planPlayers?.length >= 2 && !swapSlots.has(s)).map(planItem)].filter(Boolean);
+  const groups = [];
+  if (pend.length) groups.push(`<h3>Decide now</h3><div class="todos">${pend.map((s) => decisionItem(s, m)).join("")}</div>`);
+  if (tonight.length) groups.push(`<h3>Tonight · ${dow(today)} ${md(today)}</h3><div class="todos">${tonight.join("")}</div>`);
+  if (moves.length) groups.push(`<h3>Lineup moves</h3><div class="todos">${moves.join("")}</div>`);
+  el.innerHTML = groups.length ? `<h2>What to do</h2>${groups.join("")}<p class="hint">Tap any row for the why.</p>`
+    : `<h2>What to do</h2><p class="empty-note">Nothing to decide right now. Check back when your players' games finish.</p>`;
+  el.querySelectorAll("[data-mark]").forEach((cb) => cb.addEventListener("change", () => setMark(cb.dataset.mark, cb.checked ? cb.dataset.date : null)));
   el.querySelectorAll("[data-wi]").forEach((inp) => inp.addEventListener("input", () => {
     const s = model.me.slots[+inp.dataset.wi];
     const out = $(`wo-${s.i}`);
     const x = parseFloat(inp.value);
-    if (Number.isNaN(x)) { out.textContent = "→ type a score"; out.className = "muted"; return; }
+    if (Number.isNaN(x)) { out.textContent = ""; return; }
     const c = model.whatIf(s, x);
-    const q = s.p.pct(x);
-    out.innerHTML = `→ <span class="pill ${c.verdict === "LOCK" ? "lock" : "pass"}">${c.verdict}</span>${c.winIfLock !== undefined ? ` <span class="muted num">win ${pct(c.winIfLock)} vs ${pct(c.winIfPass)}</span>` : ""}${q != null ? ` <span class="muted">· ${ord(q)} pct game</span>` : ""}`;
-    out.className = "";
+    out.innerHTML = `<span class="pill sm ${c.verdict === "LOCK" ? "lock" : "pass"}">${c.verdict === "LOCK" ? "LOCK" : "RIDE"}</span>${c.winIfLock !== undefined ? ` <span class="muted num">${pct(c.winIfLock)} vs ${pct(c.winIfPass)} to win</span>` : ""}`;
   }));
 }
 
-const STATE_LABEL = { locked: "Locked", final: "Final", pending: "Your call", live: "Live", open: "Open", none: "No games", empty: "Empty", "assumed-locked": "Guess: locked", "assumed-open": "Guess: open" };
 
 function availLine(p) {
   const a = p.avail;
   const bits = [];
   if (a) {
-    bits.push(`rests ${pct(a.q)} of B2Bs${a.history.n1 + a.history.n2 >= 2 ? ` (night ${a.s >= 0.5 ? "2" : "1"} ${pct(a.s >= 0.5 ? a.s : 1 - a.s)})` : ""}`);
+    bits.push(`rests ${pct(a.q)} of back-to-backs`);
     bits.push(`sits ${pct(a.normal)} of other games`);
-    if (a.durability >= 0.2) bits.push(`missed ${pct(a.durability)} of last ${Math.min(82, a.history.rows)}`);
-    if (a.ramp > 0.05) bits.push(`back ${a.gamesBack} g from a ${a.absence}-game absence`);
+    if (a.durability >= 0.2) bits.push(`missed ${pct(a.durability)} of his last ${Math.min(82, a.history.rows)} games`);
+    if (a.ramp > 0.05) bits.push(`${a.gamesBack} games back from a ${a.absence}-game absence`);
   }
-  return `<div class="avail"><span class="pmeta">${bits.length ? esc(bits.join(" · ")) : "no availability history"}</span>
-    <button type="button" class="flag" data-b2b="${esc(p.pid)}" aria-pressed="${p.flagged}">${p.flagged ? "✓ Sits B2Bs" : "Sits B2Bs?"}</button></div>`;
+  return `<div class="avail"><span class="pmeta">${bits.length ? esc(bits.join(" · ")) : "No history on how often he sits"}</span>
+    <button type="button" class="flag" data-b2b="${esc(p.pid)}" aria-pressed="${p.flagged}">${p.flagged ? "✓ Rests back-to-backs" : "Rests back-to-backs?"}</button></div>`;
 }
 
 function lockPicker(s) {
   const played = (s.completed || []).filter((g) => g.played);
   if (!s.completed?.length) return "";
-  const autoText = s.kind === "assumed-locked" ? `guess: locked ${dow(s.lockedGame?.date || s.lastDone?.date)}` : s.kind === "assumed-open" ? "guess: open"
+  const autoText = s.kind === "assumed-locked" ? `locked ${dow(s.lockedGame?.date || s.lastDone?.date)}` : s.kind === "assumed-open" ? "not locked"
     : s.kind === "final" ? "last game counts" : s.kind === "pending" ? "your call" : "not locked";
   // Two uses: recording a lock made at the time (any game, earlier ones included), or saying it isn't locked.
   // An earlier game you didn't lock is dead by rule, so "not locked" is only ever about his latest game.
   const latest = s.completed.at(-1);
   let cur = s.mark || "auto";
-  if (cur.startsWith?.("after:") && cur !== `after:${latest.date}`) cur = "open";   // older bench marks on an earlier game
+  if (cur.startsWith?.("after:") && cur !== `after:${latest.date}`) cur = "open";
   const opt = (v, label) => `<option value="${esc(v)}"${cur === v ? " selected" : ""}>${esc(label)}</option>`;
-  const games = played.map((g) => opt(g.date, `${dow(g.date)} · ${f1(g.fp)}${s.p.pct(g.fp) != null ? ` (${ord(s.p.pct(g.fp))} pct)` : ""}${g !== latest ? " · locked back then" : ""}`));
+  const games = played.map((g) => opt(g.date, `Locked ${dow(g.date)} · ${f1(g.fp)}`));
   const open = latest.played
-    ? [opt("open", `Nothing locked · ${dow(latest.date)} still lockable`), opt(`after:${latest.date}`, `${dow(latest.date)} was on the bench: can't lock`)]
-    : [opt("open", "Nothing locked")];
+    ? [opt("open", `Not locked (${dow(latest.date)} can still be locked)`), opt(`after:${latest.date}`, `Was on the bench ${dow(latest.date)}`)]
+    : [opt("open", "Not locked")];
   if (cur.startsWith?.("pass:")) open.unshift(opt(cur, `Not locked through ${dow(cur.slice(5))}`));
-  return `<label class="picker"><span class="sr">Lock for ${esc(s.p.name)}</span>
-    <select data-pick="${esc(s.pid)}">${opt("auto", `Auto: ${autoText}`)}<optgroup label="Locked">${games.join("")}</optgroup><optgroup label="Not locked">${open.join("")}</optgroup></select></label>`;
+  return `<label class="picker"><span>Lock:</span>
+    <select data-pick="${esc(s.pid)}">${opt("auto", `App's guess: ${autoText}`)}${games.join("")}${open.join("")}</select></label>`;
 }
 
 function gameChips(s) {
@@ -744,41 +755,53 @@ function gameChips(s) {
   }).join("");
 }
 
+/** One plain status per slot: what counts now, or what happens next. */
+function statusOf(s) {
+  const next = s.p?.games?.find((g) => g.status === "pre_game");
+  const day = (g) => (g ? dow(g.date) : "");
+  if (s.swapIn) return { cls: "pending", text: `Swap in ${esc(shortName(s.swapIn.p.name))}` };
+  switch (s.kind) {
+    case "locked": return { cls: "locked", text: `Locked ${day(s.lockedGame)}${s.manual ? "" : ""}` };
+    case "assumed-locked": return { cls: "locked", text: `Locked ${day(s.lockedGame)} <span class="muted">(guess)</span>` };
+    case "pending": return { cls: "pending", text: `Your call on ${day(s.lastDone)}` };
+    case "live": return { cls: "live", text: "Playing now" };
+    case "final": return { cls: "final", text: "Week over" };
+    case "none": return { cls: "final", text: "No games left" };
+    default: return { cls: "open", text: next ? `Open · next ${day(next)}` : "Open" };
+  }
+}
+
 function renderLineup(m) {
   const side = view === "me" ? m.me : m.opp;
   $("tab-me").setAttribute("aria-selected", view === "me"); $("tab-opp").setAttribute("aria-selected", view === "opp");
   $("tab-opp").hidden = !m.opp;
   if (!side) { $("lineup").innerHTML = ""; return; }
-  const smart = m.projBasis === "smart";
   const rows = side.slots.map((s) => {
-    if (s.empty) return `<div class="row"><div class="slot">${esc(s.label)}</div><div class="muted">Empty slot</div><div class="val"><b>0.0</b></div></div>`;
-    const kind = s.kind.startsWith("assumed") ? (s.kind === "assumed-locked" ? "locked" : "open") : s.kind;
+    if (s.empty) return `<div class="lrow"><div class="lsum"><div class="slot">${esc(s.label)}</div><div class="muted">Empty</div><div class="val"><b>0.0</b></div></div></div>`;
+    const st = statusOf(s);
     const counted = ["locked", "final", "assumed-locked", "none"].includes(s.kind);
-    const sd = Math.sqrt(s.value.variance);
-    const sub = counted ? "&nbsp;" : smart ? (s.nextProj != null ? `next ${f1(s.nextProj)}` : "&nbsp;") : `exp ${f1(s.value.mean)}${sd > 0.5 ? ` ± ${f1(sd)}` : ""}`;
-    return `<div class="row">
-      <div class="slot">${esc(s.label)}</div>
-      <div style="min-width:0">
-        <div class="pname" style="font-size:16.5px">${esc(s.p.name)}${rankBadge(s.pid)} <span class="pmeta">${esc(s.p.team || "FA")}${s.p.injury ? ` · <span class="warn">${esc(s.p.injury)}</span>` : ""}</span></div>
-        <div class="games">${gameChips(s)}</div>
-        ${availLine(s.p)}
-        ${lockPicker(s)}
-      </div>
-      <div class="val"><span class="state ${kind}">${s.swapIn ? `→ ${esc(shortName(s.swapIn.p.name))}` : STATE_LABEL[s.kind]}${s.manual ? " (you)" : ""}</span><b class="num">${f1(s.shownProj)}</b><small class="num">${sub}</small></div>
-    </div>`;
+    return `<details class="lrow">
+      <summary class="lsum">
+        <div class="slot">${esc(s.label)}</div>
+        <div style="min-width:0"><div class="lname">${esc(s.p.name)}${rankBadge(s.pid)}${s.p.injury ? ` <span class="warn inj">${esc(s.p.injury)}</span>` : ""}</div>
+          <div class="lstat state ${st.cls}">${st.text}</div></div>
+        <div class="val"><b class="num">${f1(s.shownProj)}</b><small>${counted ? "counts" : "proj"}</small></div>
+      </summary>
+      <div class="ldet"><div class="pmeta">${esc(s.p.team || "FA")} · ${esc(s.p.pos || "")}</div><div class="games">${gameChips(s)}</div>${lockPicker(s)}${availLine(s.p)}</div>
+    </details>`;
   });
-  const bench = (side.bench || []).map((b) => `<div class="row bench">
-      <div class="slot">BN</div>
-      <div style="min-width:0">
-        <div class="pname" style="font-size:15.5px">${esc(b.p.name)}${rankBadge(b.pid)} <span class="pmeta">${esc(b.p.team || "FA")}${b.p.injury ? ` · <span class="warn">${esc(b.p.injury)}</span>` : ""}</span></div>
-        <div class="games">${gameChips({ p: b.p, kind: "bench" })}</div>
-      </div>
-      <div class="val"><span class="state open">Bench</span><b class="num">${b.nextProj != null ? f1(b.nextProj) : "–"}</b><small>next game</small></div>
-    </div>`);
-  $("lineup").innerHTML = rows.join("") + (bench.length ? `<div class="row benchhead"><div></div><div class="pmeta">Bench: not counted, shown for swaps</div><div></div></div>${bench.join("")}` : "");
+  const bench = (side.bench || []).map((b) => `<details class="lrow bench">
+      <summary class="lsum"><div class="slot">BN</div>
+        <div style="min-width:0"><div class="lname">${esc(b.p.name)}${rankBadge(b.pid)}${b.p.injury ? ` <span class="warn inj">${esc(b.p.injury)}</span>` : ""}</div>
+          <div class="lstat muted">Bench</div></div>
+        <div class="val"><b class="num">${b.nextProj != null ? f1(b.nextProj) : "–"}</b><small>next</small></div></summary>
+      <div class="ldet"><div class="pmeta">${esc(b.p.team || "FA")}</div><div class="games">${gameChips({ p: b.p, kind: "bench" })}</div></div>
+    </details>`);
+  $("lineup").innerHTML = rows.join("") + (bench.length ? `<div class="benchhead">Bench (doesn't score)</div>${bench.join("")}` : "");
   $("lineup").querySelectorAll("button[data-b2b]").forEach((b) => b.addEventListener("click", () => toggleB2b(b.dataset.b2b)));
   $("lineup").querySelectorAll("select[data-pick]").forEach((sel) => sel.addEventListener("change", () => setMark(sel.dataset.pick, sel.value === "auto" ? null : sel.value)));
 }
+
 
 $("tab-me").addEventListener("click", () => { view = "me"; renderLineup(model); });
 $("tab-opp").addEventListener("click", () => { view = "opp"; renderLineup(model); });
