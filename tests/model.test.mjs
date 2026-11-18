@@ -396,3 +396,15 @@ test("each starter's remaining chances are his own: another starter's later game
   assert.ok(!pend.contGames.some((g) => g.pid === "lateStarter"));      // his Sun game is his own slot's, not SG's backup
   assert.ok(!m.me.slots.some((x) => x.swapIn?.key === "lateStarter"));  // and he's never moved into another slot
 });
+
+test("keep a big game: a top-20% score for him is locked even when riding projects higher", () => {
+  const logs = { pending: Array.from({ length: 10 }, (_, i) => ({ date: `2026-03-${String(i + 1).padStart(2, "0")}`, team: "CCC", stats: line(20) })) };
+  const r = { ...raw, logs,
+    projections: raw.projections.map((x) => (x.player_id === "pending" && x.date === DAYS[6] ? proj("pending", "CCC", 6, 70) : x)) };
+  const pend = buildModel(r, "me").me.slots.find((x) => x.pid === "pending");
+  assert.equal(pend.kind, "pending");
+  assert.ok(pend.score >= pend.p.bigAt);                       // Wed's 30 beats every one of his logged games
+  assert.ok(pend.call.bar > pend.score);                        // riding projects higher on paper...
+  assert.equal(pend.call.verdict, "LOCK");                      // ...but a big game is kept
+  assert.ok(pend.call.bigGame);
+});

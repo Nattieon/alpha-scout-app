@@ -4,6 +4,8 @@ import { availabilityProfile, gameSitRisks, shiftDay } from "./availability.js?v
 import { canFill, chooseLockSlot, planSlots } from "./swaps.js?v=__V__";
 import { chainOf } from "./chains.js?v=__V__";
 
+// A score in the top 20% of a player's own games is always locked (see decide).
+export const BIG_GAME = 0.8;
 export const DEFAULTS = { baseDnp: 0.04, pairRest: 0.19, injuryDecay: 0.7, mode: "win", cvPrior: 0.30, projBasis: "next", oppSwaps: true, cushion: 0, b2bFlags: {} };
 
 // ------------------------------------------------------------------ scoring
@@ -140,6 +142,8 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
 
     const p = { pid, name, team, injury, pos: (meta.fantasy_positions || [meta.position]).filter(Boolean).join("/"),
       ratio, cv, shape, pct, nHistory: histFps.length, actualAvg, pBar, games, teamDates, n,
+      // one of his best games: the score at his top-20% mark (needs 5+ logged games)
+      bigAt: histFps.length >= 5 ? [...histFps].sort((a, b) => a - b)[Math.min(histFps.length - 1, Math.floor(BIG_GAME * histFps.length))] : null,
       avail, playedOn, flagged: !!c.b2bFlags?.[pid],
       positions: (meta.fantasy_positions || [meta.position]).filter(Boolean) };
     playerCache[pid] = p;
@@ -341,6 +345,9 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
       const others = t.slots.filter((o) => o !== s).map((o) => o.value);
       const vs = useMatchup && !pointsOnly && theirs;
       s.call = lockCall(s.score, s.contGames, vs ? others : null, vs ? theirs : null, cushion);
+      // Keep a big game: a top-20% game for him is locked even when riding looks better on paper.
+      // Backtested over every past call in the league: riding those lost more often than not.
+      if (s.call.verdict === "PASS" && !s.forcedPass && s.p.bigAt != null && s.score >= s.p.bigAt) s.call = { ...s.call, verdict: "LOCK", bigGame: true };
       s.bar = s.call.bar;
       s.value = s.call.verdict === "LOCK" && !s.forcedPass ? { mean: s.score, variance: 0 } : slotMoments(s.contGames);
     }
@@ -487,6 +494,7 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
       const others = mySlots.filter((o) => o !== s).map((o) => o.value);
       s.tonight.bar = matchupBar(after, others, theirs, mine.cushion) ?? s.tonight.evBar;
     }
+    if (s.p.bigAt != null && s.tonight.bar > s.p.bigAt) { s.tonight.bar = s.p.bigAt; s.tonight.bigCap = true; }   // a top-20% game is always worth keeping
     s.tonight.pctBar = s.p.pct(s.tonight.bar);
   }
 

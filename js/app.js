@@ -630,8 +630,9 @@ function decisionItem(s, m) {
   const why = [];
   if (c.winIfLock !== undefined) why.push(`<div class="duo"><span>Lock: <b class="num">${pct(c.winIfLock)}</b> to win</span><span>Ride: <b class="num">${pct(c.winIfPass)}</b> to win</span></div>`);
   why.push(`<div>Riding the rest of his week is worth about <b class="num">${f1(c.bar)}</b> on average${s.contBy ? ` (with ${esc(shortName(s.contBy.p.name))} swapped in)` : ""}, counting the chance he sits. If you ride, there's a ${pct(c.pBelow)} chance he ends lower than ${f1(s.score)}.</div>`);
-  const cushioned = c.cushion > 0 && (c.winIfLock >= c.winIfPass ? "LOCK" : "PASS") !== c.verdict;
-  if (cushioned) why.push(`<div class="flip">Your lead is smaller than your ${f1(c.cushion)}-point safety cushion, so the app ${lock ? "plays it safe" : "takes the chance"}.</div>`);
+  const cushioned = !c.bigGame && c.cushion > 0 && (c.winIfLock >= c.winIfPass ? "LOCK" : "PASS") !== c.verdict;
+  if (c.bigGame) why.push(`<div class="flip">One of his best games: a top-20% score for him. The math leaned toward riding, but riding big games has lost more often than not in this league, so keep it.</div>`);
+  else if (cushioned) why.push(`<div class="flip">Your lead is smaller than your ${f1(c.cushion)}-point safety cushion, so the app ${lock ? "plays it safe" : "takes the chance"}.</div>`);
   else if (c.matchupFlip) why.push(`<div class="flip">${lock ? "On points alone you'd ride, but locking protects your lead." : "On points alone you'd lock, but you need upside to catch up."}</div>`);
   if (lock && typeof lockSlotNote === "function") why.push(lockSlotNote(s.lockInto));
   why.push(...sitLines(s.games));
@@ -654,7 +655,8 @@ function tonightItem(s, m) {
   const sub = `${t.pctBar != null ? `He gets there in ${often(t.pctBar)}. ` : ""}Below it, let it ride.`;
   const why = [];
   why.push(`<div>${live ? "" : `Projected tonight: <b class="num">${f1(s.games?.[0]?.mu)}</b>. `}${t.afterBy ? `If you don't lock, swap in <b>${esc(shortName(t.afterBy.p.name))}</b> for ${t.after.map((x) => dow(x.date)).join("/")}` : `After tonight: ${plural(t.after.length, "more game")}`}, worth about <b class="num">${f1(after)}</b> each.</div>`);
-  if (Math.abs(t.bar - t.evBar) >= 0.5) why.push(`<div class="muted">On points alone the line would be ${f1(t.evBar)}; the matchup moves it.</div>`);
+  if (t.bigCap) why.push(`<div class="flip">${f1(t.bar)} is a top-20% game for him, and a game that big is always worth keeping.</div>`);
+  else if (Math.abs(t.bar - t.evBar) >= 0.5) why.push(`<div class="muted">On points alone the line would be ${f1(t.evBar)}; the matchup moves it.</div>`);
   if (typeof lockSlotNote === "function") why.push(lockSlotNote(s.lockIntoTonight, { tonight: true }));
   why.push(...sitLines(s.games?.slice(1)));
   why.push(`<div class="whatif"><label for="wi-${s.i}">Check a score:</label><input id="wi-${s.i}" data-wi="${s.i}" type="number" inputmode="decimal" step="0.5" placeholder="${f1(t.bar)}"> <span id="wo-${s.i}" class="muted"></span></div>`);
