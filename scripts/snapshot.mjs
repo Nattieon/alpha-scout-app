@@ -465,6 +465,13 @@ async function replay(week) {
       if (!pid || pid === "0" || actuals[pid]) continue;
       actuals[pid] = Object.fromEntries((teamDates[teamOf[pid]] || []).map((d) => [d, r2(fpOn[pid]?.[d] ?? 0)]));
     }
+    // Everything a backtest needs to rerun this week offline with another formula (logs and the
+    // full schedule live in logs/ and schedule/ already): one file per finished week.
+    if (!VARIANT) wrGz(`${dir}/backtest.json.gz`, { v: 1, week: raw.week, season, weekDates,
+      league: raw.league, rosters: raw.rosters, users: raw.users, players: raw.players || null,
+      tipoffs: Object.fromEntries(weekDates.map((d) => [d, raw.tipoffs?.[d] || null])),
+      stats: raw.stats, projections: raw.projections, finalMatchups, teamOf, teamDates, fpOn, actuals,
+      marks: Object.fromEntries(weekDates.map((D) => [D, marksFor(D)])) });
     for (const D of weekDates) {
       const rawD = {
         ...raw, today: shift(D, 1),
