@@ -467,7 +467,9 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     for (const x of candidates) {
       if (x.starter || !canFill(s.label, x.positions)) continue;
       const g = x.games.find((h) => h.date > last.date || (h.date === last.date && last.tip && h.tip && h.tip > last.tip));
-      if (g && g.mu >= 5 && (!best || (usedBench.has(best.x.key) && !usedBench.has(x.key)) || (usedBench.has(best.x.key) === usedBench.has(x.key) && g.mu > best.g.mu))) best = { x, g };
+      if (!g || (g.p ?? 0) >= 0.5) continue;                       // ruled out / likely out himself: no use
+      const ev = (1 - (g.p ?? 0)) * g.mu;
+      if (ev >= 5 && (!best || (usedBench.has(best.x.key) && !usedBench.has(x.key)) || (usedBench.has(best.x.key) === usedBench.has(x.key) && ev > best.ev))) best = { x, g, ev };
     }
     if (best) s.ifOut = { date: last.date, tip: last.tip || null, by: best.x, game: best.g };
   }
