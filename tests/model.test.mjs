@@ -379,3 +379,20 @@ test("late swaps: a bench player tipping later the same day backs up an open slo
   const step = timed.plan.find((x) => x.who === "fresh" && x.date === "2026-10-24");
   assert.ok(step && step.bar > 0);                                      // lock his Sat game only above the backup's value
 });
+
+test("each starter's remaining chances are his own: another starter's later game never backs up his slot", () => {
+  // lateStarter (UTIL) had a big Tue and is worth locking; he also plays Sun night, after "pending" (SG).
+  const withPos = (row, pos) => ({ ...row, player: { ...row.player, fantasy_positions: pos } });
+  const ggg = [1, 6].map((i) => ({ date: DAYS[i], week: 1, game_id: `GGG${i}`, home: { team: "GGG" }, away: { team: "ZZZ" }, status: i < 4 ? "complete" : "pre_game" }));
+  const r = { ...raw,
+    schedule: [...raw.schedule, ...ggg],
+    matchups: raw.matchups.map((m) => (m.roster_id === 1 ? { ...m, starters: [...m.starters.slice(0, 5), "lateStarter"], starters_points: [...m.starters_points.slice(0, 5), fp(70)], players: [...m.starters.slice(0, 5), "lateStarter"] } : m)),
+    stats: [...raw.stats, withPos(stat("lateStarter", "GGG", 1, 70), ["PG", "SG", "G"])],
+    projections: [...raw.projections, ...[1, 6].map((i) => withPos(proj("lateStarter", "GGG", i, 24), ["PG", "SG", "G"]))],
+    tipoffs: { "2026-10-25": { CCC: "15:00", GGG: "19:30" } } };
+  const m = buildModel(r, "me");
+  const pend = m.me.slots.find((x) => x.pid === "pending");
+  assert.ok(pend.contGames.length > 0);
+  assert.ok(!pend.contGames.some((g) => g.pid === "lateStarter"));      // his Sun game is his own slot's, not SG's backup
+  assert.ok(!m.me.slots.some((x) => x.swapIn?.key === "lateStarter"));  // and he's never moved into another slot
+});

@@ -286,7 +286,9 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     for (const s of slots) {
       if (!openKinds.has(s.kind) || !s.p) continue;
       const games = s.games || futureGames(s.p, yesterday);
-      out.push({ key: s.pid, p: s.p, positions: s.p.positions, games, value: slotValue(games), from: s.label, starter: true });
+      // A starter only ever plays for his own slot: his games never count toward another slot's
+      // remaining chances (no starter-to-starter late swaps or reshuffles). Bench players can fill any slot they fit.
+      out.push({ key: s.pid, p: s.p, positions: [], games, value: slotValue(games), from: s.label, starter: true });
     }
     if (bench) for (const pid of match ? (match.players || []) : []) {
       if (!pid || match.starters.includes(pid) || reserveIds.has(pid)) continue;

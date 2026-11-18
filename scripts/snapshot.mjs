@@ -31,6 +31,7 @@ import * as S from "../js/sleeper.js";
 import { buildModel, DEFAULTS, fantasyPoints, todayET } from "../js/model.js";
 import { solveCounted } from "../js/truth.js";
 import { lockBars } from "../js/lockmath.js";
+import { seasonPlayers, rankPlayers, autoMinGames } from "../js/rankings.js";
 
 const V1 = "https://api.sleeper.app/v1";
 const args = process.argv.slice(2);
@@ -308,6 +309,42 @@ function diffEvents(prev, raw, txs, at, dump = {}) {
 }
 
 // ------------------------------------------------------------------ modes
+
+// ------------------------------------------------------------------ player rankings, for other tools
+// rankings/{league}/latest.json and latest.csv: every player this season in the league's scoring, the same
+// list as the app's Rankings page (points per game, completed games, automatic minimum games).
+// Nightly, and on ticks when the last one is 3+ hours old.
+async function saveRankings(leagueId, raw, kind) {
+  const f = `rankings/${leagueId}/latest.json`;
+  const last = rd(f);
+  if (kind !== "nightly" && last?.updatedUtc && NOW - new Date(last.updatedUtc) < 3 * 3600e3) return;
+  const data = await seasonPlayers(raw.league.scoring_settings || {}, { fresh: true });
+  const minGames = autoMinGames(data.teamGames);
+  const { list } = rankPlayers(data.players, { minGames });
+  const shift = (d, n) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  const ago = shift(data.today, -7);
+  const before = rankPlayers(data.players, { minGames: autoMinGames(Math.max(0, data.teamGames - 3)), asOf: ago });
+  const rankAgo = Object.fromEntries(before.list.map((r) => [r.pid, r.rank]));
+  const teamOf = (rid) => { const r = raw.rosters.find((x) => x.roster_id === rid); const u = r && raw.users.find((x) => x.user_id === r.owner_id); return u ? (u.metadata?.team_name || u.display_name) : `Team ${rid}`; };
+  const owner = {};
+  for (const r of raw.rosters) for (const pid of [...(r.players || []), ...(r.reserve || [])]) owner[pid] = teamOf(r.roster_id);
+  const ranked = new Set(list.map((r) => r.pid));
+  const row = (r, rank) => ({ rank, pid: r.pid, name: r.name, team: r.team, pos: (r.pos || []).join("/"), games: r.gp,
+    fpPerGame: r2(r.pg), total: r2(r.total), minPerGame: r2(r.min), last5Avg: r2(r.last5), owner: owner[r.pid] || "Free agent",
+    rankWeekAgo: rank && rankAgo[r.pid] ? rankAgo[r.pid] : null, change: rank && rankAgo[r.pid] ? rankAgo[r.pid] - rank : null });
+  const others = rankPlayers(data.players, { minGames: 1 }).list.filter((r) => !ranked.has(r.pid));
+  const players = [...list.map((r) => row(r, r.rank)), ...others.map((r) => row(r, null))];
+  const out = { league: raw.league.name, leagueId, season: data.season, updated: etStamp(NOW) + " ET", updatedUtc: NOW.toISOString(),
+    about: `Every NBA player with a completed game this season, scored with this league's settings. Ranked by fantasy points per game; players with fewer than ${minGames} games (40% of a typical team's games) have rank null and come last. change = places moved since ${ago} (positive = up). owner = team in this league, or Free agent.`,
+    minGames, players };
+  wr(f, out);
+  const cols = ["rank", "name", "team", "pos", "games", "fpPerGame", "total", "minPerGame", "last5Avg", "owner", "rankWeekAgo", "change"];
+  const q = (v) => (v === null || v === undefined ? "" : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
+  const p = path.join(DATA, `rankings/${leagueId}/latest.csv`);
+  fs.writeFileSync(p, [cols.join(","), ...players.map((r) => cols.map((c) => q(r[c])).join(","))].join("\n") + "\n");
+  log(`rankings: ${list.length} ranked, ${others.length} below ${minGames} games`);
+}
+
 async function nightlyOrTick(kind) {
   const st = await S.state();
   const season = st.league_season, week = st.week || st.display_week || 1;
@@ -317,6 +354,7 @@ async function nightlyOrTick(kind) {
     const dir = weekDir(leagueId, season, week);
     const raw = await leagueRaw(leagueId, { week, season, refreshLogs: kind === "nightly" });
     raw.today = today;
+    try { await saveRankings(leagueId, raw, kind); } catch (e) { log(`rankings failed: ${e.message}`); }
     const txs = await getJSON(`${V1}/league/${leagueId}/transactions/${week}`).catch(() => []);
     const prev = rd(`${dir}/state.json`);
     // players in new transactions who aren't on any roster now (drops) need the full player list for a name
