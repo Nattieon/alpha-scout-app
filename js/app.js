@@ -690,6 +690,10 @@ function renderTodo(m) {
   const tonight = m.me.slots.filter((s) => s.tonight && !(s.kind === "pending" && s.tonight.final)).map((s) => tonightItem(s, m)).filter(Boolean);
   const swapSlots = new Set((m.swaps || []).map((w) => w.slot));
   const moves = [...(m.swaps || []).map((w) => swapItem(w, m)), ...m.me.slots.filter((s) => s.planPlayers?.length >= 2 && !swapSlots.has(s)).map(planItem)].filter(Boolean);
+  const outs = m.me.slots.filter((s) => s.ifOut);
+  if (outs.length) moves.push(todoItem({ pill: "IF OUT", pillCls: "soft", title: "If someone's ruled out",
+    line: "Start the bench player before the tip if a starter is ruled out of his last game this week.", sub: "A reminder only: it's not part of any call",
+    body: outs.map((s) => `<div><b>${esc(shortName(s.p.name))}</b> (${whenOf({ date: s.ifOut.date, tip: s.ifOut.tip }, m.today)}) → <b>${esc(shortName(s.ifOut.by.p.name))}</b>, ${whenOf(s.ifOut.game, m.today)} ${vsOf(s.ifOut.game)} · proj ${f1(s.ifOut.game.mu)}</div>`).join("") }));
   const groups = [];
   if (pend.length) groups.push(`<h3>Decide now</h3><div class="todos">${pend.map((s) => decisionItem(s, m)).join("")}</div>`);
   if (tonight.length) groups.push(`<h3>Tonight · ${dow(today)} ${md(today)}</h3><div class="todos">${tonight.join("")}</div>`);

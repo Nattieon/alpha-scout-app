@@ -2,7 +2,7 @@
 import { buildShape, lockBars, lockCall, percentileOf, slotMoments, slotValue, winProbability } from "./lockmath.js?v=__V__";
 import { availabilityProfile, gameSitRisks, shiftDay } from "./availability.js?v=__V__";
 import { canFill, chooseLockSlot, planSlots } from "./swaps.js?v=__V__";
-import { addBackups, chainOf } from "./chains.js?v=__V__";
+import { chainOf } from "./chains.js?v=__V__";
 
 export const DEFAULTS = { baseDnp: 0.04, pairRest: 0.19, injuryDecay: 0.7, mode: "win", cvPrior: 0.30, projBasis: "next", oppSwaps: true, cushion: 0, b2bFlags: {} };
 
@@ -314,21 +314,18 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
       key: s.i, label: s.label, current: s.pid || null,
       keepScore: s.kind === "pending" ? (s.forcedPass ? null : s.score) : s.kind === "final" ? s.value.mean : null,
     }));
+    // One player per slot: passing keeps the slot for his own remaining games, or for a bench player
+    // who'd replace him outright for the rest of the week if that's worth more. No late-swap backups:
+    // another player's games never count as a fallback behind his.
     const firstPlan = planSlots(planRows(), candidates);
-    // Late swaps: the slot's main player plus anyone left over, in tip-off order (chains.js).
-    const groupsFor = (rows, assign, keep = {}) => addBackups(rows.filter((r) => !keep[r.key]),
-      Object.fromEntries(rows.filter((r) => !keep[r.key]).map((r) => [r.key, assign[r.key] ? [byKey.get(assign[r.key])] : []])), candidates);
     for (const s of slots) if (s.kind === "pending") {
       const { assign } = firstPlan.openValue(s.i);
-      const occ = byKey.get(assign[s.i]);
-      const rows = planRows().map((r) => (r.key === s.i ? { ...r, keepScore: null } : r));
-      const kept = Object.fromEntries(rows.map((r) => [r.key, r.key !== s.i && r.keepScore != null && assign[r.key] === r.current && r.keepScore >= (byKey.get(r.current)?.value ?? 0)]));
-      const groups = groupsFor(rows, assign, kept);
-      s.contGames = chainOf(groups[s.i] || []);
+      const occ = byKey.get(assign[s.i]) || byKey.get(s.pid);
+      s.contGames = occ ? chainOf([occ]) : [];
       s.contBy = occ && occ.key !== s.pid ? occ : null;
       s.value = !s.forcedPass && s.score >= slotValue(s.contGames) ? { mean: s.score, variance: 0 } : slotMoments(s.contGames);
     }
-    return { slots, candidates, byKey, planRows, groupsFor };
+    return { slots, candidates, byKey, planRows };
   }
   // Safety cushion (setting): a number of points, or "auto" = the biggest swing one of the other
   // team's open slots can still make (its standard deviation).
@@ -349,18 +346,18 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
     }
   }
   function finish(t) {
-    const { slots, candidates, byKey, planRows, groupsFor } = t;
+    const { slots, candidates, byKey, planRows } = t;
     const lockedNow = new Set(slots.filter((s) => s.kind === "pending" && s.call.verdict === "LOCK" && !s.forcedPass).map((s) => s.i));
     const lockedPlayers = new Set(slots.filter((s) => lockedNow.has(s.i)).map((s) => s.pid));
     const free = candidates.filter((x) => !lockedPlayers.has(x.key));
     const plan = planSlots(planRows(lockedNow), free);
     const rows = planRows(lockedNow);
-    const groups = addBackups(rows.filter((r) => !plan.keep[r.key]),
-      Object.fromEntries(rows.filter((r) => !plan.keep[r.key]).map((r) => [r.key, plan.assign[r.key] ? [byKey.get(plan.assign[r.key])] : []])), free);
+    // One player per slot for the rest of the week (no late-swap backups).
+    const groups = Object.fromEntries(rows.filter((r) => !plan.keep[r.key]).map((r) => [r.key, plan.assign[r.key] ? [byKey.get(plan.assign[r.key])] : []]));
     // Which slot to lock him in. A locked player holds his slot all week, so try every slot he can
     // fill (its player moves into the one he leaves), re-plan the rest of the week each way, and pick
     // the best; on a tie, the most specific slot, so flexible ones (UTIL, G, F) stay open.
-    const posOf = (pid) => byKey.get(pid)?.positions || slots.find((x) => x.pid === pid)?.p?.positions || [];
+    const posOf = (pid) => slots.find((x) => x.pid === pid)?.p?.positions || byKey.get(pid)?.positions || [];
     const nameOf = (pid) => byKey.get(pid)?.p?.name || slots.find((x) => x.pid === pid)?.p?.name || pid;
     const bestLockSlot = (s, rowsLeft, candLeft) => {
       const r = chooseLockSlot({ key: s.i, label: s.label, positions: s.p?.positions }, rowsLeft, candLeft, posOf);
@@ -471,7 +468,8 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
       const nextWho = after.find((g) => g.who !== s.pid)?.who;
       afterBy = nextWho ? candidates.find((x) => x.key === nextWho) || null : null;
     } else {
-      // A planned swap whose incoming player starts later: he still plays tonight, and the swap is his fallback.
+      // A planned swap whose incoming player starts later: he still plays tonight, and the swap is his
+      // replacement afterwards. Otherwise his own later games, or a free bench player who'd replace him.
       if (s.swapIn && !(s.swapIn.games[0]?.date > today)) continue;
       after = s.swapIn ? s.swapIn.games : s.kind === "live" ? s.after : s.games.slice(1);
       afterBy = s.swapIn || null;
@@ -490,6 +488,23 @@ export function buildModel(raw, myUserId, cfg = {}, marks = {}) {
       s.tonight.bar = matchupBar(after, others, theirs, mine.cushion) ?? s.tonight.evBar;
     }
     s.tonight.pctBar = s.p.pct(s.tonight.bar);
+  }
+
+  // Safety net, not part of any call: if a starter is ruled out of his last game of the week, the slot
+  // would score 0. Name the best bench player who fits the slot and still plays after that tip-off.
+  const tipKey = (g) => `${g.date} ${g.tip ? g.tip.slice(11, 16) : "99:99"}`;
+  for (const s of mySlots) {
+    if (s.swapIn || !s.p || !["open", "pending", "live"].includes(s.kind)) continue;
+    const own = s.kind === "live" ? [s.liveGame, ...(s.after || [])] : s.games || [];
+    const last = own.at(-1);
+    if (!last) continue;
+    let best = null;
+    for (const x of candidates) {
+      if (x.starter || !canFill(s.label, x.positions)) continue;
+      const g = x.games.find((h) => h.date > last.date || (h.date === last.date && last.tip && h.tip && h.tip > last.tip));
+      if (g && g.mu >= 5 && (!best || (usedBench.has(best.x.key) && !usedBench.has(x.key)) || (usedBench.has(best.x.key) === usedBench.has(x.key) && g.mu > best.g.mu))) best = { x, g };
+    }
+    if (best) s.ifOut = { date: last.date, tip: last.tip || null, by: best.x, game: best.g };
   }
 
   const myValues = mySlots.map((s) => s.value);

@@ -366,18 +366,18 @@ test("score now shows locked games (as the Sleeper app does); banked never count
   assert.ok(Math.abs(m2.me.banked - bankedSlots.reduce((t, x) => t + (x.lastDone?.fp ?? x.value.mean), 0)) < 1e-9);
 });
 
-test("late swaps: a bench player tipping later the same day backs up an open slot", () => {
+test("no late-swap backups: a bench player tipping later is only the ruled-out safety net", () => {
   const withPos = (row, pos) => ({ ...row, player: { ...row.player, fantasy_positions: pos } });
   const r = { ...raw,
     matchups: raw.matchups.map((m) => (m.roster_id === 1 ? { ...m, starters: m.starters.slice(0, 5), starters_points: m.starters_points.slice(0, 5), players: [...m.starters.slice(0, 5), "benchLate"] } : m)),
     projections: [...raw.projections, withPos(proj("benchLate", "AAA", 5, 24), ["PG", "SG", "G", "SF", "PF"])] };
-  // "fresh" (FFF) has games Fri and Sat; benchLate (AAA) plays Sat. No empty slot, so he's only a backup.
+  // "fresh" (FFF) has games Fri and Sat; benchLate (AAA) plays Sat after him.
   const noTimes = buildModel(r, "me").me.slots.find((x) => x.pid === "fresh");
   const timed = buildModel({ ...r, tipoffs: { "2026-10-24": { FFF: "15:00", AAA: "19:30" } } }, "me").me.slots.find((x) => x.pid === "fresh");
-  assert.ok(timed.planPlayers?.includes("benchLate"));                  // Sat 3pm fresh, else benchLate at 7:30
-  assert.ok(timed.value.mean > noTimes.value.mean + 0.5);
-  const step = timed.plan.find((x) => x.who === "fresh" && x.date === "2026-10-24");
-  assert.ok(step && step.bar > 0);                                      // lock his Sat game only above the backup's value
+  assert.ok(!(timed.planPlayers || []).includes("benchLate"));          // not counted behind fresh
+  assert.ok(Math.abs(timed.value.mean - noTimes.value.mean) < 1e-9);     // the slot's value is his own games
+  assert.equal(timed.ifOut?.by.key, "benchLate");                         // but named in case he's ruled out Sat
+  assert.equal(timed.ifOut?.date, "2026-10-24");
 });
 
 test("each starter's remaining chances are his own: another starter's later game never backs up his slot", () => {
