@@ -13,7 +13,8 @@ const logOf = (pid) => logCache[pid] ||= ["2025", "2026"].flatMap((s) => { try {
 const shift = (d, n) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
 const cfg = { ...DEFAULTS, b2bFlags: {}, ...(cfgArg ? JSON.parse(cfgArg) : {}) };
 const calls = [];
-for (const w of ["w01", "w02", "w03", "w04"]) {
+const weeks = fs.readdirSync(L).filter((d) => /^w\d+$/.test(d)).sort();
+for (const w of weeks) {
   const f = path.join(L, w, "backtest.json.gz");
   if (!fs.existsSync(f)) continue;
   const B = JSON.parse(zlib.gunzipSync(fs.readFileSync(f)));
@@ -67,4 +68,5 @@ console.log(line("  PASS", calls.filter((c) => c.v === "PASS")));
 console.log(line("  PASS on his top-20% game", calls.filter((c) => c.v === "PASS" && c.pct >= 0.8)));
 console.log(line("  LOCK on his bottom-half game", calls.filter((c) => c.v === "LOCK" && c.pct < 0.5)));
 console.log(line("  your team", calls.filter((c) => c.rid === 7)));
+for (const w of [...new Set(calls.map((c) => c.w))]) console.log(line(`  ${w}`, calls.filter((c) => c.w === w)));
 if (process.env.DUMP) fs.writeFileSync(process.env.DUMP, JSON.stringify(calls));
