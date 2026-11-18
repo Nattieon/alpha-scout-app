@@ -100,7 +100,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 99,Paul Reed,DET,C/PF,13,31.99,415.85,26.47,28.75,Patriot,102,3
 100,Moussa Diabaté,CHA,C,12,31.92,383,29.55,28.64,Thảo kế toán ,93,-7
 101,Alex Sarr,WAS,C/PF,14,31.7,443.8,27.46,33.11,Tuyết Phạm,128,27
-102,Grayson Allen,CHA,SF/SG,13,31.67,411.75,27.07,36.13,High School Team,103,1
+102,Grayson Allen,CHA,SF/SG,13,31.67,411.75,27.07,36.13,Free agent,103,1
 103,AJ Dybantsa,WAS,PF/SF,11,31.45,345.9,33.42,29.58,Tuyết Phạm,100,-3
 104,Derik Queen,NOP,C/PF,15,30.86,462.95,21.83,30.24,Patriot,110,6
 105,Ace Bailey,UTA,PF/SF,15,30.83,462.45,30.66,34.3,Tuyết Phạm,97,-8
@@ -123,7 +123,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 122,Tristan da Silva,ORL,PF/SF,11,27.71,304.85,30.65,26.51,Free agent,135,13
 123,Derrick Jones Jr.,LAC,PF/SF,12,27.6,331.15,28.73,24.83,Free agent,124,1
 124,Keaton Wagler,LAC,PG/SG,13,27.55,358.2,22.75,28.6,Free agent,129,5
-125,Collin Murray-Boyles,TOR,C/PF,13,27.23,353.95,24.96,34.06,Free agent,159,34
+125,Collin Murray-Boyles,TOR,C/PF,13,27.23,353.95,24.96,34.06,High School Team,159,34
 126,Tari Eason,HOU,SF/SG,15,27.08,406.15,24.99,27.71,Free agent,148,22
 127,Quentin Grimes,LAL,SF/SG,13,27.03,351.35,28.15,35.72,bringbackbensimmons,206,79
 128,Meleek Thomas,CLE,PG/SF/SG,12,27.03,324.3,24.03,32.23,Pls No More Injury,132,4
@@ -146,7 +146,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 145,Jalen Suggs,ORL,PG,5,25.72,128.6,29.14,25.72,Akari my beloved,,
 146,Aaron Gordon,DEN,C/PF,12,25.72,308.6,28.99,17.96,Patriot,138,-8
 147,Ryan Rollins,MIL,PG,13,25.67,333.65,23.81,24.92,High School Team,147,0
-148,De'Anthony Melton,GSW,PG/SG,14,25.59,358.2,21.99,21.33,High School Team,134,-14
+148,De'Anthony Melton,GSW,PG/SG,14,25.59,358.2,21.99,21.33,Free agent,134,-14
 149,De'Andre Hunter,SAC,PF/SF,11,25.52,280.7,32.4,25.94,Free agent,178,29
 150,Jared McCain,OKC,PG/SG,14,25.41,355.75,26.76,32.15,bringbackbensimmons,161,11
 151,Isaiah Jackson,LAC,C,12,25.36,304.3,19.57,19.62,Free agent,155,4
@@ -175,7 +175,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 174,Robert Williams III,POR,C,12,23.51,282.15,16.33,19.05,Free agent,158,-16
 175,Kelly Oubre Jr.,IND,PF/SF,12,23.45,281.35,24.42,28.79,BillVu,193,18
 176,Bones Hyland,MIN,PG/SG,15,23.43,351.5,13.88,30.89,Free agent,201,25
-177,Brayden Burries,MIL,PG/SG,14,23.18,324.55,21.94,23.31,Free agent,182,5
+177,Brayden Burries,MIL,PG/SG,14,23.18,324.55,21.94,23.31,High School Team,182,5
 178,Obi Toppin,IND,PF/SF,11,23.05,253.55,20.13,16.27,Free agent,153,-25
 179,Aaron Nesmith,IND,SF/SG,12,23.05,276.6,26.72,21.06,Free agent,188,9
 180,Isaiah Stewart,MEM,C/PF,10,22.99,229.85,18.18,20.45,Free agent,186,6
