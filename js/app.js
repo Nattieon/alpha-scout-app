@@ -616,14 +616,19 @@ function renderSwaps(m) {
   const el = $("swaps");
   const swapSlots = new Set((m.swaps || []).map((w) => w.slot));
   const plans = m.me.slots.filter((s) => s.planPlayers?.length >= 2 && !swapSlots.has(s));
-  if (!m.swaps?.length && !plans.length) { el.innerHTML = ""; return; }
+  const outs = m.me.slots.filter((s) => s.ifOut);
+  if (!m.swaps?.length && !plans.length && !outs.length) { el.innerHTML = ""; return; }
+  const outCard = outs.length ? `<article class="card swap">
+      <div class="card-head"><div><div class="pname">If someone's ruled out</div>
+        <div class="pmeta">Not part of any call. If a starter is ruled out of his last game this week, his slot scores 0, so start this bench player before his tip-off.</div></div></div>
+      <div class="plan">${outs.map((s) => `<div><b>${esc(shortName(s.p.name))}</b> (${dow(s.ifOut.date)}${s.ifOut.tip ? ` ${clockET(s.ifOut.tip.slice(11))}` : ""}) → <b>${esc(shortName(s.ifOut.by.p.name))}</b> ${dow(s.ifOut.game.date)}${s.ifOut.game.tip ? ` ${clockET(s.ifOut.game.tip.slice(11))}` : ""} · proj ${f1(s.ifOut.game.mu)}</div>`).join("")}</div></article>` : "";
   const planCards = plans.map((s) => `<article class="card swap">
       <div class="card-head"><div><div class="pname">${esc(s.label)}: late-swap plan</div>
         <div class="pmeta">${esc(s.p?.name || "Empty slot")} stays in. On the days in bold, if his game falls short of the bar, swap in the next player before his later tip-off.</div></div>
         <span class="pill soft num">${f1(s.value.mean)}</span></div>
       <div class="plan">${planLine(s)}</div></article>`).join("");
-  el.innerHTML = `<h2>Swaps &amp; late-swap plans</h2>
-    <p class="muted" style="margin:0;font-size:13.5px">The calls and projections above assume you make these moves in Sleeper before each player's game. Each step's "lock ≥" is the score worth keeping; below it, move to the next player.</p>
+  el.innerHTML = `<h2>Bench swaps</h2>
+    <p class="muted" style="margin:0;font-size:13.5px">The calls and projections above assume you make these moves in Sleeper before the incoming player's game.</p>
     <div class="cards">${planCards}${(m.swaps || []).map((w) => {
       const g = w.into.games[0];
       const outLine = w.out ? `for ${esc(w.out.name)}${w.slot.kind === "final" ? ` (his week is over: ${f1(w.slot.lastDone?.fp ?? 0)})` : w.slot.kind === "none" ? " (no games left)" : ""}` : "into an empty slot";
@@ -642,7 +647,7 @@ function renderSwaps(m) {
         <div class="why"><div>${w.into.games.map((x) => `${dow(x.date)} ${x.home ? "vs" : "@"} ${esc(x.opp)} · proj ${f1(x.mu)}`).join(" · ")}</div>
           ${whyLines(w.into.games).slice(1).map((x) => `<div>${x}</div>`).join("")}</div>
       </article>`;
-    }).join("")}</div>`;
+    }).join("")}${outCard}</div>`;
 }
 
 function renderTonight(m) {
