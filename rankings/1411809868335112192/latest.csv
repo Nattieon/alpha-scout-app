@@ -48,7 +48,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 47,Dylan Harper,SAS,PG/SF/SG,15,40.95,614.3,31.83,44.19,BillVu,42,-5
 48,Darius Garland,LAC,PG,15,40.86,612.85,33.05,47.01,Tuyết Phạm,54,6
 49,RJ Barrett,TOR,PF/SF/SG,14,40.85,571.85,34.09,40.35,bringbackbensimmons,48,-1
-50,Dyson Daniels,ATL,SF/SG,16,40.73,651.65,31.15,42.21,Patriot,55,5
+50,Dyson Daniels,ATL,PG/SF/SG,16,40.73,651.65,31.15,42.21,Patriot,55,5
 51,Cedric Coward,MEM,SF/SG,16,40.7,651.15,28.79,51.62,LeThanos 🧑🏾‍🦲,65,14
 52,Immanuel Quickley,TOR,PG/SG,14,40.64,569,32.02,44.48,Patriot,46,-6
 53,Nickeil Alexander-Walker,ATL,PG/SF/SG,16,40.29,644.6,31.98,40.57,LeThanos 🧑🏾‍🦲,44,-9
@@ -101,7 +101,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 100,Cam Spencer,MEM,PG/SF/SG,17,32.38,550.5,22.96,42.61,Cum on me,109,9
 101,Day'Ron Sharpe,BKN,C,15,32.07,481.1,23.85,38.27,Tuyết Phạm,96,-5
 102,Grayson Allen,CHA,SF/SG,13,31.67,411.75,27.07,36.13,Free agent,99,-3
-103,Jonathan Kuminga,MIN,PF,16,31.64,506.25,31.16,33.05,LeThanos 🧑🏾‍🦲,103,0
+103,Jonathan Kuminga,MIN,PF/SF,16,31.64,506.25,31.16,33.05,LeThanos 🧑🏾‍🦲,103,0
 104,P.J. Washington,DAL,C/PF/SF,15,31.04,465.6,30.79,28.77,Patriot,112,8
 105,Alex Sarr,WAS,C/PF,16,30.73,491.65,26.64,37.15,Tuyết Phạm,92,-13
 106,Devin Vassell,SAS,PF/SF/SG,15,30.52,457.8,29.99,27.78,bringbackbensimmons,110,4
@@ -123,7 +123,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 122,Nolan Traore,BKN,PG,14,27.88,390.25,22.29,23.25,Free agent,117,-5
 123,Rui Hachimura,LAC,PF/SF,13,27.87,362.25,29.15,27.57,Free agent,157,34
 124,Ivica Zubac,IND,C,11,27.66,304.25,23.67,33.64,Patriot,145,21
-125,Neemias Queta,BOS,C,15,27.55,413.2,22.85,31.62,Thảo kế toán ,141,16
+125,Neemias Queta,BOS,C,15,27.55,413.2,22.85,31.62,Free agent,141,16
 126,Dillon Brooks,PHX,PF/SF/SG,15,27.51,412.7,28.89,25.82,LeThanos 🧑🏾‍🦲,149,23
 127,Kyle Kuzma,MIL,PF/SF,16,27.35,437.65,27.46,27.8,BillVu,135,8
 128,Yves Missi,NOP,C,7,27.35,191.45,22.8,23.12,Akari my beloved,,
@@ -143,7 +143,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 142,Brayden Burries,MIL,PG/SG,17,26.4,448.85,22.78,35.05,Free agent,177,35
 143,Kevin Huerter,DET,SF/SG,15,26.3,394.5,26.77,31.25,Tuyết Phạm,143,0
 144,Quenton Jackson,IND,PG/SG,16,26.26,420.1,21.87,24.52,Free agent,138,-6
-145,Cameron Johnson,DEN,PF/SF/SG,11,26.23,288.55,28.16,30.34,Free agent,139,-6
+145,Cameron Johnson,DEN,PF/SF/SG,11,26.23,288.55,28.16,30.34,Thảo kế toán ,139,-6
 146,Keaton Wagler,LAC,PG/SG,15,26.23,393.4,22.16,23.23,Free agent,120,-26
 147,Jordan Goodwin,PHX,SF/SG,11,26.17,287.85,20.68,25.84,Free agent,129,-18
 148,Toumani Camara,POR,PF/SF/SG,16,26.16,418.6,29.92,24.12,Pls No More Injury,125,-23
