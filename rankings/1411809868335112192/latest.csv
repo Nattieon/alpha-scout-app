@@ -115,7 +115,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 114,Myles Turner,MIL,C,16,28.73,459.75,26.76,36.6,1st SEED DESTROYER,139,25
 115,Payton Pritchard,BOS,PG/SG,18,28.67,516.1,27.7,27.28,TooHot2Randle,113,-2
 116,Jordan Poole,NOP,PG/SG,13,28.59,371.7,22.66,36.9,TooHot2Randle,135,19
-117,Neemias Queta,BOS,C,17,28.53,484.95,23.39,34.23,Free agent,126,9
+117,Neemias Queta,BOS,C,17,28.53,484.95,23.39,34.23,Shabi Le,126,9
 118,Jaime Jaquez Jr.,MIL,PF/SF/SG,18,28.33,509.85,26.99,15.97,Free agent,103,-15
 119,Quentin Grimes,LAL,SF/SG,16,28.26,452.1,29.15,46.57,TooHot2Randle,123,4
 120,Dillon Brooks,PHX,PF/SF/SG,16,28.23,451.65,29.19,28.02,LeThanos 🧑🏾‍🦲,128,8
@@ -167,7 +167,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 166,Precious Achiuwa,SAC,C/PF,14,24.66,345.3,23.46,15.43,Free agent,146,-20
 167,Alex Caruso,OKC,PF/SF,12,24.48,293.8,19.32,23.03,Free agent,165,-2
 168,Coby White,CHA,PG/SG,9,24.29,218.6,21.1,34.18,Bron Killer,193,25
-169,Nic Claxton,CHI,C/PF,7,24.29,170,20.81,21.73,High School Team,,
+169,Nic Claxton,CHI,C/PF,7,24.29,170,20.81,21.73,Free agent,,
 170,Zaccharie Risacher,DAL,SF,18,24.26,436.6,23.76,24.75,Free agent,177,7
 171,Draymond Green,GSW,C/PF,14,24.05,336.7,25.63,22.13,Free agent,167,-4
 172,Mikel Brown Jr.,BKN,PG/SG,12,24.03,288.35,23.44,22.44,Bron Killer,186,14
@@ -189,11 +189,11 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 188,Obi Toppin,IND,PF/SF,15,22.62,339.25,20.74,18.75,Free agent,190,2
 189,Egor Dëmin,BKN,PG/SG,10,22.59,225.9,24.09,22.57,Free agent,175,-14
 190,Jerami Grant,MEM,PF/SF,15,22.54,338.05,22.27,22.05,Free agent,171,-19
-191,Isaiah Joe,DET,SF/SG,7,22.26,155.8,18.84,23.52,Akari my beloved,,
+191,Isaiah Joe,DET,SF/SG,7,22.26,155.8,18.84,23.52,Free agent,,
 192,Moritz Wagner,BKN,C,16,22.18,354.8,17.89,20.67,Free agent,187,-5
 193,Jake LaRavia,LAL,SF/SG,17,22.16,376.8,25.89,26.26,Free agent,194,1
 194,Buddy Hield,CHI,SG,15,22.1,331.55,18.56,32.5,Free agent,235,41
-195,Landry Shamet,NYK,SF/SG,17,22.05,374.9,26.92,30.86,Free agent,209,14
+195,Landry Shamet,NYK,SF/SG,17,22.05,374.9,26.92,30.86,Akari my beloved,209,14
 196,Isaiah Stewart,MEM,C/PF,13,21.98,285.75,18.51,21.82,Free agent,183,-13
 197,Tyrese Proctor,CLE,PG/SF/SG,17,21.83,371.1,20.5,25.8,Free agent,173,-24
 198,Kingston Flemings,ATL,PG/SG,13,21.82,283.6,21.87,19.99,Free agent,197,-1
@@ -210,7 +210,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 209,Oso Ighodaro,PHX,C,14,21.11,295.5,23.46,23.54,Free agent,207,-2
 210,Bilal Coulibaly,WAS,PF/SF,18,21.03,378.45,24.78,19.21,Free agent,199,-11
 211,Brice Sensabaugh,UTA,PF/SF/SG,19,20.95,398,18.1,32.68,Free agent,204,-7
-212,Mikal Bridges,NYK,PF/SF/SG,17,20.45,347.6,26.41,23.89,Free agent,210,-2
+212,Mikal Bridges,NYK,PF/SF/SG,17,20.45,347.6,26.41,23.89,High School Team,210,-2
 213,Sidy Cissoko,POR,C/PF/SG,17,20.43,347.3,24.61,22.54,Free agent,221,8
 214,Walter Clayton Jr.,DAL,PG,17,19.86,337.65,18.19,23.35,Free agent,217,3
 215,Bobby Portis Jr.,MIA,C/PF,16,19.75,315.95,19.91,18.88,Free agent,212,-3
@@ -266,7 +266,7 @@ rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,c
 265,Dylan Cardwell,SAC,C/PF,10,15.09,150.85,14.64,9.8,Free agent,219,-46
 266,Jay Huff,IND,C,15,14.98,224.65,14.61,11.67,Free agent,237,-29
 267,Luka Garza,BOS,C,18,14.81,266.5,13.14,12.33,Free agent,266,-1
-268,Svi Mykhailiuk,UTA,SF/SG,19,14.78,280.75,19.66,31.89,Shabi Le,297,29
+268,Svi Mykhailiuk,UTA,SF/SG,19,14.78,280.75,19.66,31.89,Free agent,297,29
 269,Norchad Omier,CLE,PF/SF,7,14.7,102.9,12.29,18.55,Free agent,,
 270,Ryan Dunn,PHX,PF/SF,16,14.56,233,15.81,7.72,Free agent,255,-15
 271,Goga Bitadze,ORL,C,15,14.46,216.85,13.15,15.88,Free agent,263,-8
