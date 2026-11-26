@@ -40,3 +40,18 @@ test("NBA team totals in Sleeper's stats are not players", async () => {
   const d = await seasonPlayers({ pts: 1 }, { fresh: true });
   assert.deepEqual(d.players.map((p) => p.pid), ["1234"]);
 });
+
+test("Lock-In value: a spiky player outranks a steady one with the same average", async () => {
+  const { lockPool, spikeFactor } = await import("../js/rankings.js");
+  const steady = P("steady", [48, 50, 52, 49, 51, 50, 50, 48, 52, 50]);
+  const spiky = P("spiky", [30, 90, 35, 40, 85, 30, 45, 40, 70, 35]);
+  const { list, typicalSpike } = rankPlayers([steady, spiky], { by: "lock" });
+  assert.deepEqual(list.map((r) => r.pid), ["spiky", "steady"]);
+  assert.ok(list[0].spike > typicalSpike && typicalSpike > list[1].spike);
+  assert.equal(list[0].lock, list[0].pg * list[0].spike);
+  // with no games of his own, a player gets the league's typical factor
+  const pool = lockPool([steady.games.map((g) => g[1]), spiky.games.map((g) => g[1])]);
+  assert.ok(Math.abs(spikeFactor([], pool) - pool.typical) < 1e-12);
+  // ranking by points per game is unchanged (tie on average falls back to total)
+  assert.equal(rankPlayers([steady, spiky], { by: "pg" }).list.length, 2);
+});

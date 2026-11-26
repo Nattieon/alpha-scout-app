@@ -87,25 +87,74 @@ export async function seasonPlayers(scoring, { fresh = false } = {}) {
 /** Automatic minimum games: 40% of a typical team's games so far (at least 1). */
 export const autoMinGames = (teamGames) => Math.max(1, Math.floor(teamGames * 0.4));
 
+// ------------------------------------------------------------------ Lock-In value
+// In Lock-In you keep (roughly) your best game of the week, so a spiky player is worth more than his average.
+// Lock-In value = FP/G x spike factor. The spike factor is what the lock math expects you to keep in a 3-4 game
+// week, as a multiple of his average: V1 = average, Vk = average of max(game, V(k-1)), factor = (V3 + V4) / 2,
+// worked out on his games divided by his average. Few games say little, so his games are blended with the
+// league's typical spread (every game of every player with 8+ games, as game / his average), weighted
+// n : 10 (5 games = one third his own, 20 games = two thirds).
+export const LOCK_PRIOR = 10, LOCK_POOL_MIN = 8;
+
+/** The league's typical spread: sorted game/average ratios with prefix sums, so E[max(x, v)] is a quick lookup. */
+export function lockPool(gameLists) {
+  const xs = [];
+  for (const fps of gameLists) {
+    if (fps.length < LOCK_POOL_MIN) continue;
+    const mu = fps.reduce((a, b) => a + b, 0) / fps.length;
+    if (mu > 0) for (const x of fps) xs.push(x / mu);
+  }
+  xs.sort((a, b) => a - b);
+  const pre = [0]; for (const x of xs) pre.push(pre[pre.length - 1] + x);
+  // average over the pool of max(x, v)
+  const maxAvg = (v) => {
+    if (!xs.length) return Math.max(1, v);
+    let lo = 0, hi = xs.length; while (lo < hi) { const m = (lo + hi) >> 1; if (xs[m] < v) lo = m + 1; else hi = m; }
+    return (lo * v + pre[xs.length] - pre[lo]) / xs.length;
+  };
+  const pool = { size: xs.length, maxAvg };
+  pool.typical = spikeFactor([], pool);
+  return pool;
+}
+
+/** A player's spike factor from his game scores and the league pool. */
+export function spikeFactor(fps, pool) {
+  const n = fps.length, mu = n ? fps.reduce((a, b) => a + b, 0) / n : 0;
+  if (n && !(mu > 0)) return pool.typical ?? 1;
+  const own = n ? fps.map((x) => x / mu) : [];
+  const wOwn = n / (n + LOCK_PRIOR), wPool = 1 - wOwn;
+  const step = (v) => (n ? wOwn * own.reduce((a, x) => a + Math.max(x, v), 0) / n : 0) + wPool * pool.maxAvg(v);
+  let v = 1;                     // V1: both halves average exactly 1 (each game is divided by its player's average)
+  const vs = [v];
+  for (let k = 2; k <= 4; k++) { v = step(v); vs.push(v); }
+  return (vs[2] + vs[3]) / 2;
+}
+
 /**
- * Rank players. by: "pg" (points per game) | "total". asOf: only games on or before that date.
+ * Rank players. by: "pg" (points per game) | "total" | "lock" (Lock-In value). asOf: only games on or before that date.
+ * Every row also carries spike (the spike factor) and lock (Lock-In value).
  * Returns the ranked list (rank 1 = best) and how many were left out by the minimum.
  */
 export function rankPlayers(players, { by = "pg", minGames = 1, asOf = null } = {}) {
   let hidden = 0;
   const list = [];
+  const gamesOf = new Map(players.map((p) => [p, asOf ? p.games.filter((g) => g[0] <= asOf) : p.games]));
+  const pool = lockPool([...gamesOf.values()].map((gs) => gs.map((g) => g[1])));
   for (const p of players) {
-    const gs = asOf ? p.games.filter((g) => g[0] <= asOf) : p.games;
+    const gs = gamesOf.get(p);
     if (!gs.length) continue;
     const total = gs.reduce((t, g) => t + g[1], 0);
     const row = { ...p, gp: gs.length, total, pg: total / gs.length, min: gs.reduce((t, g) => t + g[2], 0) / gs.length,
       last5: gs.slice(-5).reduce((t, g) => t + g[1], 0) / Math.min(5, gs.length) };
     if (row.gp < minGames) { hidden++; continue; }
+    row.spike = spikeFactor(gs.map((g) => g[1]), pool);
+    row.lock = row.pg * row.spike;
     list.push(row);
   }
-  list.sort((a, b) => (by === "total" ? b.total - a.total : b.pg - a.pg) || b.total - a.total);
+  const key = by === "total" ? (r) => r.total : by === "lock" ? (r) => r.lock : (r) => r.pg;
+  list.sort((a, b) => key(b) - key(a) || b.total - a.total);
   list.forEach((r, i) => (r.rank = i + 1));
-  return { list, hidden };
+  return { list, hidden, typicalSpike: pool.typical };
 }
 
 /** {pid: rank} with the default settings, for badges elsewhere in the app. */
@@ -147,7 +196,7 @@ export function closeRankings() { if (V) { clearInterval(V.timer); V.onClose?.()
 function draw(first) {
   const { el, data } = V;
   const minGames = V.min === "auto" ? autoMinGames(data.teamGames) : Number(V.min);
-  const { list, hidden } = rankPlayers(data.players, { by: V.by, minGames });
+  const { list, hidden, typicalSpike } = rankPlayers(data.players, { by: V.by, minGames });
   // a week ago, same rules, for the movement arrows
   const ago = shiftDay(data.today, -7);
   const before = rankPlayers(data.players, { by: V.by, minGames: V.min === "auto" ? autoMinGames(Math.max(0, data.teamGames - 3)) : Number(V.min), asOf: ago });
@@ -159,6 +208,9 @@ function draw(first) {
     && (!q || r.name.toLowerCase().includes(q)));
   const filtered = !!(V.pos || V.own || q);
   const limit = filtered ? shown.length : V.limit;
+  const main = (r) => (V.by === "total" ? r.total : V.by === "lock" ? r.lock : r.pg);
+  const side = (r) => (V.by === "pg" ? r.total : r.pg);
+  const [mainH, sideH] = V.by === "total" ? ["Total", "FP/G"] : V.by === "lock" ? ["Lock-In", "FP/G"] : ["FP/G", "Total"];
   let lastTier = null;
   const rows = [];
   for (const r of shown.slice(0, limit)) {
@@ -172,9 +224,9 @@ function draw(first) {
     rows.push(`<tr class="${o?.rosterId === V.myRosterId ? "mine" : ""}${!o ? " fa" : ""}">
       <td class="num rk">${r.rank}${t ? `<small>top ${t}</small>` : ""}</td>
       <td><b>${esc(r.name)}</b><div class="pmeta">${esc(r.team)} · ${esc(r.pos.join("/"))}</div></td>
-      <td class="num"><b>${f1(V.by === "total" ? r.total : r.pg)}</b></td>
+      <td class="num"><b>${f1(main(r))}</b>${V.by === "lock" ? `<small class="spk">×${r.spike.toFixed(2)}</small>` : ""}</td>
       <td class="num">${r.gp}</td>
-      <td class="num hide-s">${f1(V.by === "total" ? r.pg : r.total)}</td>
+      <td class="num hide-s">${f1(side(r))}</td>
       <td class="own">${o ? esc(o.team) : '<span class="fa-tag">Free agent</span>'}</td>
       <td class="num mv">${move}</td></tr>`);
   }
@@ -189,12 +241,13 @@ function draw(first) {
       <label class="f">Search<input id="rk-q" type="search" value="${esc(V.q)}" placeholder="Player name" autocomplete="off"></label>
       <label class="f">Position ${sel("rk-pos", V.pos, [["", "All"], ["PG", "PG"], ["SG", "SG"], ["SF", "SF"], ["PF", "PF"], ["C", "C"]])}</label>
       <label class="f">Owner ${sel("rk-own", V.own, [["", "Everyone"], ["fa", "Free agents"], ["mine", "My team"], ["rostered", "Rostered"], ...teams.map(([id, n]) => [String(id), n])])}</label>
-      <label class="f">Rank by ${sel("rk-by", V.by, [["pg", "Points per game"], ["total", "Season total"]])}</label>
+      <label class="f">Rank by ${sel("rk-by", V.by, [["pg", "Points per game"], ["lock", "Lock-In value"], ["total", "Season total"]])}</label>
       <label class="f">Min games ${sel("rk-min", V.min, [["auto", `Auto (${autoMinGames(data.teamGames)})`], ["1", "1"], ["3", "3"], ["5", "5"], ["8", "8"], ["10", "10"]])}</label>
     </div>
     <p class="muted rk-sub">${list.length} players ranked${hidden ? ` · ${hidden} with fewer than ${minGames} game${minGames === 1 ? "" : "s"} left out` : ""}${filtered ? ` · showing ${shown.length} that match, with their overall rank` : ""}. ▲▼ = change since ${dow(ago)} ${ago.slice(5).replace("-", "/")}.</p>
+    ${V.by === "lock" ? `<p class="rk-note">Lock-In value = the score you'd expect to keep in a 3–4 game week, not his average game. It's FP/G × his spike factor (the small ×). Spiky players rise, steady ones drop. A typical player is ×${typicalSpike.toFixed(2)}; players with few games are pulled toward that.</p>` : ""}
     <div class="rk-wrap"><table class="rk-table">
-      <thead><tr><th>#</th><th>Player</th><th class="num">${V.by === "total" ? "Total" : "FP/G"}</th><th class="num">GP</th><th class="num hide-s">${V.by === "total" ? "FP/G" : "Total"}</th><th>Owner</th><th class="num">7d</th></tr></thead>
+      <thead><tr><th>#</th><th>Player</th><th class="num">${mainH}</th><th class="num">GP</th><th class="num hide-s">${sideH}</th><th>Owner</th><th class="num">7d</th></tr></thead>
       <tbody>${rows.join("") || `<tr><td colspan="7" class="muted">No players match.</td></tr>`}</tbody></table></div>
     ${!filtered && shown.length > limit ? `<button class="btn ghost" id="rk-more">Show ${Math.min(100, shown.length - limit)} more</button>` : ""}`;
   // keep focus and caret in the search box while typing

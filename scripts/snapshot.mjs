@@ -329,16 +329,17 @@ async function saveRankings(leagueId, raw, kind) {
   const owner = {};
   for (const r of raw.rosters) for (const pid of [...(r.players || []), ...(r.reserve || [])]) owner[pid] = teamOf(r.roster_id);
   const ranked = new Set(list.map((r) => r.pid));
+  const lockRank = Object.fromEntries([...list].sort((a, b) => b.lock - a.lock).map((r, i) => [r.pid, i + 1]));
   const row = (r, rank) => ({ rank, pid: r.pid, name: r.name, team: r.team, pos: (r.pos || []).join("/"), games: r.gp,
-    fpPerGame: r2(r.pg), total: r2(r.total), minPerGame: r2(r.min), last5Avg: r2(r.last5), owner: owner[r.pid] || "Free agent",
+    fpPerGame: r2(r.pg), lockValue: r2(r.lock), spikeFactor: Math.round(r.spike * 1000) / 1000, lockRank: rank ? lockRank[r.pid] : null, total: r2(r.total), minPerGame: r2(r.min), last5Avg: r2(r.last5), owner: owner[r.pid] || "Free agent",
     rankWeekAgo: rank && rankAgo[r.pid] ? rankAgo[r.pid] : null, change: rank && rankAgo[r.pid] ? rankAgo[r.pid] - rank : null });
   const others = rankPlayers(data.players, { minGames: 1 }).list.filter((r) => !ranked.has(r.pid));
   const players = [...list.map((r) => row(r, r.rank)), ...others.map((r) => row(r, null))];
   const out = { league: raw.league.name, leagueId, season: data.season, updated: etStamp(NOW) + " ET", updatedUtc: NOW.toISOString(),
-    about: `Every NBA player with a completed game this season, scored with this league's settings. Ranked by fantasy points per game; players with fewer than ${minGames} games (40% of a typical team's games) have rank null and come last. change = places moved since ${ago} (positive = up). owner = team in this league, or Free agent.`,
+    about: `Every NBA player with a completed game this season, scored with this league's settings. Ranked by fantasy points per game; players with fewer than ${minGames} games (40% of a typical team's games) have rank null and come last. change = places moved since ${ago} (positive = up). lockValue = the score you'd expect to keep in a 3-4 game Lock-In week: fpPerGame x spikeFactor, where spikeFactor comes from the lock math on his games (blended with the league's typical spread, weighted games : 10); lockRank = rank by lockValue. owner = team in this league, or Free agent.`,
     minGames, players };
   wr(f, out);
-  const cols = ["rank", "name", "team", "pos", "games", "fpPerGame", "total", "minPerGame", "last5Avg", "owner", "rankWeekAgo", "change"];
+  const cols = ["rank", "name", "team", "pos", "games", "fpPerGame", "lockValue", "spikeFactor", "lockRank", "total", "minPerGame", "last5Avg", "owner", "rankWeekAgo", "change"];
   const q = (v) => (v === null || v === undefined ? "" : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
   const p = path.join(DATA, `rankings/${leagueId}/latest.csv`);
   fs.writeFileSync(p, [cols.join(","), ...players.map((r) => cols.map((c) => q(r[c])).join(","))].join("\n") + "\n");
