@@ -1,483 +1,483 @@
-rank,name,team,pos,games,fpPerGame,total,minPerGame,last5Avg,owner,rankWeekAgo,change
-1,Victor Wembanyama,SAS,C,17,76.38,1298.45,30.29,74.6,1st SEED DESTROYER,2,1
-2,Luka Dončić,LAL,PG,16,75.63,1210,36.19,59.86,Shabi Le,1,-1
-3,Nikola Jokić,DEN,C,16,67.75,1084.05,36.84,66.07,BillVu,3,0
-4,Giannis Antetokounmpo,MIA,C/PF,16,66.07,1057.05,32.36,74.91,Akari my beloved,4,0
-5,Shai Gilgeous-Alexander,OKC,PG,18,59.46,1070.35,33.91,64.57,TooHot2Randle,7,2
-6,Jayson Tatum,BOS,PF/SF,16,57.93,926.8,34.51,58.94,Bron Killer,10,4
-7,Cooper Flagg,DAL,PG/SF/SG,17,57.83,983.15,33.31,54.9,High School Team,6,-1
-8,Cade Cunningham,DET,PG,15,57.54,863.1,34.82,65.43,Patriot,5,-3
-9,Jamal Murray,DEN,PG,16,57.53,920.5,36.98,58.09,Patriot,8,-1
-10,Alperen Şengün,HOU,C/PF,17,56.91,967.45,32.78,48.45,Bron Killer,12,2
-11,Stephen Curry,GSW,PG,10,55.2,552,26.31,51.16,1st SEED DESTROYER,13,2
-12,Franz Wagner,ORL,PF/SF,17,55.17,937.95,36.56,55.78,LeThanos 🧑🏾‍🦲,9,-3
-13,Anthony Davis,WAS,C/PF,17,54.97,934.5,34.01,57.03,TooHot2Randle,14,1
-14,Karl-Anthony Towns,NYK,C/PF,17,54.91,933.5,32.6,61.46,1st SEED DESTROYER,15,1
-15,Scottie Barnes,TOR,PF/SF,12,54.31,651.75,34.38,55.56,High School Team,16,1
-16,Tyrese Maxey,PHI,PG,18,53.78,968.1,36.05,48.17,LeThanos 🧑🏾‍🦲,11,-5
-17,Deni Avdija,POR,PF/SF/SG,15,51.87,778.05,32.51,59.32,Shabi Le,17,0
-18,Donovan Mitchell,CLE,PG/SG,18,51.49,926.75,33.38,58.1,Akari my beloved,18,0
-19,Bam Adebayo,MIA,C/PF,17,50.14,852.3,32.76,50.89,BillVu,26,7
-20,Devin Booker,PHX,PG/SG,17,49.09,834.45,34.62,47.33,Shabi Le,20,0
-21,Jalen Brunson,NYK,PG,18,48.95,881.05,34.5,45.65,Tuyết Phạm,19,-2
-22,Austin Reaves,LAL,PG/SG,12,48.9,586.85,35.28,52.77,BillVu,22,0
-23,Jalen Johnson,ATL,PF/SF,14,48.86,684.05,34.16,48.47,LeThanos 🧑🏾‍🦲,21,-2
-24,Ty Jerome,MEM,PG/SG,14,48.81,683.4,29.81,45,Bron Killer,24,0
-25,Zion Williamson,NOP,PF/SF,17,47.09,800.5,32.78,41.2,Tuyết Phạm,27,2
-26,Davion Mitchell,MIA,PG,17,46.89,797.2,35.75,47.31,Shabi Le,25,-1
-27,Joel Embiid,PHI,C,14,46.75,654.5,32.06,55.29,Shabi Le,33,6
-28,Paul George,BOS,PF/SF/SG,15,46.58,698.65,30.32,44.11,Bron Killer,32,4
-29,LeBron James,PHI,PF/PG/SF,15,46.31,694.7,32.69,55.18,LeThanos 🧑🏾‍🦲,41,12
-30,Jaden McDaniels,MIN,PF/SF,19,45.46,863.7,34.07,61.52,High School Team,47,17
-31,Darius Acuff Jr.,SAC,PG/SG,18,45.43,817.65,36.6,41.28,Bron Killer,23,-8
-32,Domantas Sabonis,SAC,C/PF,17,45.32,770.45,33.52,48.84,Akari my beloved,37,5
-33,Pascal Siakam,IND,C/PF,17,45.32,770.4,32.35,45.79,High School Team,28,-5
-34,Tyler Herro,MIL,PG/SG,18,45.02,810.4,31.34,58.99,High School Team,66,32
-35,Kevin Durant,HOU,PF/SF,19,45.02,855.4,33.44,43.43,Shabi Le,35,0
-36,Trae Young,WAS,PG,19,45.01,855.1,34.67,43.73,LeThanos 🧑🏾‍🦲,34,-2
-37,Kyrie Irving,DAL,PG/SG,15,44.54,668.15,30.96,46.08,High School Team,29,-8
-38,Julius Randle,BKN,C/PF,17,44.15,750.55,33.52,52.46,TooHot2Randle,42,4
-39,James Harden,CLE,PG,18,43.82,788.7,33.89,52.37,LeThanos 🧑🏾‍🦲,51,12
-40,Jaylen Brown,PHI,PF/SF/SG,16,43.71,699.35,33.22,41.32,Tuyết Phạm,30,-10
-41,Keyonte George,UTA,PG/SG,18,43.53,783.6,33.03,46.3,Shabi Le,31,-10
-42,Walker Kessler,LAL,C,17,43.22,734.7,31.16,36.94,Shabi Le,36,-6
-43,Cameron Boozer,MEM,C/PF,16,43.01,688.15,30.87,50.24,High School Team,39,-4
-44,Yaxel Lendeborg,GSW,PF/SF,18,41.66,749.85,31.78,37.98,High School Team,40,-4
-45,Dyson Daniels,ATL,PG/SF/SG,17,41.5,705.5,31.59,42.56,Tuyết Phạm,54,9
-46,Evan Mobley,CLE,C/PF,12,41.42,497.05,31.98,34.56,Patriot,44,-2
-47,Dylan Harper,SAS,PG/SF/SG,15,40.95,614.3,31.83,44.19,BillVu,46,-1
-48,RJ Barrett,TOR,PF/SF/SG,14,40.85,571.85,34.09,40.35,TooHot2Randle,48,0
-49,Ausar Thompson,DET,SF/SG,16,40.26,644.1,29.43,48.83,BillVu,63,14
-50,Nickeil Alexander-Walker,ATL,PG/SF/SG,17,40.25,684.3,31.72,38.34,LeThanos 🧑🏾‍🦲,45,-5
-51,Darius Garland,LAC,PG,17,40.25,684.3,32.9,40.85,Tuyết Phạm,43,-8
-52,Cedric Coward,MEM,SF/SG,18,40.03,720.5,28.68,41.7,LeThanos 🧑🏾‍🦲,52,0
-53,Stephon Castle,SAS,PG/SF/SG,18,39.91,718.3,30.02,51.17,Akari my beloved,65,12
-54,Kyshawn George,WAS,SF/SG,19,39.74,755,34.05,40.9,Bron Killer,56,2
-55,Anthony Black,ORL,PG/SF/SG,14,39.72,556.05,32.71,33.1,TooHot2Randle,38,-17
-56,Amen Thompson,HOU,PG/SF/SG,18,39.58,712.4,32.71,46,Bron Killer,60,4
-57,Immanuel Quickley,TOR,PG/SG,15,39.34,590.05,32.01,36.51,Patriot,50,-7
-58,Caleb Wilson,CHI,PF/SF,10,39.33,393.3,30.8,35.2,TooHot2Randle,57,-1
-59,Donovan Clingan,POR,C,17,39.22,666.7,26.2,46.49,LeThanos 🧑🏾‍🦲,72,13
-60,LaMelo Ball,MIN,PG,19,39.13,743.5,28.41,36.36,Shabi Le,59,-1
-61,Damian Lillard,POR,PG/SG,17,38.95,662.15,29.64,35.99,Bron Killer,55,-6
-62,Zach LaVine,SAC,SF/SG,16,38.84,621.4,32.99,35.45,BillVu,53,-9
-63,Michael Porter Jr.,BKN,PF/SF/SG,16,38.71,619.4,32.78,31.11,Shabi Le,49,-14
-64,VJ Edgecombe,PHI,PG/SG,18,38.71,696.7,34.46,46.23,BillVu,69,5
-65,Ayo Dosunmu,MIN,PG/SG,19,38.34,728.55,31.82,36.57,TooHot2Randle,62,-3
-66,Norman Powell,CHI,SF/SG,13,38.15,495.95,29.48,42.5,High School Team,58,-8
-67,Desmond Bane,ORL,PG/SF/SG,16,37.88,606.05,34.69,44.58,BillVu,73,6
-68,Jeremiah Fears,NOP,PG/SG,19,37.78,717.85,30.81,44.67,Akari my beloved,71,3
-69,Miles Bridges,PHX,PF/SF,17,37.62,639.6,29.02,37.93,1st SEED DESTROYER,68,-1
-70,Andrew Nembhard,IND,PG/SG,14,37.36,523.05,33.1,32.69,BillVu,61,-9
-71,Brandon Miller,CHA,PF/SF/SG,15,37.09,556.4,31.25,38.93,Akari my beloved,85,14
-72,Lauri Markkanen,UTA,PF/SF,8,36.68,293.45,30.85,34.91,Akari my beloved,70,-2
-73,Jalen Smith,CHI,C/PF,15,36.65,549.7,25.27,44.08,1st SEED DESTROYER,82,9
-74,Onyeka Okongwu,ATL,C/PF,17,36.45,619.65,30.88,36.05,Tuyết Phạm,67,-7
-75,Josh Giddey,CHI,PG/SG,18,36.35,654.25,28.49,45.41,LeThanos 🧑🏾‍🦲,87,12
-76,Christian Braun,DEN,SF/SG,16,36.08,577.2,33.64,41.95,1st SEED DESTROYER,93,17
-77,Fred VanVleet,HOU,PG,16,35.87,574,30.21,34.96,Akari my beloved,78,1
-78,AJ Dybantsa,WAS,PF/SF,15,35.72,535.85,34.41,47.57,Tuyết Phạm,95,17
-79,Ajay Mitchell,OKC,PG/SF/SG,17,35.66,606.3,28.23,29.19,Patriot,64,-15
-80,Darryn Peterson,UTA,PG/SG,19,35.66,677.55,30.23,28.81,1st SEED DESTROYER,75,-5
-81,Brandin Podziemski,GSW,PG/SG,16,35.64,570.25,32.29,28.78,1st SEED DESTROYER,74,-7
-82,OG Anunoby,NYK,PF/SF,15,35.5,532.55,33.96,35.61,High School Team,80,-2
-83,Jabari Smith Jr.,HOU,C/PF,19,35.36,671.85,32.92,31.9,BillVu,76,-7
-84,Dejounte Murray,NOP,PG/SG,9,35.14,316.3,31.37,25.5,Bron Killer,84,0
-85,Trey Murphy III,NOP,SF/SG,11,35.02,385.25,32.64,39.17,Patriot,83,-2
-86,Naz Reid,CHA,C/PF,17,34.96,594.4,31.75,38.04,LeThanos 🧑🏾‍🦲,81,-5
-87,De'Aaron Fox,SAS,PG,16,34.9,558.4,29.03,26.16,Akari my beloved,79,-8
-88,Duncan Robinson,DET,SF/SG,12,34.88,418.5,30.51,29.31,Free agent,86,-2
-89,Jrue Holiday,POR,PG/SG,17,34.85,592.5,27.08,43.41,Patriot,90,1
-90,Moussa Diabaté,CHA,C,15,34.55,518.25,30.55,40.78,1st SEED DESTROYER,101,11
-91,Jarrett Allen,CLE,C,16,34.22,547.55,27.36,32.65,1st SEED DESTROYER,77,-14
-92,Wendell Carter Jr.,ORL,C,17,33.71,573.05,32.38,30.03,Shabi Le,89,-3
-93,Saddiq Bey,NOP,PF/SF,19,33.51,636.75,30.62,33.35,Tuyết Phạm,88,-5
-94,Daniss Jenkins,DET,PG/SG,17,33.41,568.05,30.82,36.47,Akari my beloved,91,-3
-95,Day'Ron Sharpe,BKN,C,17,33.4,567.85,24.42,36.42,Tuyết Phạm,106,11
-96,Cam Spencer,MEM,PG/SF/SG,19,33.19,630.55,22.91,41.82,Bron Killer,99,3
-97,CJ McCollum,ATL,PG/SG,14,32.8,459.15,26.41,34.35,Free agent,96,-1
-98,Isaiah Hartenstein,OKC,C,19,32.65,620.4,25.67,34.06,Tuyết Phạm,97,-1
-99,Paul Reed,DET,C/PF,17,32.44,551.5,25.91,35.87,Patriot,98,-1
-100,Derrick White,BOS,PG/SG,17,32.04,544.7,30.03,27.1,TooHot2Randle,94,-6
-101,Grayson Allen,CHA,SF/SG,13,31.67,411.75,27.07,36.13,Free agent,103,2
-102,P.J. Washington,DAL,C/PF/SF,16,31.3,500.75,30.4,28.64,Patriot,105,3
-103,Brook Lopez,LAC,C,17,31.13,529.15,24.01,31.01,Free agent,92,-11
-104,Matas Buzelis,CHI,PF/SF,18,31.09,559.55,28.16,37.04,Tuyết Phạm,107,3
-105,Jonathan Kuminga,MIN,PF/SF,18,30.88,555.75,30.97,30.32,LeThanos 🧑🏾‍🦲,102,-3
-106,Ace Bailey,UTA,PF/SF,19,30.86,586.35,30.36,29.32,Patriot,104,-2
-107,Devin Vassell,SAS,PF/SF/SG,16,30.69,491.05,30.23,31.65,Free agent,108,1
-108,Alex Sarr,WAS,C/PF,18,30.35,546.3,26.44,23.17,Tuyết Phạm,100,-8
-109,Derik Queen,NOP,C/PF,19,29.94,568.8,22.15,29.14,Patriot,110,1
-110,De'Andre Hunter,SAC,PF/SF,16,29.86,477.7,34.17,39.4,TooHot2Randle,165,55
-111,Jaime Jaquez Jr.,MIL,PF/SF/SG,19,29.29,556.6,27.39,21.41,Free agent,109,-2
-112,Rui Hachimura,LAC,PF/SF,15,29.28,439.2,29.67,37.94,Free agent,126,14
-113,Daniel Gafford,DAL,C,18,28.99,521.75,22.43,30.47,Free agent,127,14
-114,Payton Pritchard,BOS,PG/SG,18,28.67,516.1,27.7,27.28,TooHot2Randle,112,-2
-115,Pelle Larsson,MIA,SF/SG,14,28.64,401,28.39,27.01,Free agent,121,6
-116,Jordan Poole,NOP,PG/SG,13,28.59,371.7,22.66,36.9,TooHot2Randle,137,21
-117,Neemias Queta,BOS,C,17,28.53,484.95,23.39,34.23,Shabi Le,124,7
-118,Peyton Watson,CLE,PF/SF,15,28.48,427.2,27.79,27.5,Patriot,140,22
-119,Myles Turner,MIL,C,17,28.47,484.05,26.69,33.39,1st SEED DESTROYER,141,22
-120,Tre Jones,CHI,PG/SF/SG,18,28.46,512.25,19.47,32.32,Free agent,136,16
-121,Kris Dunn,LAC,PG/SG,17,28.31,481.2,25.51,24.27,Free agent,115,-6
-122,Dillon Brooks,PHX,PF/SF/SG,17,28.3,481.1,29.32,34.85,LeThanos 🧑🏾‍🦲,128,6
-123,Quentin Grimes,LAL,SF/SG,16,28.26,452.1,29.15,46.57,TooHot2Randle,123,0
-124,Josh Hart,NYK,SF/SG,15,28.2,423,31.12,32.78,High School Team,160,36
-125,Aday Mara,OKC,C/PF,16,28.1,449.65,22.36,36.28,Free agent,142,17
-126,Aaron Wiggins,ATL,PF/SF/SG,17,28.09,477.5,25.75,22.49,Free agent,117,-9
-127,Ivica Zubac,IND,C,13,27.99,363.85,24.42,29.95,Patriot,161,34
-128,Jaxson Hayes,UTA,C/PF,15,27.95,419.3,23.74,27.63,Free agent,116,-12
-129,Nolan Traore,BKN,PG,14,27.88,390.25,22.29,23.25,Free agent,113,-16
-130,Ja'Kobe Walter,TOR,SF/SG,17,27.86,473.6,31.66,31.86,1st SEED DESTROYER,122,-8
-131,Jalen Green,PHX,SF/SG,17,27.64,469.95,27.84,38.15,Shabi Le,144,13
-132,Cameron Johnson,DEN,PF/SF/SG,13,27.43,356.65,29.18,29.18,Free agent,169,37
-133,Kyle Kuzma,MIL,PF/SF,18,27.28,491.05,27.88,28.77,BillVu,119,-14
-134,Naji Marshall,DAL,PF/SF/SG,15,27.2,408,24.12,24.86,Free agent,118,-16
-135,Klay Thompson,MIA,PF/SF/SG,16,27.19,435.1,24.54,29.84,Shabi Le,120,-15
-136,Jakob Poeltl,TOR,C,15,27.02,405.25,24.2,31.15,Free agent,156,20
-137,Aaron Gordon,DEN,C/PF,16,26.89,430.25,29.18,27.51,Free agent,148,11
-138,Mo Bamba,UTA,C,15,26.86,402.85,21.35,24.24,Free agent,111,-27
-139,Brayden Burries,MIL,PG/SG,19,26.54,504.3,23.05,35.95,Tuyết Phạm,163,24
-140,Collin Gillespie,PHX,PG/SG,17,26.44,449.4,24.61,25.83,Free agent,143,3
-141,De'Anthony Melton,GSW,PG/SG,18,26.43,475.8,22.56,25.43,Free agent,162,21
-142,Meleek Thomas,CLE,PG/SF/SG,16,26.23,419.75,23.03,24.38,1st SEED DESTROYER,129,-13
-143,Yves Missi,NOP,C,8,26.19,209.55,22.68,22.32,Akari my beloved,,
-144,Kelly Oubre Jr.,IND,PF/SF,16,26.11,417.8,24.66,34.02,Free agent,171,27
-145,Tari Eason,HOU,SF/SG,19,26.09,495.7,24.24,21.85,Free agent,135,-10
-146,Rudy Gobert,MIN,C,18,26.03,468.5,29.39,23.13,LeThanos 🧑🏾‍🦲,159,13
-147,Terrence Shannon Jr.,MIN,PF/SF/SG,16,26.02,416.3,22.89,25.04,Free agent,139,-8
-148,Tristan da Silva,ORL,PF/SF,15,26.02,390.25,29.91,25.26,Free agent,132,-16
-149,Julian Champagnie,SAS,PF/SF/SG,18,26,468,26.45,26.62,BillVu,158,9
-150,Alex Caruso,OKC,PF/SF,13,25.86,336.15,19.85,29.75,Free agent,166,16
-151,Matisse Thybulle,LAL,SF/SG,18,25.84,465.05,25.02,32.18,Free agent,164,13
-152,Jamal Shead,TOR,PG/SG,17,25.83,439.15,23.42,22.99,Free agent,134,-18
-153,Jordan Goodwin,PHX,SF/SG,13,25.43,330.65,20.16,22.87,Free agent,146,-7
-154,Kevin Huerter,DET,SF/SG,17,25.42,432.2,27.3,24.03,Patriot,152,-2
-155,Coby White,CHA,PG/SG,10,25.4,254.05,21.49,34.99,Bron Killer,194,39
-156,John Collins,DET,C/PF,17,25.4,431.8,25.71,29.09,TooHot2Randle,154,-2
-157,Keegan Murray,SAC,PF/SF,11,25.37,279.1,32.1,28.85,Free agent,172,15
-158,Toumani Camara,POR,PF/SF/SG,17,25.37,431.3,29.89,19.75,1st SEED DESTROYER,125,-33
-159,Jared McCain,OKC,PG/SG,19,25.34,481.4,27.89,25.13,TooHot2Randle,149,-10
-160,Collin Murray-Boyles,TOR,C/PF,15,25.25,378.75,23.54,26.09,Free agent,153,-7
-161,Nic Claxton,CHI,C/PF,8,25.13,201.05,21.8,25.25,Free agent,,
-162,Zach Edey,MEM,C,15,25.08,376.25,20.23,29.39,BillVu,155,-7
-163,Quenton Jackson,IND,PG/SG,18,24.96,449.25,21.5,24.31,Free agent,130,-33
-164,Keaton Wagler,LAC,PG/SG,17,24.8,421.55,21.76,17.04,Free agent,138,-26
-165,Jalen Suggs,ORL,PG,9,24.77,222.95,29.08,26.21,Akari my beloved,114,-51
-166,Precious Achiuwa,SAC,C/PF,15,24.69,370.35,23.05,16.19,Free agent,150,-16
-167,Ryan Rollins,MIL,PG,17,24.67,419.4,23.48,21.69,High School Team,133,-34
-168,Draymond Green,GSW,C/PF,15,24.5,367.45,25.69,22.13,Free agent,167,-1
-169,Derrick Jones Jr.,LAC,PF/SF,16,24.38,390.05,27.74,13.97,Free agent,131,-38
-170,Kel'el Ware,MIL,C/PF,19,24.32,462.05,19.17,28.41,Free agent,181,11
-171,Zaccharie Risacher,DAL,SF,18,24.26,436.6,23.76,24.75,Free agent,178,7
-172,Jaylen Wells,MEM,SF/SG,19,24.06,457.15,26.35,24.09,Free agent,168,-4
-173,Javon Small,MEM,PG/SG,11,23.63,259.9,21.43,23.05,Free agent,147,-26
-174,Dennis Schröder,CHA,PG/SG,9,23.58,212.2,29.9,20.11,Free agent,175,1
-175,Charles Bassey,GSW,C,16,23.52,376.25,16.03,29.89,Bron Killer,192,17
-176,Egor Dëmin,BKN,PG/SG,11,23.5,258.55,24.2,26.16,Free agent,176,0
-177,Ziaire Williams,LAL,SF/SG,15,23.18,347.65,23.27,12.6,Free agent,157,-20
-178,Robert Williams III,POR,C,14,23.16,324.25,16.39,19.96,Free agent,177,-1
-179,Brandon Williams,GSW,PG,11,23.15,254.6,15.8,22.66,Free agent,180,1
-180,Bones Hyland,MIN,PG/SG,19,23.08,438.5,14.27,22.37,Free agent,186,6
-181,Keldon Johnson,SAS,PF/SF,18,23.08,415.35,24.11,26.15,Free agent,185,4
-182,Mikel Brown Jr.,BKN,PG/SG,13,23.05,299.7,23.39,20.86,Bron Killer,183,1
-183,Isaiah Jackson,LAC,C,16,22.87,365.9,17.03,16.6,Free agent,145,-38
-184,Caleb Martin,DAL,PF/SF,14,22.79,319.05,22.49,35.32,TooHot2Randle,224,40
-185,Aaron Nesmith,IND,SF/SG,15,22.71,340.6,27.33,24.83,Free agent,188,3
-186,Sandro Mamukelashvili,LAL,C/PF,18,22.68,408.15,22.54,13.94,Free agent,182,-4
-187,Obi Toppin,IND,PF/SF,15,22.62,339.25,20.74,18.75,Free agent,191,4
-188,Jerami Grant,MEM,PF/SF,15,22.54,338.05,22.27,22.05,Free agent,187,-1
-189,Isaiah Stewart,MEM,C/PF,14,22.51,315.15,18.22,20.59,Free agent,189,0
-190,Buddy Hield,CHI,SG,16,22.29,356.6,19.09,34.87,Free agent,235,45
-191,Danny Wolf,BKN,C/PF/SF,12,22.27,267.25,22.83,18.96,Free agent,199,8
-192,Isaiah Joe,DET,SF/SG,7,22.26,155.8,18.84,23.52,Free agent,,
-193,Jake LaRavia,LAL,SF/SG,17,22.16,376.8,25.89,26.26,Free agent,195,2
-194,Landry Shamet,NYK,SF/SG,18,22.02,396.35,27.1,26.69,Akari my beloved,208,14
-195,Kenrich Williams,OKC,C/PF,19,21.96,417.25,21.61,34.45,Free agent,226,31
-196,Max Strus,LAC,PF/SF,11,21.94,241.3,23.99,17.43,Free agent,151,-45
-197,Kingston Flemings,ATL,PG/SG,13,21.82,283.6,21.87,19.99,Free agent,198,1
-198,Luguentz Dort,ATL,SF/SG,17,21.77,370.15,24.75,22.5,Free agent,196,-2
-199,Oso Ighodaro,PHX,C,15,21.75,326.2,23.2,26.89,Free agent,210,11
-200,Khaman Maluach,PHX,C,17,21.59,366.95,18.72,19.19,Free agent,202,2
-201,Collin Sexton,LAL,PG/SG,17,21.53,366.05,19.04,22.84,Free agent,209,8
-202,Mikal Bridges,NYK,PF/SF/SG,18,21.49,386.85,27.01,26.49,Free agent,203,1
-203,T.J. McConnell,IND,PG,7,21.41,149.9,13.81,25.97,Free agent,170,-33
-204,Moritz Wagner,BKN,C,17,21.06,357.95,17.06,15.48,Free agent,184,-20
-205,Bilal Coulibaly,WAS,PF/SF,18,21.03,378.45,24.78,19.21,Free agent,200,-5
-206,Reed Sheppard,HOU,PG/SG,16,21.01,336.1,19.73,17.32,BillVu,179,-27
-207,Andrew Wiggins,MIA,PF/SF/SG,17,20.95,356.2,26.06,25.59,Free agent,193,-14
-208,Brice Sensabaugh,UTA,PF/SF/SG,19,20.95,398,18.1,32.68,Free agent,206,-2
-209,Tyrese Proctor,CLE,PG/SF/SG,18,20.83,375,20.23,13.71,Free agent,174,-35
-210,Kasparas Jakučionis,MIL,PG/SG,18,20.73,373.05,17.53,20.86,Free agent,173,-37
-211,Mario Hezonja,CLE,PF/SF,19,20.67,392.7,18.69,20.52,Free agent,190,-21
-212,Sidy Cissoko,POR,C/PF/SG,17,20.43,347.3,24.61,22.54,Free agent,204,-8
-213,Sam Merrill,CLE,SF/SG,13,19.93,259.1,23.51,15.5,Free agent,201,-12
-214,Walter Clayton Jr.,DAL,PG,17,19.86,337.65,18.19,23.35,Free agent,219,5
-215,DeMar DeRozan,DEN,PF/SF/SG,15,19.72,295.75,22.14,16.73,Free agent,211,-4
-216,Bobby Portis Jr.,MIA,C/PF,17,19.59,333.05,19.64,20.22,Free agent,214,-2
-217,Isaac Okoro,CHI,SF/SG,18,19.43,349.75,24.96,25.55,Free agent,228,11
-218,Thomas Bryant,CLE,C,13,19.25,250.25,14.45,18.15,Free agent,207,-11
-219,Anfernee Simons,PHI,PG/SG,19,19.19,364.7,22.16,18.76,Free agent,212,-7
-220,Joan Beringer,MIN,C,19,19.12,363.25,16.86,22.25,Free agent,227,7
-221,Gui Santos,GSW,PF/SF,15,19.07,286.05,19.49,27.6,Free agent,256,35
-222,Dean Wade,PHI,PF/SF,15,19.02,285.35,26.64,21.47,Free agent,205,-17
-223,Bennett Stirtz,OKC,PG/SG,19,19.01,361.25,19.46,27.84,Free agent,258,35
-224,Sam Hauser,BOS,PF/SF,18,18.64,335.6,21.15,19.68,Free agent,223,-1
-225,Corey Kispert,ATL,SF/SG,10,18.54,185.35,12.43,23.41,Free agent,245,20
-226,Jalen Slawson,IND,PF/SF,16,18.53,296.5,14.48,29.62,Free agent,269,43
-227,Noah Clowney,BKN,C/PF,17,18.39,312.65,21.69,20.91,Free agent,232,5
-228,Malik Monk,SAC,PG/SG,17,18.23,309.9,16.07,16.28,Free agent,225,-3
-229,Jaylon Tyson,CLE,PF/SF/SG,10,18.13,181.35,23.22,16.5,Free agent,197,-32
-230,Marcus Smart,HOU,PG/SF/SG,13,18.12,235.5,21.29,14.25,Free agent,220,-10
-231,Ryan Kalkbrenner,CHA,C,16,18.04,288.7,17.56,14.27,Free agent,222,-9
-232,Taylor Hendricks,MEM,C/PF,14,17.87,250.15,16.25,21.42,Free agent,213,-19
-233,Kobe Sanders,LAC,PF/SF/SG,17,17.82,302.9,20.28,9.59,Free agent,216,-17
-234,Patrick Williams,CHI,PF,11,17.79,195.65,20.13,13.58,Free agent,215,-19
-235,Javonte Green,DET,PF/SF/SG,17,17.78,302.25,19.29,23.56,Free agent,236,1
-236,Kentavious Caldwell-Pope,PHI,PG/SG,19,17.72,336.6,23.69,17.55,Free agent,229,-7
-237,Isaiah Collier,UTA,PG,16,17.43,278.85,15.59,15.24,Free agent,242,5
-238,Mitchell Robinson,BOS,C,14,17.31,242.35,17.55,13.13,Free agent,234,-4
-239,Herbert Jones,NOP,SF/SG,19,17.09,324.75,24.71,23.93,Free agent,257,18
-240,Jock Landale,ATL,C,9,17.08,153.7,15.47,14.16,Free agent,239,-1
-241,Sion James,CHA,SF/SG,17,17.01,289.25,27.24,16.37,Free agent,240,-1
-242,Leaky Black,SAC,PF/SF,14,16.96,237.45,17.64,10.01,Free agent,217,-25
-243,Jamison Battle,TOR,C/PF/SF,17,16.94,287.95,18.44,14.89,Free agent,247,4
-244,Jabari Walker,PHI,C/PF,15,16.75,251.3,14.46,23.04,Free agent,266,22
-245,Trey Lyles,MIN,C/PF,19,16.7,317.25,19.08,20.02,Free agent,250,5
-246,Morez Johnson Jr.,DAL,C/PF,17,16.68,283.55,17.36,18.75,Free agent,270,24
-247,Luke Kennard,PHX,PG/SF/SG,16,16.58,265.25,17.21,13.25,Free agent,230,-17
-248,Scoot Henderson,POR,PG,17,16.51,280.75,23.14,23.88,Free agent,249,1
-249,Braden Smith,IND,PG/SG,12,16.45,197.35,14.73,18.7,Free agent,262,13
-250,Keon Ellis,BKN,PG/SG,16,16.4,262.45,19.36,14.22,Free agent,241,-9
-251,Ronald Holland II,DET,PF/SF,14,16.28,227.9,15.54,14.23,Free agent,253,2
-252,Baylor Scheierman,BOS,PF/SF,18,16.1,289.85,19.07,9.58,Free agent,231,-21
-253,Will Richard,GSW,PG/SF/SG,17,15.98,271.65,19.51,23.13,Free agent,244,-9
-254,Ryan Conwell,MIA,PG/SG,15,15.96,239.35,18.27,21.16,Free agent,251,-3
-255,Trevon Brazile,DEN,PF/SF,16,15.89,254.2,17.71,11.15,Free agent,243,-12
-256,Allen Graves,TOR,PF/SF,17,15.73,267.4,16.92,23.97,Free agent,278,22
-257,Jarace Walker,IND,PF/SF,17,15.72,267.2,18.12,11.14,Free agent,252,-5
-258,Karlo Matković,NOP,C/PF,18,15.68,282.25,16.97,5.54,Free agent,233,-25
-259,Tyler Kolek,NYK,PG/SG,16,15.57,249.05,12.86,12.06,Free agent,246,-13
-260,Andre Drummond,NYK,C,18,15.55,279.85,13.7,14.17,Free agent,264,4
-261,Christian Anderson,CHA,PG/SG,16,15.38,246.1,15.48,30.43,Free agent,300,39
-262,Miles McBride,NYK,PG/SG,16,15.18,242.9,17.17,8.67,Free agent,259,-3
-263,Nate Ament,MIL,PF/SF,17,15.1,256.65,18.96,15.87,Free agent,255,-8
-264,Al Horford,GSW,C/PF,15,15.02,225.35,16.72,10.79,Free agent,263,-1
-265,Jay Huff,IND,C,15,14.98,224.65,14.61,11.67,Free agent,237,-28
-266,Luka Garza,BOS,C,18,14.81,266.5,13.14,12.33,Free agent,268,2
-267,Svi Mykhailiuk,UTA,SF/SG,19,14.78,280.75,19.66,31.89,Free agent,298,31
-268,Norchad Omier,CLE,PF/SF,7,14.7,102.9,12.29,18.55,Free agent,,
-269,Georges Niang,GSW,PF,18,14.58,262.5,18.29,8.35,Free agent,265,-4
-270,Goga Bitadze,ORL,C,15,14.46,216.85,13.15,15.88,Free agent,261,-9
-271,Gradey Dick,LAC,SF/SG,16,14.43,230.8,15.06,8.76,Free agent,267,-4
-272,Dylan Cardwell,SAC,C/PF,11,14.27,157,14.13,6.65,Free agent,221,-51
-273,Jase Richardson,ORL,PG/SG,13,14.24,185.15,18.97,8.64,Free agent,248,-25
-274,Leonard Miller,CHI,C/PF,12,14.11,169.35,14.03,11.47,Free agent,271,-3
-275,Marvin Bagley III,DEN,C,16,14.11,225.7,11.84,14.02,Free agent,275,0
-276,GG Jackson,MEM,PF/SF,12,14.05,168.65,14.99,12.47,Free agent,272,-4
-277,Luke Kornet,SAS,C,18,14.03,252.5,15.38,15.65,Free agent,279,2
-278,Ryan Dunn,PHX,PF/SF,17,13.94,237,15.49,6.53,Free agent,254,-24
-279,Tre Johnson,WAS,PG/SG,17,13.74,233.65,19.92,6.9,Free agent,260,-19
-280,Trayce Jackson-Davis,TOR,C,12,12.95,155.4,8.7,16.76,Free agent,282,2
-281,Nikola Jović,MIA,C/PF/SF,10,12.91,129.1,12.91,14.77,Free agent,316,35
-282,Max Christie,DAL,SF/SG,15,12.88,193.2,16.98,14.01,Free agent,294,12
-283,Royce O'Neale,CHA,PF/SF,17,12.81,217.7,20.12,11.37,Free agent,274,-9
-284,Jose Alvarado,NYK,PG/SG,11,12.76,140.4,11.81,21.17,Free agent,352,68
-285,Jaylin Sellers,CHI,PG/SG,7,12.67,88.7,10.01,17.07,Free agent,318,33
-286,Graham Ike,GSW,PF/SF,13,12.66,164.6,9.5,12.15,Free agent,280,-6
-287,Jaylen Clark,MIN,SF/SG,12,12.62,151.45,13.61,15.09,Free agent,281,-6
-288,Josh Okogie,UTA,SF/SG,18,12.4,223.2,18.28,10.01,Free agent,273,-15
-289,Zuby Ejiofor,ATL,C/PF,11,12.33,135.65,12.26,8.61,Free agent,284,-5
-290,Jevon Carter,ORL,PG/SG,13,12.31,160,14.72,12.3,Free agent,293,3
-291,Olivier-Maxence Prosper,MEM,C/PF/SF,13,12.12,157.5,12.66,15.18,Free agent,297,6
-292,Tidjane Salaün,CHA,C/PF,16,11.88,190.1,13.44,6.13,Free agent,285,-7
-293,LJ Cryer,GSW,PG,14,11.87,166.2,11.34,18.42,Free agent,287,-6
-294,Noa Essengue,CHI,PF/SF,17,11.84,201.35,12.33,14.6,Free agent,310,16
-295,Gary Payton II,GSW,PG/SF/SG,16,11.83,189.2,13.92,16.64,Free agent,307,12
-296,Larry Nance Jr.,IND,C/PF,17,11.77,200.1,12.75,9.49,Free agent,291,-5
-297,Jordan McLaughlin,SAS,PG,12,11.69,140.25,10.71,17.84,Free agent,290,-7
-298,Bub Carrington,WAS,PG/SG,18,11.64,209.55,15.48,6.43,Free agent,276,-22
-299,Josh Green,UTA,SF/SG,17,11.48,195.1,20.13,17.77,Free agent,304,5
-300,Jordan Hawkins,CHI,SF/SG,10,11.47,114.65,11.98,17.72,Free agent,339,39
-301,Adem Bona,PHI,C,11,11.46,126.05,13.3,13.21,Free agent,302,1
-302,Nikola Vučević,ORL,C,14,11.33,158.55,11.4,15.79,Free agent,329,27
-303,Bryce McGowens,NOP,SF/SG,8,11.26,90.05,10.03,11.26,Free agent,296,-7
-304,Emanuel Sharp,SAC,PG/SG,18,11.14,200.55,16.99,9.74,Free agent,288,-16
-305,Chaney Johnson,BKN,C/PF,14,11.04,154.6,16.17,8.17,Free agent,303,-2
-306,Spencer Jones,DEN,PF/SF,9,11.01,99.05,18.46,9.96,Free agent,305,-1
-307,Micah Peavy,OKC,PF/SF,13,10.94,142.25,18.28,13.69,Free agent,315,8
-308,Santi Aldama,DAL,PF/SF,9,10.82,97.4,12.67,6.6,Free agent,277,-31
-309,Alijah Martin,TOR,PG/SF/SG,16,10.79,172.7,12.22,1.84,Free agent,286,-23
-310,Deandre Ayton,WAS,C,19,10.78,204.85,12.22,4.88,Free agent,289,-21
-311,Baba Miller,LAC,PF/SF,15,10.78,161.7,7.52,5.09,Free agent,299,-12
-312,AJ Green,MIL,SF/SG,18,10.74,193.25,14.58,6.02,Free agent,292,-20
-313,Craig Porter Jr.,CLE,PG/SG,13,10.73,139.45,11.84,19.44,Free agent,308,-5
-314,Jordan Walsh,BOS,SF/SG,18,10.68,192.3,14.34,5.76,Free agent,295,-19
-315,Bogdan Bogdanović,HOU,PG/SF/SG,19,10.58,201,12.08,5.2,Free agent,301,-14
-316,Hugo González,BOS,SF/SG,18,10.54,189.65,13.35,8.51,Free agent,313,-3
-317,Kris Murray,MEM,PF/SF/SG,15,10.51,157.6,13.18,14.92,Free agent,341,24
-318,Jarred Vanderbilt,LAL,C/PF,13,10.5,136.55,12.01,10.04,Free agent,309,-9
-319,Bennedict Mathurin,NOP,SF/SG,12,10.43,125.1,15.33,4.89,Free agent,311,-8
-320,Marcus Sasser,DAL,PG,12,10.38,124.6,14.88,4.92,Free agent,312,-8
-321,Jaron Pierre Jr.,NOP,PG/SG,7,10.15,71.05,14.21,13,Free agent,,
-322,Oscar Tshiebwe,HOU,C,11,9.86,108.5,7.15,12.13,Free agent,317,-5
-323,Khris Middleton,WAS,PF/SF,11,9.81,107.9,16.65,12.99,Free agent,314,-9
-324,Harrison Barnes,SAS,C/PF,16,9.79,156.6,15.31,9.51,Free agent,319,-5
-325,Zach Collins,CHI,C,12,9.75,117.05,12.13,15.7,Free agent,343,18
-326,Jamal Cain,ORL,SF/SG,15,9.69,145.3,15.25,3.12,Free agent,306,-20
-327,Jordan Clarkson,NYK,SF/SG,12,9.38,112.5,9.84,5.68,Free agent,322,-5
-328,Jayson Kent,POR,SF,8,9.21,73.65,12.8,11.3,Free agent,323,-5
-329,James Wiseman,NYK,C,8,9.15,73.2,7.51,14.79,Free agent,357,28
-330,Bryce Hopkins,DEN,PF/SF/SG,8,9.14,73.1,12.93,8.49,Free agent,324,-6
-331,Jaylin Williams,OKC,C/PF,9,9.12,82.05,17.14,7.13,Free agent,320,-11
-332,Kyle Filipowski,UTA,C/PF,12,9.01,108.1,9.28,14.22,Free agent,366,34
-333,Quinten Post,MEM,C,13,8.75,113.75,11.19,6.63,Free agent,321,-12
-334,Hannes Steinbach,CHA,C/PF,7,8.62,60.35,10.86,9.89,Free agent,,
-335,Pacôme Dadiet,NYK,PF/SF/SG,7,8.59,60.1,8.51,10.9,Free agent,,
-336,Tim Hardaway Jr.,MIA,SF/SG,11,8.56,94.2,15.17,3.33,Free agent,330,-6
-337,Ousmane Dieng,MIL,SF/SG,10,8.41,84.1,12.19,10.67,Free agent,331,-6
-338,Yang Hansen,POR,C,10,8.37,83.65,8.79,9.23,Free agent,328,-10
-339,Jamaree Bouyea,PHX,PF,7,8.24,57.7,5.01,8.28,Free agent,333,-6
-340,Myron Gardner,MIA,PF/SF,11,8.09,88.95,9.72,12.83,Free agent,326,-14
-341,Tyus Jones,DEN,PG,16,8.07,129.2,10.53,4.06,Free agent,332,-9
-342,Tarris Reed Jr.,SAS,C,11,7.9,86.9,6.8,10.84,Free agent,351,9
-343,Gary Trent Jr.,MIL,SF/SG,9,7.89,71,10.82,7.97,Free agent,325,-18
-344,Vít Krejčí,POR,PF/SF/SG,7,7.86,55,10.34,8.28,Free agent,334,-10
-345,Simone Fontecchio,MIA,C/PF,11,7.76,85.4,9.02,15.18,Free agent,342,-3
-346,Kobe Brown,IND,PF/SF,9,7.69,69.25,10.44,8.15,Free agent,338,-8
-347,Mohamed Diawara,NYK,PF,8,7.6,60.8,10.43,6.08,Free agent,327,-20
-348,Brooks Barnhizer,OKC,PF/SF,11,7.53,82.8,6.84,12.44,Free agent,364,16
-349,Josh Dix,OKC,PG/SG,10,7.52,75.2,16.81,12.12,Free agent,369,20
-350,Carter Bryant,SAS,PF/SF,17,7.11,120.8,11.11,4.45,Free agent,344,-6
-351,Kyle Anderson,TOR,PF/SF,10,7.06,70.55,7.24,6.86,Free agent,346,-5
-352,Nique Clifford,OKC,SF/SG,17,6.89,117.05,11.36,8.88,Free agent,353,1
-353,Josh Minott,BKN,C/PF/SF,11,6.85,75.35,6.04,5.43,Free agent,336,-17
-354,Dru Smith,MIA,PG/SG,7,6.61,46.3,7.99,4.64,Free agent,349,-5
-355,Chris Cenac Jr.,BOS,C/PF,9,6.53,58.8,7.74,7.29,Free agent,335,-20
-356,Branden Carlson,POR,C,12,6.51,78.1,9.23,5.36,Free agent,340,-16
-357,Tony Bradley,UTA,C,9,6.18,55.6,9.36,9.2,Free agent,355,-2
-358,Daeqwon Plowden,SAC,PF/SF,12,6.14,73.7,9.93,5.2,Free agent,350,-8
-359,Alex Morales,ORL,PG/SG,10,5.92,59.2,10.62,7.79,Free agent,345,-14
-360,Chaz Lanier,DET,PG/SG,8,5.73,45.85,8.31,5.16,Free agent,347,-13
-361,Jaden Bradley,TOR,PG/SG,9,5.73,51.55,4.71,6.22,Free agent,358,-3
-362,Isaiah Crawford,HOU,PF/SF,12,5.73,68.7,5.44,8.77,Free agent,354,-8
-363,Terance Mann,BKN,SF/SG,10,5.42,54.2,11.53,4.54,Free agent,348,-15
-364,Micah Potter,POR,C,9,5.42,48.75,6.31,6.07,Free agent,356,-8
-365,Kevon Looney,LAL,C,7,5.19,36.35,7.21,4.12,Free agent,365,0
-366,Will Riley,WAS,PF/SF/SG,16,4.97,79.6,7.06,3.76,Free agent,370,4
-367,Jahmai Mashack,MEM,PG/SF/SG,9,4.91,44.15,8.47,6.67,Free agent,371,4
-368,Labaron Philon Jr.,PHI,PG/SG,13,4.9,63.7,5.98,7.4,Free agent,368,0
-369,Koa Peat,PHX,PF/SF,10,4.82,48.2,4.25,5.83,Free agent,363,-6
-370,Liam McNeeley,CHA,SF/SG,10,4.73,47.3,8.04,4.53,Free agent,367,-3
-371,Ron Harper Jr.,BOS,SF/SG,10,4.52,45.2,7.42,6.04,Free agent,373,2
-372,Tre Mann,WAS,PG/SG,9,4.44,40,4.61,3.29,Free agent,362,-10
-373,Cameron Carr,LAL,PG/SG,8,4.17,33.35,5.95,6.84,Free agent,389,16
-374,Jericho Sims,MIL,C/PF,11,3.94,43.3,10.1,7.27,Free agent,374,0
-375,Tobi Lawal,DAL,PF/SF,8,3.85,30.8,4.53,3.04,Free agent,375,0
-376,Malevy Leons,GSW,C/PF,11,3.83,42.1,5.84,5.81,Free agent,376,0
-377,Tolu Smith,DET,C,9,3.78,34.05,3.53,5.92,Free agent,377,0
-378,Karim Lopez,MEM,PF/SF,7,3.58,25.05,3.07,3.45,Free agent,379,1
-379,Jaden Hardy,LAL,PG/SF/SG,8,3.56,28.45,3.44,3.32,Free agent,380,1
-380,Jett Howard,DAL,SF/SG,7,3.4,23.8,3.46,3.57,Free agent,381,1
-381,AJ Johnson,NOP,PG/SG,7,2.86,20,6.09,3.14,Free agent,378,-3
-382,Bruce Thornton,HOU,PG/SG,11,2.76,30.4,3.7,2.11,Free agent,384,2
-383,Jae'Sean Tate,HOU,SF/SG,10,2.69,26.85,3.81,4.35,Free agent,385,2
-384,Moussa Cisse,DAL,C,11,2.58,28.4,3.45,1.93,Free agent,383,-1
-385,Cam Christie,LAC,SF/SG,9,2.39,21.55,4.77,2.68,Free agent,390,5
-386,Justin Edwards,PHI,PF/SF,8,2.23,17.85,3.91,2.71,Free agent,391,5
-387,Alex Karaban,SAC,PF/SF,9,2.18,19.65,9.53,1.65,Free agent,382,-5
-388,Nick Richards,MIA,C,7,1.99,13.95,2.09,-0.1,Free agent,387,-1
-389,Bronny James,LAL,PG/SG,7,1.87,13.1,2.69,2.46,Free agent,388,-1
-390,Cody Williams,MIN,SF/SG,10,0.48,4.75,4.76,1.09,Free agent,392,2
-391,Isaiah Evans,MIN,PG/SG,8,0.39,3.15,3.16,0.27,Free agent,393,2
-,Anthony Edwards,MIN,PG/SG,4,61.53,246.1,33.68,61.53,Tuyết Phạm,,
-,Tyrese Haliburton,IND,PG/SG,4,58.08,232.3,33.03,58.08,Akari my beloved,,
-,Paolo Banchero,ORL,PF,2,56.22,112.45,33.8,56.22,Bron Killer,,
-,Kawhi Leonard,TOR,SF/SG,2,46.53,93.05,25.8,46.53,Patriot,,
-,Chet Holmgren,OKC,C/PF,3,39.35,118.05,29.97,39.35,BillVu,,
-,Ja Morant,POR,PG/SG,4,36.68,146.7,25.85,36.68,1st SEED DESTROYER,,
-,Jalen Duren,DET,C,2,35.78,71.55,19.05,35.78,Bron Killer,,
-,Jaren Jackson Jr.,UTA,C/PF,4,32.03,128.1,26.08,32.03,Akari my beloved,,
-,Jalen Williams,OKC,PF/SF/SG,3,31.28,93.85,31.6,31.28,Free agent,,
-,Brandon Ingram,LAC,PF/SF/SG,2,28.03,56.05,26.95,28.03,High School Team,,
-,Justin Champagnie,WAS,PF,4,24.25,97,18.33,24.25,Free agent,,
-,Dominick Barlow,PHI,C/PF,3,21.67,65,14.53,21.67,Free agent,,
-,Cason Wallace,OKC,PG/SF/SG,3,19.83,59.5,16.3,19.83,Free agent,,
-,Trendon Watford,NOP,PF,6,19.63,117.8,17.7,17.97,Free agent,,
-,Mike Conley,BOS,PG,6,17.78,106.7,10.97,17.68,Free agent,,
-,RayJ Dennis,ATL,PG,4,17.71,70.85,9.95,17.71,Free agent,,
-,DeAndre Jordan,NOP,C,5,17.7,88.5,14.26,17.7,Free agent,,
-,Clint Capela,HOU,C,6,17.1,102.6,14.25,20.22,Free agent,,
-,Scotty Pippen Jr.,MEM,PG,5,16.28,81.4,15.98,16.28,Free agent,,
-,Grant Williams,CHA,PF,4,15.38,61.5,20.18,15.38,Free agent,,
-,Steven Adams,HOU,C,6,14.03,84.15,13.53,14.77,Free agent,,
-,Pete Nance,MIL,C/PF/SF,2,13,26,15.85,13,Free agent,,
-,Chris Youngblood,POR,PG/SG,6,12.51,75.05,13.42,14.49,Free agent,,
-,Yanic Konan Niederhäuser,LAC,C,4,11.86,47.45,13.13,11.86,Free agent,,
-,Tobe Awaka,CHI,PF/SF,4,11.77,47.1,10.23,11.77,Free agent,,
-,Jonathan Mogbo,SAC,C/PF,5,10.61,53.05,14.34,10.61,Free agent,,
-,Grant Nelson,BKN,SG,2,10.15,20.3,10.3,10.15,Free agent,,
-,Sergio De Larrea,DAL,PG/SG,4,9.67,38.7,11.63,9.67,Free agent,,
-,Asa Newell,ATL,C/PF,5,9.15,45.75,10.98,9.15,Free agent,,
-,Ja'Kobi Gillespie,SAS,PG/SG,3,8.02,24.05,6.3,8.02,Free agent,,
-,Caris LeVert,MIL,SF/SG,5,7.79,38.95,8.82,7.79,Free agent,,
-,Cam Whitmore,DEN,PF/SF,2,7.78,15.55,7.45,7.78,Free agent,,
-,Dalton Knecht,NYK,SF/SG,4,7.71,30.85,8.13,7.71,Free agent,,
-,Adou Thiero,LAL,PF/SF,6,7.68,46.1,8.25,6.7,Free agent,,
-,John Tonje,POR,PG/SG,4,7.61,30.45,5.28,7.61,Free agent,,
-,Elijah Harkless,DET,PG/SF/SG,5,7.46,37.3,7.2,7.46,Free agent,,
-,Tyler Nickel,NYK,PF/SF,1,7.45,7.45,8.6,7.45,Free agent,,
-,Nikola Topić,OKC,PG,3,6.67,20,11.43,6.67,Free agent,,
-,Tristan Enaruna,CLE,PF/SF,3,6.5,19.5,9.97,6.5,Free agent,,
-,Taurean Prince,DET,PF/SF,3,5.97,17.9,7.4,5.97,Free agent,,
-,Carson Cooper,LAL,C,3,5.93,17.8,7.73,5.93,Free agent,,
-,Zeke Nnaji,DEN,C/PF,3,5.87,17.6,3.53,5.87,Free agent,,
-,Ryan Nembhard,DEN,PG/SG,3,5.75,17.25,3.23,5.75,Free agent,,
-,Pat Spencer,PHX,SF/SG,4,5.73,22.9,4.4,5.73,Free agent,,
-,Duop Reath,PHX,C/PF,6,5.72,34.3,5.53,5.47,Free agent,,
-,Jalen Pickett,LAC,PG/SG,6,5.62,33.7,4.52,4.91,Free agent,,
-,Nick Martinelli,LAC,PF/SF,6,5.61,33.65,4.42,6.3,Free agent,,
-,Mason Plumlee,SAC,C,2,5.5,11,4.6,5.5,Free agent,,
-,Colin Castleton,ORL,PF/SF,4,5.48,21.9,3.28,5.48,Free agent,,
-,Dalen Terry,OKC,SF/SG,2,5.23,10.45,5.45,5.23,Free agent,,
-,Drake Powell,BKN,PG/SF/SG,5,4.85,24.25,7.22,4.85,Free agent,,
-,Dailyn Swain,CHI,PF/SF,4,4.84,19.35,6.65,4.84,Free agent,,
-,Malik Dia,NOP,PF/SF,2,4.7,9.4,4.6,4.7,Free agent,,
-,PJ Hall,CHA,C,2,4.48,8.95,5.75,4.48,Free agent,,
-,Ben Sheppard,IND,SF/SG,1,4.45,4.45,12.2,4.45,Free agent,,
-,Zyon Pullin,MIN,PG,4,4.44,17.75,3.1,4.44,Free agent,,
-,Riley Minix,CLE,SF,4,4.39,17.55,13.7,4.39,Free agent,,
-,Julian Reese,NOP,C,6,4.21,25.25,5.27,4.52,Free agent,,
-,Ebuka Okorie,DET,PG/SG,5,4.16,20.8,3.98,4.16,Free agent,,
-,Ben Saraf,BKN,PG,1,4.15,4.15,3.6,4.15,Free agent,,
-,Rasheer Fleming,PHX,PF,5,3.9,19.5,7.82,3.9,Free agent,,
-,Tacko Fall,PHI,C,5,3.83,19.15,3.96,3.83,Free agent,,
-,Rayan Rupert,PHI,SF/SG,3,3.48,10.45,2.67,3.48,Free agent,,
-,DaRon Holmes II,DEN,C,5,3.02,15.1,2.58,3.02,Free agent,,
-,Caleb Love,PHI,PG/SG,3,2.98,8.95,2.37,2.98,Free agent,,
-,Alpha Diallo,DEN,PG/SG,5,2.91,14.55,7.08,2.91,Free agent,,
-,Anthony Gill,WAS,C/PF,6,2.73,16.4,3.78,3.28,Free agent,,
-,Bogoljub Marković,MIL,PF/SF,3,2.72,8.15,4.47,2.72,Free agent,,
-,Dorian Finney-Smith,ATL,PF/SF,5,2.62,13.1,4.2,2.62,Free agent,,
-,Isaac Jones,DET,PF,6,2.49,14.95,2.52,2.59,Free agent,,
-,Blake Wesley,LAC,PG/SG,2,2.3,4.6,4.75,2.3,Free agent,,
-,Lawson Lovering,LAL,C,2,2.25,4.5,1.3,2.25,Free agent,,
-,Kon Knueppel,CHA,SF/SG,1,2.15,2.15,5.9,2.15,High School Team,,
-,Malachi Smith,TOR,PG/SG,4,2.03,8.1,3.95,2.03,Free agent,,
-,David Jones Garcia,SAS,PF/SF,6,1.83,11,3.35,1.57,Free agent,,
-,Felix Okpara,WAS,C/PF,3,1.77,5.3,1.77,1.77,Free agent,,
-,Chris Mañon,LAL,SF/SG,2,1.23,2.45,3.5,1.23,Free agent,,
-,Maliq Brown,SAS,PF/SF,2,1,2,1.15,1,Free agent,,
-,Keshad Johnson,MIA,PF/SF,2,1,2,2.15,1,Free agent,,
-,Johni Broome,MIN,C,1,1,1,2.5,1,Free agent,,
-,Jonas Aidoo,UTA,C,1,1,1,1.5,1,Free agent,,
-,Reece Beekman,WAS,PG,1,0,0,1,0,Free agent,,
-,Jaden Akins,NYK,PG/SG,2,0,0,0.95,0,Free agent,,
-,Dillon Mitchell,BOS,PF/SF,1,0,0,2.5,0,Free agent,,
-,Kobe Bufkin,UTA,PG,1,0,0,1.5,0,Free agent,,
-,Harrison Ingram,UTA,PF/SF,1,0,0,1.5,0,Free agent,,
-,Rocco Zikarsky,MIN,C,1,-0.5,-0.5,1.7,-0.5,Free agent,,
-,Devin Carter,BOS,PG/SG,2,-0.52,-1.05,8.05,-0.52,Free agent,,
-,Tre Donaldson,MIA,PG/SG,3,-1.08,-3.25,1.9,-1.08,Free agent,,
-,Gabe Vincent,SAC,PG,1,-1.7,-1.7,3.2,-1.7,Free agent,,
-,Joshua Jefferson,BKN,PF/SF,1,-3.4,-3.4,3.6,-3.4,Free agent,,
+rank,name,team,pos,games,fpPerGame,lockValue,spikeFactor,lockRank,total,minPerGame,last5Avg,owner,rankWeekAgo,change
+1,Victor Wembanyama,SAS,C,18,77.19,103.13,1.336,1,1389.45,30.53,83.47,1st SEED DESTROYER,2,1
+2,Luka Dončić,LAL,PG,16,75.63,99.2,1.312,2,1210,36.19,59.86,Shabi Le,1,-1
+3,Nikola Jokić,DEN,C,16,67.75,87.41,1.29,3,1084.05,36.84,66.07,BillVu,3,0
+4,Giannis Antetokounmpo,MIA,C/PF,16,66.07,83.82,1.269,4,1057.05,32.36,74.91,Akari my beloved,4,0
+5,Shai Gilgeous-Alexander,OKC,PG,18,59.46,75.74,1.274,9,1070.35,33.91,64.57,TooHot2Randle,7,2
+6,Jayson Tatum,BOS,PF/SF,16,57.93,76.32,1.318,8,926.8,34.51,58.94,Bron Killer,10,4
+7,Cooper Flagg,DAL,PG/SF/SG,17,57.83,77.03,1.332,7,983.15,33.31,54.9,High School Team,6,-1
+8,Cade Cunningham,DET,PG,15,57.54,77.59,1.348,5,863.1,34.82,65.43,Patriot,5,-3
+9,Jamal Murray,DEN,PG,16,57.53,77.15,1.341,6,920.5,36.98,58.09,Patriot,8,-1
+10,Alperen Şengün,HOU,C/PF,17,56.91,75.13,1.32,11,967.45,32.78,48.45,Bron Killer,12,2
+11,Stephen Curry,GSW,PG,10,55.2,75.17,1.362,10,552,26.31,51.16,1st SEED DESTROYER,13,2
+12,Franz Wagner,ORL,PF/SF,17,55.17,71.9,1.303,12,937.95,36.56,55.78,LeThanos 🧑🏾‍🦲,9,-3
+13,Anthony Davis,WAS,C/PF,17,54.97,70.89,1.29,14,934.5,34.01,57.03,TooHot2Randle,14,1
+14,Karl-Anthony Towns,NYK,C/PF,17,54.91,69.14,1.259,15,933.5,32.6,61.46,1st SEED DESTROYER,15,1
+15,Scottie Barnes,TOR,PF/SF,12,54.31,71.47,1.316,13,651.75,34.38,55.56,High School Team,16,1
+16,Tyrese Maxey,PHI,PG,18,53.78,68.53,1.274,16,968.1,36.05,48.17,LeThanos 🧑🏾‍🦲,11,-5
+17,Deni Avdija,POR,PF/SF/SG,16,53.51,68.04,1.271,17,856.2,32.74,61.05,Shabi Le,17,0
+18,Donovan Mitchell,CLE,PG/SG,18,51.49,66.1,1.284,20,926.75,33.38,58.1,Akari my beloved,18,0
+19,Bam Adebayo,MIA,C/PF,17,50.14,67.28,1.342,18,852.3,32.76,50.89,BillVu,26,7
+20,Devin Booker,PHX,PG/SG,17,49.09,64.74,1.319,22,834.45,34.62,47.33,Shabi Le,20,0
+21,Jalen Brunson,NYK,PG,18,48.95,62.92,1.285,25,881.05,34.5,45.65,Tuyết Phạm,19,-2
+22,Austin Reaves,LAL,PG/SG,12,48.9,64.58,1.32,23,586.85,35.28,52.77,BillVu,22,0
+23,Jalen Johnson,ATL,PF/SF,14,48.86,64.99,1.33,21,684.05,34.16,48.47,LeThanos 🧑🏾‍🦲,21,-2
+24,Ty Jerome,MEM,PG/SG,14,48.81,66.34,1.359,19,683.4,29.81,45,Bron Killer,24,0
+25,Zion Williamson,NOP,PF/SF,17,47.09,58.59,1.244,37,800.5,32.78,41.2,Tuyết Phạm,27,2
+26,Davion Mitchell,MIA,PG,17,46.89,59.62,1.271,31,797.2,35.75,47.31,Shabi Le,25,-1
+27,Joel Embiid,PHI,C,14,46.75,63.19,1.352,24,654.5,32.06,55.29,Shabi Le,33,6
+28,Paul George,BOS,PF/SF/SG,15,46.58,61.55,1.321,27,698.65,30.32,44.11,Bron Killer,32,4
+29,LeBron James,PHI,PF/PG/SF,15,46.31,59.77,1.291,30,694.7,32.69,55.18,LeThanos 🧑🏾‍🦲,41,12
+30,Jaden McDaniels,MIN,PF/SF,19,45.46,59.79,1.315,29,863.7,34.07,61.52,High School Team,47,17
+31,Darius Acuff Jr.,SAC,PG/SG,18,45.43,60.57,1.334,28,817.65,36.6,41.28,Bron Killer,23,-8
+32,Domantas Sabonis,SAC,C/PF,17,45.32,59.39,1.311,33,770.45,33.52,48.84,Akari my beloved,37,5
+33,Pascal Siakam,IND,C/PF,17,45.32,58.5,1.291,38,770.4,32.35,45.79,High School Team,28,-5
+34,Tyler Herro,MIL,PG/SG,18,45.02,62.62,1.391,26,810.4,31.34,58.99,High School Team,66,32
+35,Kevin Durant,HOU,PF/SF,19,45.02,56.69,1.259,42,855.4,33.44,43.43,Shabi Le,35,0
+36,Trae Young,WAS,PG,19,45.01,58.86,1.308,36,855.1,34.67,43.73,LeThanos 🧑🏾‍🦲,34,-2
+37,Kyrie Irving,DAL,PG/SG,15,44.54,59.1,1.327,35,668.15,30.96,46.08,High School Team,29,-8
+38,Julius Randle,BKN,C/PF,17,44.15,57.27,1.297,40,750.55,33.52,52.46,TooHot2Randle,42,4
+39,James Harden,CLE,PG,18,43.82,59.22,1.351,34,788.7,33.89,52.37,LeThanos 🧑🏾‍🦲,51,12
+40,Jaylen Brown,PHI,PF/SF/SG,16,43.71,57.7,1.32,39,699.35,33.22,41.32,Tuyết Phạm,30,-10
+41,Keyonte George,UTA,PG/SG,18,43.53,59.42,1.365,32,783.6,33.03,46.3,Shabi Le,31,-10
+42,Walker Kessler,LAL,C,17,43.22,56.33,1.303,43,734.7,31.16,36.94,Shabi Le,36,-6
+43,Cameron Boozer,MEM,C/PF,16,43.01,56.91,1.323,41,688.15,30.87,50.24,High School Team,39,-4
+44,Yaxel Lendeborg,GSW,PF/SF,18,41.66,56.06,1.346,44,749.85,31.78,37.98,High School Team,40,-4
+45,Dyson Daniels,ATL,PG/SF/SG,17,41.5,54.68,1.318,46,705.5,31.59,42.56,Tuyết Phạm,54,9
+46,Evan Mobley,CLE,C/PF,12,41.42,54.57,1.318,47,497.05,31.98,34.56,Patriot,44,-2
+47,Dylan Harper,SAS,PG/SF/SG,15,40.95,53.95,1.317,51,614.3,31.83,44.19,BillVu,46,-1
+48,RJ Barrett,TOR,PF/SF/SG,14,40.85,53.63,1.313,52,571.85,34.09,40.35,TooHot2Randle,48,0
+49,Damian Lillard,POR,PG/SG,18,40.29,52.23,1.296,56,725.15,29.89,44.84,Bron Killer,55,6
+50,Ausar Thompson,DET,SF/SG,16,40.26,54.36,1.35,50,644.1,29.43,48.83,BillVu,63,13
+51,Nickeil Alexander-Walker,ATL,PG/SF/SG,17,40.25,52.6,1.307,54,684.3,31.72,38.34,LeThanos 🧑🏾‍🦲,45,-6
+52,Darius Garland,LAC,PG,17,40.25,51.95,1.291,58,684.3,32.9,40.85,Tuyết Phạm,43,-9
+53,Stephon Castle,SAS,PG/SF/SG,19,40.13,54.4,1.355,48,762.5,30.25,47.08,Akari my beloved,65,12
+54,Cedric Coward,MEM,SF/SG,18,40.03,51.8,1.294,59,720.5,28.68,41.7,LeThanos 🧑🏾‍🦲,52,-2
+55,Kyshawn George,WAS,SF/SG,19,39.74,51.74,1.302,60,755,34.05,40.9,Bron Killer,56,1
+56,Anthony Black,ORL,PG/SF/SG,14,39.72,54.36,1.369,49,556.05,32.71,33.1,TooHot2Randle,38,-18
+57,Amen Thompson,HOU,PG/SF/SG,18,39.58,51.44,1.3,63,712.4,32.71,46,Bron Killer,60,3
+58,Immanuel Quickley,TOR,PG/SG,15,39.34,51.58,1.311,61,590.05,32.01,36.51,Patriot,50,-8
+59,Caleb Wilson,CHI,PF/SF,10,39.33,54.72,1.391,45,393.3,30.8,35.2,TooHot2Randle,57,-2
+60,LaMelo Ball,MIN,PG,19,39.13,50.98,1.303,66,743.5,28.41,36.36,Shabi Le,59,-1
+61,Zach LaVine,SAC,SF/SG,16,38.84,50.88,1.31,67,621.4,32.99,35.45,BillVu,53,-8
+62,Michael Porter Jr.,BKN,PF/SF/SG,16,38.71,51.45,1.329,62,619.4,32.78,31.11,Shabi Le,49,-13
+63,VJ Edgecombe,PHI,PG/SG,18,38.71,50.77,1.312,68,696.7,34.46,46.23,BillVu,69,6
+64,Ayo Dosunmu,MIN,PG/SG,19,38.34,51.25,1.337,64,728.55,31.82,36.57,TooHot2Randle,62,-2
+65,Donovan Clingan,POR,C,18,38.16,51.25,1.343,65,686.95,25.92,40.79,LeThanos 🧑🏾‍🦲,72,7
+66,Norman Powell,CHI,SF/SG,13,38.15,49.96,1.309,73,495.95,29.48,42.5,High School Team,58,-8
+67,Desmond Bane,ORL,PG/SF/SG,16,37.88,49.98,1.319,72,606.05,34.69,44.58,BillVu,73,6
+68,Jeremiah Fears,NOP,PG/SG,19,37.78,52.16,1.381,57,717.85,30.81,44.67,Akari my beloved,71,3
+69,Miles Bridges,PHX,PF/SF,17,37.62,50.75,1.349,69,639.6,29.02,37.93,1st SEED DESTROYER,68,-1
+70,Andrew Nembhard,IND,PG/SG,14,37.36,47.97,1.284,79,523.05,33.1,32.69,BillVu,61,-9
+71,Brandon Miller,CHA,PF/SF/SG,15,37.09,53.06,1.43,53,556.4,31.25,38.93,Akari my beloved,85,14
+72,Lauri Markkanen,UTA,PF/SF,8,36.68,49.41,1.347,74,293.45,30.85,34.91,Akari my beloved,70,-2
+73,Jalen Smith,CHI,C/PF,15,36.65,50.11,1.367,71,549.7,25.27,44.08,1st SEED DESTROYER,82,9
+74,Onyeka Okongwu,ATL,C/PF,17,36.45,49.04,1.345,75,619.65,30.88,36.05,Tuyết Phạm,67,-7
+75,Josh Giddey,CHI,PG/SG,18,36.35,52.29,1.439,55,654.25,28.49,45.41,LeThanos 🧑🏾‍🦲,87,12
+76,Christian Braun,DEN,SF/SG,16,36.08,48.43,1.343,78,577.2,33.64,41.95,1st SEED DESTROYER,93,17
+77,Fred VanVleet,HOU,PG,16,35.87,47.14,1.314,82,574,30.21,34.96,Akari my beloved,78,1
+78,AJ Dybantsa,WAS,PF/SF,15,35.72,46.98,1.315,84,535.85,34.41,47.57,Tuyết Phạm,95,17
+79,Ajay Mitchell,OKC,PG/SF/SG,17,35.66,48.53,1.361,76,606.3,28.23,29.19,Patriot,64,-15
+80,Darryn Peterson,UTA,PG/SG,19,35.66,48.52,1.361,77,677.55,30.23,28.81,1st SEED DESTROYER,75,-5
+81,Brandin Podziemski,GSW,PG/SG,16,35.64,47.11,1.322,83,570.25,32.29,28.78,1st SEED DESTROYER,74,-7
+82,OG Anunoby,NYK,PF/SF,15,35.5,45.67,1.286,92,532.55,33.96,35.61,High School Team,80,-2
+83,Jabari Smith Jr.,HOU,C/PF,19,35.36,46.71,1.321,87,671.85,32.92,31.9,BillVu,76,-7
+84,Dejounte Murray,NOP,PG/SG,9,35.14,50.56,1.439,70,316.3,31.37,25.5,Bron Killer,84,0
+85,Trey Murphy III,NOP,SF/SG,11,35.02,46.54,1.329,88,385.25,32.64,39.17,Patriot,83,-2
+86,Naz Reid,CHA,C/PF,17,34.96,47.43,1.357,80,594.4,31.75,38.04,LeThanos 🧑🏾‍🦲,81,-5
+87,De'Aaron Fox,SAS,PG,16,34.9,47.37,1.357,81,558.4,29.03,26.16,Akari my beloved,79,-8
+88,Duncan Robinson,DET,SF/SG,12,34.88,46.83,1.343,86,418.5,30.51,29.31,Free agent,86,-2
+89,Moussa Diabaté,CHA,C,15,34.55,46.09,1.334,91,518.25,30.55,40.78,1st SEED DESTROYER,101,12
+90,Jrue Holiday,POR,PG/SG,18,34.42,46.45,1.349,89,619.6,27.36,44.32,Patriot,90,0
+91,Jarrett Allen,CLE,C,16,34.22,44.59,1.303,96,547.55,27.36,32.65,1st SEED DESTROYER,77,-14
+92,Wendell Carter Jr.,ORL,C,17,33.71,45.05,1.336,93,573.05,32.38,30.03,Shabi Le,89,-3
+93,Day'Ron Sharpe,BKN,C,17,33.64,46.24,1.375,90,571.85,24.42,37.22,Tuyết Phạm,106,13
+94,Saddiq Bey,NOP,PF/SF,19,33.51,44.99,1.342,94,636.75,30.62,33.35,Tuyết Phạm,88,-6
+95,Daniss Jenkins,DET,PG/SG,17,33.41,46.83,1.401,85,568.05,30.82,36.47,Akari my beloved,91,-4
+96,Cam Spencer,MEM,PG/SF/SG,19,33.19,43.94,1.324,99,630.55,22.91,41.82,Bron Killer,99,3
+97,CJ McCollum,ATL,PG/SG,14,32.8,44.42,1.355,97,459.15,26.41,34.35,Free agent,96,-1
+98,Isaiah Hartenstein,OKC,C,19,32.65,43.48,1.332,100,620.4,25.67,34.06,Tuyết Phạm,97,-1
+99,Paul Reed,DET,C/PF,17,32.44,43.02,1.326,102,551.5,25.91,35.87,Patriot,98,-1
+100,Derrick White,BOS,PG/SG,17,32.04,43.02,1.343,103,544.7,30.03,27.1,TooHot2Randle,94,-6
+101,Grayson Allen,CHA,SF/SG,13,31.67,44.97,1.42,95,411.75,27.07,36.13,Free agent,103,2
+102,P.J. Washington,DAL,C/PF/SF,16,31.3,44.06,1.408,98,500.75,30.4,28.64,Patriot,105,3
+103,Brook Lopez,LAC,C,17,31.13,43.02,1.382,104,529.15,24.01,31.01,Free agent,92,-11
+104,Matas Buzelis,CHI,PF/SF,18,31.09,41.55,1.337,107,559.55,28.16,37.04,Tuyết Phạm,107,3
+105,Devin Vassell,SAS,PF/SF/SG,17,31.03,40.84,1.316,109,527.45,30.67,34.7,Free agent,108,3
+106,Jonathan Kuminga,MIN,PF/SF,18,30.88,40.78,1.321,110,555.75,30.97,30.32,LeThanos 🧑🏾‍🦲,102,-4
+107,Ace Bailey,UTA,PF/SF,19,30.86,41.24,1.336,108,586.35,30.36,29.32,Patriot,104,-3
+108,Alex Sarr,WAS,C/PF,18,30.35,43.24,1.425,101,546.3,26.44,23.17,Tuyết Phạm,100,-8
+109,Derik Queen,NOP,C/PF,19,29.94,39.39,1.316,120,568.8,22.15,29.14,Patriot,110,1
+110,De'Andre Hunter,SAC,PF/SF,16,29.86,42.68,1.43,105,477.7,34.17,39.4,TooHot2Randle,165,55
+111,Jaime Jaquez Jr.,MIL,PF/SF/SG,19,29.29,39.85,1.36,116,556.6,27.39,21.41,Free agent,109,-2
+112,Rui Hachimura,LAC,PF/SF,15,29.28,39.59,1.352,119,439.2,29.67,37.94,Bron Killer,126,14
+113,Daniel Gafford,DAL,C,18,28.99,39.2,1.352,122,521.75,22.43,30.47,Free agent,127,14
+114,Payton Pritchard,BOS,PG/SG,18,28.67,39.94,1.393,114,516.1,27.7,27.28,TooHot2Randle,112,-2
+115,Pelle Larsson,MIA,SF/SG,14,28.64,39.23,1.37,121,401,28.39,27.01,Free agent,121,6
+116,Jordan Poole,NOP,PG/SG,13,28.59,40.21,1.406,112,371.7,22.66,36.9,TooHot2Randle,137,21
+117,Neemias Queta,BOS,C,17,28.53,38.15,1.337,132,484.95,23.39,34.23,Shabi Le,124,7
+118,Peyton Watson,CLE,PF/SF,15,28.48,38.52,1.353,129,427.2,27.79,27.5,Patriot,140,22
+119,Myles Turner,MIL,C,17,28.47,39.93,1.402,115,484.05,26.69,33.39,1st SEED DESTROYER,141,22
+120,Tre Jones,CHI,PG/SF/SG,18,28.46,38.65,1.358,128,512.25,19.47,32.32,Free agent,136,16
+121,Kris Dunn,LAC,PG/SG,17,28.31,39.73,1.404,117,481.2,25.51,24.27,Free agent,115,-6
+122,Dillon Brooks,PHX,PF/SF/SG,17,28.3,40.03,1.414,113,481.1,29.32,34.85,LeThanos 🧑🏾‍🦲,128,6
+123,Quentin Grimes,LAL,SF/SG,16,28.26,42.45,1.502,106,452.1,29.15,46.57,TooHot2Randle,123,0
+124,Josh Hart,NYK,SF/SG,15,28.2,39.71,1.408,118,423,31.12,32.78,High School Team,160,36
+125,Aday Mara,OKC,C/PF,16,28.1,38.66,1.376,127,449.65,22.36,36.28,Free agent,142,17
+126,Aaron Wiggins,ATL,PF/SF/SG,17,28.09,37.48,1.334,138,477.5,25.75,22.49,Free agent,117,-9
+127,Ivica Zubac,IND,C,13,27.99,39.16,1.399,123,363.85,24.42,29.95,Patriot,161,34
+128,Jaxson Hayes,UTA,C/PF,15,27.95,36.98,1.323,141,419.3,23.74,27.63,Free agent,116,-12
+129,Nolan Traore,BKN,PG,14,27.88,40.33,1.447,111,390.25,22.29,23.25,Free agent,113,-16
+130,Ja'Kobe Walter,TOR,SF/SG,17,27.86,38.48,1.381,130,473.6,31.66,31.86,1st SEED DESTROYER,122,-8
+131,Jalen Green,PHX,SF/SG,17,27.64,38.1,1.378,134,469.95,27.84,38.15,Shabi Le,144,13
+132,Cameron Johnson,DEN,PF/SF/SG,13,27.43,37.74,1.376,135,356.65,29.18,29.18,Free agent,169,37
+133,Kyle Kuzma,MIL,PF/SF,18,27.28,36.65,1.344,144,491.05,27.88,28.77,BillVu,119,-14
+134,Naji Marshall,DAL,PF/SF/SG,15,27.2,36.11,1.327,147,408,24.12,24.86,Free agent,118,-16
+135,Klay Thompson,MIA,PF/SF/SG,16,27.19,38.78,1.426,124,435.1,24.54,29.84,Shabi Le,120,-15
+136,Jakob Poeltl,TOR,C,15,27.02,38.75,1.434,126,405.25,24.2,31.15,Free agent,156,20
+137,Aaron Gordon,DEN,C/PF,16,26.89,37.29,1.387,140,430.25,29.18,27.51,Free agent,148,11
+138,Mo Bamba,UTA,C,15,26.86,37.56,1.399,137,402.85,21.35,24.24,Free agent,111,-27
+139,Brayden Burries,MIL,PG/SG,19,26.54,38.24,1.441,131,504.3,23.05,35.95,Tuyết Phạm,163,24
+140,Collin Gillespie,PHX,PG/SG,17,26.44,37.56,1.421,136,449.4,24.61,25.83,Free agent,143,3
+141,De'Anthony Melton,GSW,PG/SG,18,26.43,38.78,1.467,125,475.8,22.56,25.43,Free agent,162,21
+142,Meleek Thomas,CLE,PG/SF/SG,16,26.23,33.98,1.295,165,419.75,23.03,24.38,1st SEED DESTROYER,129,-13
+143,Yves Missi,NOP,C,8,26.19,38.1,1.455,133,209.55,22.68,22.32,Akari my beloved,,
+144,Kelly Oubre Jr.,IND,PF/SF,16,26.11,35.45,1.358,151,417.8,24.66,34.02,Akari my beloved,171,27
+145,Tari Eason,HOU,SF/SG,19,26.09,34.75,1.332,161,495.7,24.24,21.85,Free agent,135,-10
+146,Rudy Gobert,MIN,C,18,26.03,35.2,1.352,155,468.5,29.39,23.13,LeThanos 🧑🏾‍🦲,159,13
+147,Terrence Shannon Jr.,MIN,PF/SF/SG,16,26.02,36.34,1.397,146,416.3,22.89,25.04,Free agent,139,-8
+148,Tristan da Silva,ORL,PF/SF,15,26.02,35.38,1.36,152,390.25,29.91,25.26,Free agent,132,-16
+149,Alex Caruso,OKC,PF/SF,13,25.86,36.59,1.415,145,336.15,19.85,29.75,Free agent,166,17
+150,Matisse Thybulle,LAL,SF/SG,18,25.84,33.91,1.312,167,465.05,25.02,32.18,Free agent,164,14
+151,Jamal Shead,TOR,PG/SG,17,25.83,36.91,1.429,142,439.15,23.42,22.99,Free agent,134,-17
+152,Julian Champagnie,SAS,PF/SF/SG,19,25.83,35.02,1.356,158,490.8,26.98,29.8,BillVu,158,6
+153,Jordan Goodwin,PHX,SF/SG,13,25.43,34.09,1.34,163,330.65,20.16,22.87,Free agent,146,-7
+154,Kevin Huerter,DET,SF/SG,17,25.42,37.48,1.474,139,432.2,27.3,24.03,Patriot,152,-2
+155,Coby White,CHA,PG/SG,10,25.4,35.15,1.384,156,254.05,21.49,34.99,Bron Killer,194,39
+156,John Collins,DET,C/PF,17,25.4,36.66,1.443,143,431.8,25.71,29.09,TooHot2Randle,154,-2
+157,Keegan Murray,SAC,PF/SF,11,25.37,34.04,1.342,164,279.1,32.1,28.85,Free agent,172,15
+158,Jared McCain,OKC,PG/SG,19,25.34,35.97,1.42,148,481.4,27.89,25.13,Free agent,149,-9
+159,Collin Murray-Boyles,TOR,C/PF,15,25.25,35.09,1.39,157,378.75,23.54,26.09,Free agent,153,-6
+160,Nic Claxton,CHI,C/PF,8,25.13,33.9,1.349,168,201.05,21.8,25.25,Free agent,,
+161,Toumani Camara,POR,PF/SF/SG,18,25.09,35.54,1.416,150,451.7,29.97,22.83,1st SEED DESTROYER,125,-36
+162,Zach Edey,MEM,C,15,25.08,33.5,1.335,173,376.25,20.23,29.39,BillVu,155,-7
+163,Quenton Jackson,IND,PG/SG,18,24.96,35.92,1.439,149,449.25,21.5,24.31,Free agent,130,-33
+164,Keaton Wagler,LAC,PG/SG,17,24.8,33.3,1.343,176,421.55,21.76,17.04,Free agent,138,-26
+165,Jalen Suggs,ORL,PG,9,24.77,35,1.413,159,222.95,29.08,26.21,Akari my beloved,114,-51
+166,Precious Achiuwa,SAC,C/PF,15,24.69,35.28,1.429,153,370.35,23.05,16.19,Free agent,150,-16
+167,Ryan Rollins,MIL,PG,17,24.67,33.39,1.353,175,419.4,23.48,21.69,High School Team,133,-34
+168,Draymond Green,GSW,C/PF,15,24.5,32.44,1.324,181,367.45,25.69,22.13,Free agent,167,-1
+169,Derrick Jones Jr.,LAC,PF/SF,16,24.38,33.69,1.382,171,390.05,27.74,13.97,Free agent,131,-38
+170,Kel'el Ware,MIL,C/PF,19,24.32,34.57,1.422,162,462.05,19.17,28.41,Free agent,181,11
+171,Zaccharie Risacher,DAL,SF,18,24.26,33.91,1.398,166,436.6,23.76,24.75,Free agent,178,7
+172,Jaylen Wells,MEM,SF/SG,19,24.06,33.86,1.407,169,457.15,26.35,24.09,Free agent,168,-4
+173,Javon Small,MEM,PG/SG,11,23.63,33.17,1.404,178,259.9,21.43,23.05,Free agent,147,-26
+174,Dennis Schröder,CHA,PG/SG,9,23.58,33.78,1.433,170,212.2,29.9,20.11,Free agent,175,1
+175,Charles Bassey,GSW,C,16,23.52,33.25,1.414,177,376.25,16.03,29.89,Bron Killer,192,17
+176,Egor Dëmin,BKN,PG/SG,11,23.5,35.28,1.501,154,258.55,24.2,26.16,Free agent,176,0
+177,Ziaire Williams,LAL,SF/SG,15,23.18,31.07,1.34,195,347.65,23.27,12.6,Free agent,157,-20
+178,Brandon Williams,GSW,PG,11,23.15,32.82,1.418,179,254.6,15.8,22.66,Free agent,180,2
+179,Bones Hyland,MIN,PG/SG,19,23.08,33.63,1.457,172,438.5,14.27,22.37,Free agent,186,7
+180,Mikel Brown Jr.,BKN,PG/SG,13,23.05,31.33,1.359,192,299.7,23.39,20.86,Free agent,183,3
+181,Isaiah Jackson,LAC,C,16,22.87,33.42,1.461,174,365.9,17.03,16.6,Free agent,145,-36
+182,Keldon Johnson,SAS,PF/SF,19,22.81,30.76,1.349,197,433.3,24.59,21.89,Free agent,185,3
+183,Caleb Martin,DAL,PF/SF,14,22.79,34.95,1.534,160,319.05,22.49,35.32,TooHot2Randle,224,41
+184,Aaron Nesmith,IND,SF/SG,15,22.71,30.7,1.352,199,340.6,27.33,24.83,Free agent,188,4
+185,Sandro Mamukelashvili,LAL,C/PF,18,22.68,32.73,1.443,180,408.15,22.54,13.94,Free agent,182,-3
+186,Robert Williams III,POR,C,15,22.67,31.44,1.387,190,340.05,16.73,19.66,Free agent,177,-9
+187,Obi Toppin,IND,PF/SF,15,22.62,30.72,1.358,198,339.25,20.74,18.75,Free agent,191,4
+188,Jerami Grant,MEM,PF/SF,15,22.54,30.63,1.359,200,338.05,22.27,22.05,Free agent,187,-1
+189,Isaiah Stewart,MEM,C/PF,14,22.51,32.13,1.427,184,315.15,18.22,20.59,Free agent,189,0
+190,Buddy Hield,CHI,SG,16,22.29,32.42,1.455,182,356.6,19.09,34.87,Free agent,235,45
+191,Danny Wolf,BKN,C/PF/SF,12,22.27,31.65,1.421,188,267.25,22.83,18.96,Free agent,199,8
+192,Isaiah Joe,DET,SF/SG,7,22.26,32.26,1.45,183,155.8,18.84,23.52,Free agent,,
+193,Jake LaRavia,LAL,SF/SG,17,22.16,29.72,1.341,206,376.8,25.89,26.26,Free agent,195,2
+194,Landry Shamet,NYK,SF/SG,18,22.02,31.23,1.418,193,396.35,27.1,26.69,Free agent,208,14
+195,Kenrich Williams,OKC,C/PF,19,21.96,30.84,1.404,196,417.25,21.61,34.45,TooHot2Randle,226,31
+196,Max Strus,LAC,PF/SF,11,21.94,29.85,1.361,205,241.3,23.99,17.43,Free agent,151,-45
+197,Kingston Flemings,ATL,PG/SG,13,21.82,32.01,1.467,185,283.6,21.87,19.99,Free agent,198,1
+198,Luguentz Dort,ATL,SF/SG,17,21.77,31.38,1.441,191,370.15,24.75,22.5,Free agent,196,-2
+199,Oso Ighodaro,PHX,C,15,21.75,29.18,1.342,209,326.2,23.2,26.89,Free agent,210,11
+200,Khaman Maluach,PHX,C,17,21.59,28.56,1.323,214,366.95,18.72,19.19,Free agent,202,2
+201,Collin Sexton,LAL,PG/SG,17,21.53,29.58,1.374,207,366.05,19.04,22.84,Free agent,209,8
+202,Sidy Cissoko,POR,C/PF/SG,18,21.49,30.3,1.41,202,386.9,24.9,27.91,Free agent,204,2
+203,Mikal Bridges,NYK,PF/SF/SG,18,21.49,30.06,1.399,204,386.85,27.01,26.49,Free agent,203,0
+204,T.J. McConnell,IND,PG,7,21.41,30.58,1.428,201,149.9,13.81,25.97,Free agent,170,-34
+205,Moritz Wagner,BKN,C,17,21.06,29.28,1.39,208,357.95,17.06,15.48,Free agent,184,-21
+206,Bilal Coulibaly,WAS,PF/SF,18,21.03,28.8,1.37,211,378.45,24.78,19.21,Free agent,200,-6
+207,Reed Sheppard,HOU,PG/SG,16,21.01,31.53,1.501,189,336.1,19.73,17.32,BillVu,179,-28
+208,Andrew Wiggins,MIA,PF/SF/SG,17,20.95,28.91,1.38,210,356.2,26.06,25.59,Free agent,193,-15
+209,Brice Sensabaugh,UTA,PF/SF/SG,19,20.95,31.7,1.513,187,398,18.1,32.68,Free agent,206,-3
+210,Tyrese Proctor,CLE,PG/SF/SG,18,20.83,31.13,1.494,194,375,20.23,13.71,Free agent,174,-36
+211,Kasparas Jakučionis,MIL,PG/SG,18,20.73,31.87,1.538,186,373.05,17.53,20.86,Free agent,173,-38
+212,Mario Hezonja,CLE,PF/SF,19,20.67,30.13,1.458,203,392.7,18.69,20.52,Free agent,190,-22
+213,Sam Merrill,CLE,SF/SG,13,19.93,27.61,1.386,223,259.1,23.51,15.5,Free agent,201,-12
+214,Walter Clayton Jr.,DAL,PG,17,19.86,28.73,1.446,212,337.65,18.19,23.35,Free agent,219,5
+215,DeMar DeRozan,DEN,PF/SF/SG,15,19.72,27.83,1.412,221,295.75,22.14,16.73,Free agent,211,-4
+216,Bobby Portis Jr.,MIA,C/PF,17,19.59,27.77,1.417,222,333.05,19.64,20.22,Free agent,214,-2
+217,Isaac Okoro,CHI,SF/SG,18,19.43,27.36,1.408,225,349.75,24.96,25.55,Free agent,228,11
+218,Thomas Bryant,CLE,C,13,19.25,27.46,1.426,224,250.25,14.45,18.15,Free agent,207,-11
+219,Anfernee Simons,PHI,PG/SG,19,19.19,28.69,1.495,213,364.7,22.16,18.76,Free agent,212,-7
+220,Joan Beringer,MIN,C,19,19.12,26.96,1.41,227,363.25,16.86,22.25,Free agent,227,7
+221,Gui Santos,GSW,PF/SF,15,19.07,27.84,1.46,220,286.05,19.49,27.6,Free agent,256,35
+222,Dean Wade,PHI,PF/SF,15,19.02,28.32,1.489,216,285.35,26.64,21.47,Free agent,205,-17
+223,Bennett Stirtz,OKC,PG/SG,19,19.01,28.05,1.475,217,361.25,19.46,27.84,Free agent,258,35
+224,Sam Hauser,BOS,PF/SF,18,18.64,24.8,1.33,243,335.6,21.15,19.68,Free agent,223,-1
+225,Corey Kispert,ATL,SF/SG,10,18.54,26.5,1.43,231,185.35,12.43,23.41,Free agent,245,20
+226,Jalen Slawson,IND,PF/SF,16,18.53,28.51,1.539,215,296.5,14.48,29.62,Free agent,269,43
+227,Noah Clowney,BKN,C/PF,17,18.39,26.51,1.442,230,312.65,21.69,20.91,Free agent,232,5
+228,Malik Monk,SAC,PG/SG,17,18.23,27.9,1.531,219,309.9,16.07,16.28,Free agent,225,-3
+229,Jaylon Tyson,CLE,PF/SF/SG,10,18.13,26.53,1.463,229,181.35,23.22,16.5,Free agent,197,-32
+230,Marcus Smart,HOU,PG/SF/SG,13,18.12,26.46,1.46,232,235.5,21.29,14.25,Free agent,220,-10
+231,Ryan Kalkbrenner,CHA,C,16,18.04,24.9,1.38,240,288.7,17.56,14.27,Free agent,222,-9
+232,Taylor Hendricks,MEM,C/PF,14,17.87,28,1.567,218,250.15,16.25,21.42,Free agent,213,-19
+233,Kobe Sanders,LAC,PF/SF/SG,17,17.82,25.88,1.453,234,302.9,20.28,9.59,Free agent,216,-17
+234,Patrick Williams,CHI,PF,11,17.79,26.33,1.48,233,195.65,20.13,13.58,Free agent,215,-19
+235,Javonte Green,DET,PF/SF/SG,17,17.78,25.53,1.436,235,302.25,19.29,23.56,Free agent,236,1
+236,Kentavious Caldwell-Pope,PHI,PG/SG,19,17.72,25.16,1.42,237,336.6,23.69,17.55,Free agent,229,-7
+237,Isaiah Collier,UTA,PG,16,17.43,25.08,1.439,238,278.85,15.59,15.24,Free agent,242,5
+238,Mitchell Robinson,BOS,C,14,17.31,24.03,1.388,251,242.35,17.55,13.13,Free agent,234,-4
+239,Herbert Jones,NOP,SF/SG,19,17.09,24.05,1.407,250,324.75,24.71,23.93,Free agent,257,18
+240,Jock Landale,ATL,C,9,17.08,24.49,1.434,247,153.7,15.47,14.16,Free agent,239,-1
+241,Sion James,CHA,SF/SG,17,17.01,23.21,1.364,261,289.25,27.24,16.37,Free agent,240,-1
+242,Leaky Black,SAC,PF/SF,14,16.96,26.98,1.591,226,237.45,17.64,10.01,Free agent,217,-25
+243,Jamison Battle,TOR,C/PF/SF,17,16.94,24.47,1.445,248,287.95,18.44,14.89,Free agent,247,4
+244,Jabari Walker,PHI,C/PF,15,16.75,23.37,1.395,259,251.3,14.46,23.04,Free agent,266,22
+245,Trey Lyles,MIN,C/PF,19,16.7,23.41,1.402,258,317.25,19.08,20.02,Free agent,250,5
+246,Morez Johnson Jr.,DAL,C/PF,17,16.68,24.63,1.477,246,283.55,17.36,18.75,Free agent,270,24
+247,Luke Kennard,PHX,PG/SF/SG,16,16.58,23.79,1.435,253,265.25,17.21,13.25,Free agent,230,-17
+248,Scoot Henderson,POR,PG,18,16.53,25.45,1.54,236,297.6,23.15,25.22,Free agent,249,1
+249,Braden Smith,IND,PG/SG,12,16.45,26.94,1.638,228,197.35,14.73,18.7,Free agent,262,13
+250,Ronald Holland II,DET,PF/SF,14,16.28,24.7,1.518,245,227.9,15.54,14.23,Free agent,253,3
+251,Keon Ellis,BKN,PG/SG,16,16.15,23.48,1.453,256,258.45,19.36,13.42,Free agent,241,-10
+252,Baylor Scheierman,BOS,PF/SF,18,16.1,23.42,1.454,257,289.85,19.07,9.58,Free agent,231,-21
+253,Will Richard,GSW,PG/SF/SG,17,15.98,23.35,1.461,260,271.65,19.51,23.13,Free agent,244,-9
+254,Ryan Conwell,MIA,PG/SG,15,15.96,24.41,1.53,249,239.35,18.27,21.16,Free agent,251,-3
+255,Trevon Brazile,DEN,PF/SF,16,15.89,22.5,1.416,263,254.2,17.71,11.15,Free agent,243,-12
+256,Allen Graves,TOR,PF/SF,17,15.73,24.75,1.573,244,267.4,16.92,23.97,Free agent,278,22
+257,Jarace Walker,IND,PF/SF,17,15.72,23.92,1.522,252,267.2,18.12,11.14,Free agent,252,-5
+258,Karlo Matković,NOP,C/PF,18,15.68,24.84,1.584,242,282.25,16.97,5.54,Free agent,233,-25
+259,Tyler Kolek,NYK,PG/SG,16,15.57,21.96,1.411,267,249.05,12.86,12.06,Free agent,246,-13
+260,Andre Drummond,NYK,C,18,15.55,22.37,1.439,264,279.85,13.7,14.17,Free agent,264,4
+261,Christian Anderson,CHA,PG/SG,16,15.38,24.89,1.618,241,246.1,15.48,30.43,Free agent,300,39
+262,Miles McBride,NYK,PG/SG,16,15.18,22.8,1.502,262,242.9,17.17,8.67,Free agent,259,-3
+263,Nate Ament,MIL,PF/SF,17,15.1,21.96,1.454,268,256.65,18.96,15.87,Free agent,255,-8
+264,Al Horford,GSW,C/PF,15,15.02,21.28,1.416,274,225.35,16.72,10.79,Free agent,263,-1
+265,Jay Huff,IND,C,15,14.98,23.63,1.578,254,224.65,14.61,11.67,Free agent,237,-28
+266,Luka Garza,BOS,C,18,14.81,21.49,1.451,272,266.5,13.14,12.33,Free agent,268,2
+267,Svi Mykhailiuk,UTA,SF/SG,19,14.78,24.96,1.689,239,280.75,19.66,31.89,Free agent,298,31
+268,Norchad Omier,CLE,PF/SF,7,14.7,21.99,1.496,266,102.9,12.29,18.55,Free agent,,
+269,Georges Niang,GSW,PF,18,14.58,21.62,1.483,271,262.5,18.29,8.35,Free agent,265,-4
+270,Goga Bitadze,ORL,C,15,14.46,20.58,1.424,279,216.85,13.15,15.88,Free agent,261,-9
+271,Gradey Dick,LAC,SF/SG,16,14.43,21.69,1.504,270,230.8,15.06,8.76,Free agent,267,-4
+272,Dylan Cardwell,SAC,C/PF,11,14.27,20.34,1.425,281,157,14.13,6.65,Free agent,221,-51
+273,Luke Kornet,SAS,C,19,14.24,20.95,1.471,275,270.65,15.27,18.42,Free agent,279,6
+274,Jase Richardson,ORL,PG/SG,13,14.24,20.83,1.463,276,185.15,18.97,8.64,Free agent,248,-26
+275,Leonard Miller,CHI,C/PF,12,14.11,21.9,1.552,269,169.35,14.03,11.47,Free agent,271,-4
+276,Marvin Bagley III,DEN,C,16,14.11,19.65,1.393,285,225.7,11.84,14.02,Free agent,275,-1
+277,GG Jackson,MEM,PF/SF,12,14.05,23.52,1.673,255,168.65,14.99,12.47,Free agent,272,-5
+278,Ryan Dunn,PHX,PF/SF,17,13.94,20.46,1.468,280,237,15.49,6.53,Free agent,254,-24
+279,Tre Johnson,WAS,PG/SG,17,13.74,22.28,1.621,265,233.65,19.92,6.9,Free agent,260,-19
+280,Trayce Jackson-Davis,TOR,C,12,12.95,19.73,1.524,282,155.4,8.7,16.76,Free agent,282,2
+281,Nikola Jović,MIA,C/PF/SF,10,12.91,19.66,1.523,283,129.1,12.91,14.77,Free agent,316,35
+282,Max Christie,DAL,SF/SG,15,12.88,20.8,1.615,277,193.2,16.98,14.01,Free agent,294,12
+283,Royce O'Neale,CHA,PF/SF,17,12.81,18.68,1.459,290,217.7,20.12,11.37,Free agent,274,-9
+284,Jose Alvarado,NYK,PG/SG,11,12.76,21.35,1.672,273,140.4,11.81,21.17,Free agent,352,68
+285,Jaylin Sellers,CHI,PG/SG,7,12.67,20.6,1.626,278,88.7,10.01,17.07,Free agent,318,33
+286,Graham Ike,GSW,PF/SF,13,12.66,19.01,1.501,287,164.6,9.5,12.15,Free agent,280,-6
+287,Jaylen Clark,MIN,SF/SG,12,12.62,18.66,1.479,291,151.45,13.61,15.09,Free agent,281,-6
+288,Josh Okogie,UTA,SF/SG,18,12.4,19.65,1.585,284,223.2,18.28,10.01,Free agent,273,-15
+289,Zuby Ejiofor,ATL,C/PF,11,12.33,19.08,1.547,286,135.65,12.26,8.61,Free agent,284,-5
+290,Jevon Carter,ORL,PG/SG,13,12.31,18.22,1.48,296,160,14.72,12.3,Free agent,293,3
+291,Olivier-Maxence Prosper,MEM,C/PF/SF,13,12.12,18.36,1.515,295,157.5,12.66,15.18,Free agent,297,6
+292,Tidjane Salaün,CHA,C/PF,16,11.88,17.76,1.495,298,190.1,13.44,6.13,Free agent,285,-7
+293,LJ Cryer,GSW,PG,14,11.87,18.69,1.574,289,166.2,11.34,18.42,Free agent,287,-6
+294,Noa Essengue,CHI,PF/SF,17,11.84,17.49,1.476,301,201.35,12.33,14.6,Free agent,310,16
+295,Gary Payton II,GSW,PG/SF/SG,16,11.83,16.89,1.428,309,189.2,13.92,16.64,Free agent,307,12
+296,Larry Nance Jr.,IND,C/PF,17,11.77,17.56,1.492,300,200.1,12.75,9.49,Free agent,291,-5
+297,Bub Carrington,WAS,PG/SG,18,11.64,18.74,1.61,288,209.55,15.48,6.43,Free agent,276,-21
+298,Josh Green,UTA,SF/SG,17,11.48,17.39,1.515,302,195.1,20.13,17.77,Free agent,304,6
+299,Jordan Hawkins,CHI,SF/SG,10,11.47,18.55,1.618,293,114.65,11.98,17.72,Free agent,339,40
+300,Adem Bona,PHI,C,11,11.46,16.99,1.482,307,126.05,13.3,13.21,Free agent,302,2
+301,Jordan McLaughlin,SAS,PG,13,11.36,16.89,1.487,308,147.7,11.02,14.74,Free agent,290,-11
+302,Nikola Vučević,ORL,C,14,11.33,17.59,1.553,299,158.55,11.4,15.79,Free agent,329,27
+303,Bryce McGowens,NOP,SF/SG,8,11.26,17.15,1.523,306,90.05,10.03,11.26,Free agent,296,-7
+304,Emanuel Sharp,SAC,PG/SG,18,11.14,16.34,1.467,316,200.55,16.99,9.74,Free agent,288,-16
+305,Chaney Johnson,BKN,C/PF,14,11.04,17.21,1.559,305,154.6,16.17,8.17,Free agent,303,-2
+306,Spencer Jones,DEN,PF/SF,9,11.01,16.74,1.521,313,99.05,18.46,9.96,Free agent,305,-1
+307,Micah Peavy,OKC,PF/SF,13,10.94,16.75,1.531,312,142.25,18.28,13.69,Free agent,315,8
+308,Santi Aldama,DAL,PF/SF,9,10.82,16.05,1.483,320,97.4,12.67,6.6,Free agent,277,-31
+309,Alijah Martin,TOR,PG/SF/SG,16,10.79,18.44,1.709,294,172.7,12.22,1.84,Free agent,286,-23
+310,Deandre Ayton,WAS,C,19,10.78,16.76,1.555,311,204.85,12.22,4.88,Free agent,289,-21
+311,Baba Miller,LAC,PF/SF,15,10.78,18.63,1.728,292,161.7,7.52,5.09,Free agent,299,-12
+312,AJ Green,MIL,SF/SG,18,10.74,16.12,1.502,319,193.25,14.58,6.02,Free agent,292,-20
+313,Craig Porter Jr.,CLE,PG/SG,13,10.73,16.71,1.558,314,139.45,11.84,19.44,Free agent,308,-5
+314,Jordan Walsh,BOS,SF/SG,18,10.68,16.28,1.524,318,192.3,14.34,5.76,Free agent,295,-19
+315,Bogdan Bogdanović,HOU,PG/SF/SG,19,10.58,17.82,1.685,297,201,12.08,5.2,Free agent,301,-14
+316,Hugo González,BOS,SF/SG,18,10.54,17.25,1.638,304,189.65,13.35,8.51,Free agent,313,-3
+317,Kris Murray,MEM,PF/SF/SG,15,10.51,16.86,1.605,310,157.6,13.18,14.92,Free agent,341,24
+318,Jarred Vanderbilt,LAL,C/PF,13,10.5,14.4,1.371,330,136.55,12.01,10.04,Free agent,309,-9
+319,Bennedict Mathurin,NOP,SF/SG,12,10.43,16.01,1.536,321,125.1,15.33,4.89,Free agent,311,-8
+320,Marcus Sasser,DAL,PG,12,10.38,17.32,1.668,303,124.6,14.88,4.92,Free agent,312,-8
+321,Jaron Pierre Jr.,NOP,PG/SG,7,10.15,15.17,1.495,326,71.05,14.21,13,Free agent,,
+322,Oscar Tshiebwe,HOU,C,11,9.86,15.79,1.601,323,108.5,7.15,12.13,Free agent,317,-5
+323,Harrison Barnes,SAS,C/PF,17,9.82,14.78,1.505,328,166.9,15.26,10.77,Free agent,319,-4
+324,Khris Middleton,WAS,PF/SF,11,9.81,15.08,1.537,327,107.9,16.65,12.99,Free agent,314,-10
+325,Zach Collins,CHI,C,12,9.75,14.77,1.514,329,117.05,12.13,15.7,Free agent,343,18
+326,Jamal Cain,ORL,SF/SG,15,9.69,16.52,1.705,315,145.3,15.25,3.12,Free agent,306,-20
+327,Jordan Clarkson,NYK,SF/SG,12,9.38,15.24,1.626,325,112.5,9.84,5.68,Free agent,322,-5
+328,James Wiseman,NYK,C,8,9.15,15.6,1.705,324,73.2,7.51,14.79,Free agent,357,29
+329,Bryce Hopkins,DEN,PF/SF/SG,8,9.14,16.33,1.787,317,73.1,12.93,8.49,Free agent,324,-5
+330,Jaylin Williams,OKC,C/PF,9,9.12,13.46,1.477,335,82.05,17.14,7.13,Free agent,320,-10
+331,Kyle Filipowski,UTA,C/PF,12,9.01,15.86,1.76,322,108.1,9.28,14.22,Free agent,366,35
+332,Quinten Post,MEM,C,13,8.75,13.15,1.503,342,113.75,11.19,6.63,Free agent,321,-11
+333,Hannes Steinbach,CHA,C/PF,7,8.62,13.29,1.541,340,60.35,10.86,9.89,Free agent,,
+334,Pacôme Dadiet,NYK,PF/SF/SG,7,8.59,13.38,1.559,338,60.1,8.51,10.9,Free agent,,
+335,Tim Hardaway Jr.,MIA,SF/SG,11,8.56,13.63,1.591,334,94.2,15.17,3.33,Free agent,330,-5
+336,Ousmane Dieng,MIL,SF/SG,10,8.41,13.64,1.622,333,84.1,12.19,10.67,Free agent,331,-5
+337,Jamaree Bouyea,PHX,PF,7,8.24,12.3,1.492,349,57.7,5.01,8.28,Free agent,333,-4
+338,Jayson Kent,POR,SF,9,8.11,12.74,1.572,346,72.95,12.04,9.01,Free agent,323,-15
+339,Myron Gardner,MIA,PF/SF,11,8.09,13.44,1.662,336,88.95,9.72,12.83,Free agent,326,-13
+340,Tyus Jones,DEN,PG,16,8.07,13.14,1.627,343,129.2,10.53,4.06,Free agent,332,-8
+341,Tarris Reed Jr.,SAS,C,11,7.9,13,1.646,344,86.9,6.8,10.84,Free agent,351,10
+342,Yang Hansen,POR,C,11,7.89,13.16,1.667,341,86.8,8.4,3.65,Free agent,328,-14
+343,Gary Trent Jr.,MIL,SF/SG,9,7.89,13.42,1.702,337,71,10.82,7.97,Free agent,325,-18
+344,Vít Krejčí,POR,PF/SF/SG,7,7.86,11.86,1.509,351,55,10.34,8.28,Free agent,334,-10
+345,Simone Fontecchio,MIA,C/PF,11,7.76,13.36,1.72,339,85.4,9.02,15.18,Free agent,342,-3
+346,Kobe Brown,IND,PF/SF,9,7.69,13.97,1.816,331,69.25,10.44,8.15,Free agent,338,-8
+347,Mohamed Diawara,NYK,PF,8,7.6,12.55,1.651,347,60.8,10.43,6.08,Free agent,327,-20
+348,Brooks Barnhizer,OKC,PF/SF,11,7.53,12.46,1.656,348,82.8,6.84,12.44,Free agent,364,16
+349,Josh Dix,OKC,PG/SG,10,7.52,12.74,1.695,345,75.2,16.81,12.12,Free agent,369,20
+350,Carter Bryant,SAS,PF/SF,18,7.35,11.57,1.575,352,132.25,11.26,6.71,Free agent,344,-6
+351,Kyle Anderson,TOR,PF/SF,10,7.06,10.67,1.513,354,70.55,7.24,6.86,Free agent,346,-5
+352,Nique Clifford,OKC,SF/SG,17,6.89,11.99,1.741,350,117.05,11.36,8.88,Free agent,353,1
+353,Josh Minott,BKN,C/PF/SF,11,6.85,13.75,2.007,332,75.35,6.04,5.43,Free agent,336,-17
+354,Dru Smith,MIA,PG/SG,7,6.61,11.13,1.683,353,46.3,7.99,4.64,Free agent,349,-5
+355,Chris Cenac Jr.,BOS,C/PF,9,6.53,9.79,1.499,359,58.8,7.74,7.29,Free agent,335,-20
+356,Branden Carlson,POR,C,12,6.51,10.32,1.585,356,78.1,9.23,5.36,Free agent,340,-16
+357,Tony Bradley,UTA,C,9,6.18,9.2,1.489,360,55.6,9.36,9.2,Free agent,355,-2
+358,Daeqwon Plowden,SAC,PF/SF,12,6.14,10.27,1.673,357,73.7,9.93,5.2,Free agent,350,-8
+359,Alex Morales,ORL,PG/SG,10,5.92,9.86,1.666,358,59.2,10.62,7.79,Free agent,345,-14
+360,Chaz Lanier,DET,PG/SG,8,5.73,8.7,1.517,365,45.85,8.31,5.16,Free agent,347,-13
+361,Jaden Bradley,TOR,PG/SG,9,5.73,9.16,1.599,362,51.55,4.71,6.22,Free agent,358,-3
+362,Isaiah Crawford,HOU,PF/SF,12,5.73,10.57,1.846,355,68.7,5.44,8.77,Free agent,354,-8
+363,Terance Mann,BKN,SF/SG,10,5.42,9.17,1.691,361,54.2,11.53,4.54,Free agent,348,-15
+364,Micah Potter,POR,C,9,5.42,8.89,1.642,363,48.75,6.31,6.07,Free agent,356,-8
+365,Kevon Looney,LAL,C,7,5.19,8.65,1.666,366,36.35,7.21,4.12,Free agent,365,0
+366,Will Riley,WAS,PF/SF/SG,16,4.97,8.86,1.781,364,79.6,7.06,3.76,Free agent,370,4
+367,Jahmai Mashack,MEM,PG/SF/SG,9,4.91,8.06,1.643,369,44.15,8.47,6.67,Free agent,371,4
+368,Labaron Philon Jr.,PHI,PG/SG,13,4.9,8.31,1.696,367,63.7,5.98,7.4,Free agent,368,0
+369,Koa Peat,PHX,PF/SF,10,4.82,7.42,1.539,372,48.2,4.25,5.83,Free agent,363,-6
+370,Liam McNeeley,CHA,SF/SG,10,4.73,8.23,1.74,368,47.3,8.04,4.53,Free agent,367,-3
+371,Ron Harper Jr.,BOS,SF/SG,10,4.52,7.85,1.736,370,45.2,7.42,6.04,Free agent,373,2
+372,Tre Mann,WAS,PG/SG,9,4.44,7.68,1.728,371,40,4.61,3.29,Free agent,362,-10
+373,Cameron Carr,LAL,PG/SG,8,4.17,7.36,1.766,373,33.35,5.95,6.84,Free agent,389,16
+374,Jericho Sims,MIL,C/PF,11,3.94,6.41,1.628,374,43.3,10.1,7.27,Free agent,374,0
+375,Tobi Lawal,DAL,PF/SF,8,3.85,5.73,1.489,376,30.8,4.53,3.04,Free agent,375,0
+376,Malevy Leons,GSW,C/PF,11,3.83,5.95,1.554,375,42.1,5.84,5.81,Free agent,376,0
+377,Tolu Smith,DET,C,9,3.78,5.65,1.493,377,34.05,3.53,5.92,Free agent,377,0
+378,Karim Lopez,MEM,PF/SF,7,3.58,5.5,1.536,378,25.05,3.07,3.45,Free agent,379,1
+379,Jaden Hardy,LAL,PG/SF/SG,8,3.56,5.14,1.444,380,28.45,3.44,3.32,Free agent,380,1
+380,Jett Howard,DAL,SF/SG,7,3.4,5.29,1.555,379,23.8,3.46,3.57,Free agent,381,1
+381,AJ Johnson,NOP,PG/SG,7,2.86,5,1.749,383,20,6.09,3.14,Free agent,378,-3
+382,Bruce Thornton,HOU,PG/SG,11,2.76,5.04,1.823,382,30.4,3.7,2.11,Free agent,384,2
+383,Jae'Sean Tate,HOU,SF/SG,10,2.69,5.09,1.895,381,26.85,3.81,4.35,Free agent,385,2
+384,Moussa Cisse,DAL,C,11,2.58,4.62,1.789,384,28.4,3.45,1.93,Free agent,383,-1
+385,Cam Christie,LAC,SF/SG,9,2.39,4.23,1.765,385,21.55,4.77,2.68,Free agent,390,5
+386,Justin Edwards,PHI,PF/SF,8,2.23,3.91,1.753,387,17.85,3.91,2.71,Free agent,391,5
+387,Alex Karaban,SAC,PF/SF,9,2.18,4.13,1.894,386,19.65,9.53,1.65,Free agent,382,-5
+388,Nick Richards,MIA,C,7,1.99,3.77,1.891,388,13.95,2.09,-0.1,Free agent,387,-1
+389,Bronny James,LAL,PG/SG,7,1.87,3.57,1.906,389,13.1,2.69,2.46,Free agent,388,-1
+390,Cody Williams,MIN,SF/SG,10,0.48,1.12,2.357,391,4.75,4.76,1.09,Free agent,392,2
+391,Isaiah Evans,MIN,PG/SG,8,0.39,1.15,2.933,390,3.15,3.16,0.27,Free agent,393,2
+,Anthony Edwards,MIN,PG/SG,4,61.53,86.89,1.412,,246.1,33.68,61.53,Tuyết Phạm,,
+,Tyrese Haliburton,IND,PG/SG,4,58.08,78.37,1.35,,232.3,33.03,58.08,Akari my beloved,,
+,Paolo Banchero,ORL,PF,2,56.22,79.96,1.422,,112.45,33.8,56.22,Bron Killer,,
+,Kawhi Leonard,TOR,SF/SG,2,46.53,65.58,1.41,,93.05,25.8,46.53,Patriot,,
+,Chet Holmgren,OKC,C/PF,3,39.35,54.8,1.393,,118.05,29.97,39.35,BillVu,,
+,Ja Morant,POR,PG/SG,4,36.68,50.89,1.387,,146.7,25.85,36.68,1st SEED DESTROYER,,
+,Jalen Duren,DET,C,2,35.78,50.68,1.417,,71.55,19.05,35.78,Bron Killer,,
+,Jaren Jackson Jr.,UTA,C/PF,4,32.03,45.76,1.429,,128.1,26.08,32.03,Akari my beloved,,
+,Jalen Williams,OKC,PF/SF/SG,3,31.28,42.96,1.373,,93.85,31.6,31.28,Free agent,,
+,Brandon Ingram,LAC,PF/SF/SG,2,28.03,38.9,1.388,,56.05,26.95,28.03,High School Team,,
+,Justin Champagnie,WAS,PF,4,24.25,34.69,1.43,,97,18.33,24.25,Free agent,,
+,Dominick Barlow,PHI,C/PF,3,21.67,29.6,1.366,,65,14.53,21.67,Free agent,,
+,Cason Wallace,OKC,PG/SF/SG,3,19.83,28.09,1.417,,59.5,16.3,19.83,Free agent,,
+,Trendon Watford,NOP,PF,6,19.63,27.17,1.384,,117.8,17.7,17.97,Free agent,,
+,Mike Conley,BOS,PG,6,17.78,27.34,1.537,,106.7,10.97,17.68,Free agent,,
+,RayJ Dennis,ATL,PG,4,17.71,24.62,1.39,,70.85,9.95,17.71,Free agent,,
+,DeAndre Jordan,NOP,C,5,17.7,24.97,1.411,,88.5,14.26,17.7,Free agent,,
+,Clint Capela,HOU,C,6,17.1,27.76,1.624,,102.6,14.25,20.22,Free agent,,
+,Scotty Pippen Jr.,MEM,PG,5,16.28,23.56,1.447,,81.4,15.98,16.28,Free agent,,
+,Grant Williams,CHA,PF,4,15.38,22.04,1.433,,61.5,20.18,15.38,Free agent,,
+,Steven Adams,HOU,C,6,14.03,19.97,1.424,,84.15,13.53,14.77,Free agent,,
+,Pete Nance,MIL,C/PF/SF,2,13,18.73,1.441,,26,15.85,13,Free agent,,
+,Chris Youngblood,POR,PG/SG,6,12.51,18.54,1.482,,75.05,13.42,14.49,Free agent,,
+,Yanic Konan Niederhäuser,LAC,C,4,11.86,18.04,1.521,,47.45,13.13,11.86,Free agent,,
+,Tobe Awaka,CHI,PF/SF,4,11.77,16.55,1.405,,47.1,10.23,11.77,Free agent,,
+,Jonathan Mogbo,SAC,C/PF,5,10.61,17,1.603,,53.05,14.34,10.61,Free agent,,
+,Grant Nelson,BKN,SG,2,10.15,14.15,1.394,,20.3,10.3,10.15,Free agent,,
+,Sergio De Larrea,DAL,PG/SG,4,9.67,16.66,1.722,,38.7,11.63,9.67,Free agent,,
+,Asa Newell,ATL,C/PF,5,9.15,13.64,1.491,,45.75,10.98,9.15,Free agent,,
+,Caris LeVert,MIL,SF/SG,5,7.79,11.94,1.533,,38.95,8.82,7.79,Free agent,,
+,Cam Whitmore,DEN,PF/SF,2,7.78,10.9,1.402,,15.55,7.45,7.78,Free agent,,
+,Dalton Knecht,NYK,SF/SG,4,7.71,13.06,1.693,,30.85,8.13,7.71,Free agent,,
+,Adou Thiero,LAL,PF/SF,6,7.68,10.81,1.407,,46.1,8.25,6.7,Free agent,,
+,John Tonje,POR,PG/SG,4,7.61,11.36,1.492,,30.45,5.28,7.61,Free agent,,
+,Elijah Harkless,DET,PG/SF/SG,5,7.46,11.93,1.6,,37.3,7.2,7.46,Free agent,,
+,Tyler Nickel,NYK,PF/SF,1,7.45,10.53,1.413,,7.45,8.6,7.45,Free agent,,
+,Nikola Topić,OKC,PG,3,6.67,9.72,1.458,,20,11.43,6.67,Free agent,,
+,Tristan Enaruna,CLE,PF/SF,3,6.5,9.54,1.467,,19.5,9.97,6.5,Free agent,,
+,Taurean Prince,DET,PF/SF,3,5.97,8.81,1.477,,17.9,7.4,5.97,Free agent,,
+,Carson Cooper,LAL,C,3,5.93,8.57,1.445,,17.8,7.73,5.93,Free agent,,
+,Zeke Nnaji,DEN,C/PF,3,5.87,8.5,1.448,,17.6,3.53,5.87,Free agent,,
+,Ja'Kobi Gillespie,SAS,PG/SG,4,5.84,9.39,1.608,,23.35,6.5,5.84,Free agent,,
+,Ryan Nembhard,DEN,PG/SG,3,5.75,8.72,1.516,,17.25,3.23,5.75,Free agent,,
+,Pat Spencer,PHX,SF/SG,4,5.73,9.26,1.617,,22.9,4.4,5.73,Free agent,,
+,Duop Reath,PHX,C/PF,6,5.72,8.96,1.567,,34.3,5.53,5.47,Free agent,,
+,Jalen Pickett,LAC,PG/SG,6,5.62,8.41,1.497,,33.7,4.52,4.91,Free agent,,
+,Nick Martinelli,LAC,PF/SF,6,5.61,8.94,1.594,,33.65,4.42,6.3,Free agent,,
+,Mason Plumlee,SAC,C,2,5.5,7.68,1.396,,11,4.6,5.5,Free agent,,
+,Colin Castleton,ORL,PF/SF,4,5.48,8.52,1.556,,21.9,3.28,5.48,Free agent,,
+,Dalen Terry,OKC,SF/SG,2,5.23,7.29,1.396,,10.45,5.45,5.23,Free agent,,
+,Drake Powell,BKN,PG/SF/SG,5,4.85,6.97,1.438,,24.25,7.22,4.85,Free agent,,
+,Dailyn Swain,CHI,PF/SF,4,4.84,7.24,1.497,,19.35,6.65,4.84,Free agent,,
+,Malik Dia,NOP,PF/SF,2,4.7,6.6,1.404,,9.4,4.6,4.7,Free agent,,
+,PJ Hall,CHA,C,2,4.48,6.78,1.515,,8.95,5.75,4.48,Free agent,,
+,Ben Sheppard,IND,SF/SG,1,4.45,6.29,1.413,,4.45,12.2,4.45,Free agent,,
+,Zyon Pullin,MIN,PG,4,4.44,6.7,1.509,,17.75,3.1,4.44,Free agent,,
+,Riley Minix,CLE,SF,4,4.39,7.43,1.693,,17.55,13.7,4.39,Free agent,,
+,Julian Reese,NOP,C,6,4.21,6.93,1.646,,25.25,5.27,4.52,Free agent,,
+,Ebuka Okorie,DET,PG/SG,5,4.16,6.53,1.57,,20.8,3.98,4.16,Free agent,,
+,Ben Saraf,BKN,PG,1,4.15,5.86,1.413,,4.15,3.6,4.15,Free agent,,
+,Rasheer Fleming,PHX,PF,5,3.9,5.7,1.462,,19.5,7.82,3.9,Free agent,,
+,Tacko Fall,PHI,C,5,3.83,6.56,1.712,,19.15,3.96,3.83,Free agent,,
+,Rayan Rupert,PHI,SF/SG,3,3.48,5.07,1.456,,10.45,2.67,3.48,Free agent,,
+,DaRon Holmes II,DEN,C,5,3.02,4.71,1.561,,15.1,2.58,3.02,Free agent,,
+,Caleb Love,PHI,PG/SG,3,2.98,4.91,1.647,,8.95,2.37,2.98,Free agent,,
+,Alpha Diallo,DEN,PG/SG,5,2.91,5.29,1.82,,14.55,7.08,2.91,Free agent,,
+,Anthony Gill,WAS,C/PF,6,2.73,4.45,1.629,,16.4,3.78,3.28,Free agent,,
+,Bogoljub Marković,MIL,PF/SF,3,2.72,3.96,1.456,,8.15,4.47,2.72,Free agent,,
+,Dorian Finney-Smith,ATL,PF/SF,5,2.62,4.35,1.661,,13.1,4.2,2.62,Free agent,,
+,Isaac Jones,DET,PF,6,2.49,4.69,1.882,,14.95,2.52,2.59,Free agent,,
+,Blake Wesley,LAC,PG/SG,2,2.3,3.4,1.477,,4.6,4.75,2.3,Free agent,,
+,Lawson Lovering,LAL,C,2,2.25,3.26,1.447,,4.5,1.3,2.25,Free agent,,
+,Kon Knueppel,CHA,SF/SG,1,2.15,3.04,1.413,,2.15,5.9,2.15,High School Team,,
+,Malachi Smith,TOR,PG/SG,4,2.03,3.3,1.631,,8.1,3.95,2.03,Free agent,,
+,David Jones Garcia,SAS,PF/SF,6,1.83,3.06,1.67,,11,3.35,1.57,Free agent,,
+,Felix Okpara,WAS,C/PF,3,1.77,2.73,1.544,,5.3,1.77,1.77,Free agent,,
+,Chris Mañon,LAL,SF/SG,2,1.23,1.86,1.52,,2.45,3.5,1.23,Free agent,,
+,Maliq Brown,SAS,PF/SF,2,1,1.52,1.52,,2,1.15,1,Free agent,,
+,Keshad Johnson,MIA,PF/SF,2,1,1.52,1.52,,2,2.15,1,Free agent,,
+,Johni Broome,MIN,C,1,1,1.41,1.413,,1,2.5,1,Free agent,,
+,Jonas Aidoo,UTA,C,1,1,1.41,1.413,,1,1.5,1,Free agent,,
+,Reece Beekman,WAS,PG,1,0,0,1.444,,0,1,0,Free agent,,
+,Jaden Akins,NYK,PG/SG,2,0,0,1.444,,0,0.95,0,Free agent,,
+,Dillon Mitchell,BOS,PF/SF,1,0,0,1.444,,0,2.5,0,Free agent,,
+,Kobe Bufkin,UTA,PG,1,0,0,1.444,,0,1.5,0,Free agent,,
+,Harrison Ingram,UTA,PF/SF,1,0,0,1.444,,0,1.5,0,Free agent,,
+,Rocco Zikarsky,MIN,C,1,-0.5,-0.72,1.444,,-0.5,1.7,-0.5,Free agent,,
+,Devin Carter,BOS,PG/SG,2,-0.52,-0.76,1.444,,-1.05,8.05,-0.52,Free agent,,
+,Tre Donaldson,MIA,PG/SG,3,-1.08,-1.56,1.444,,-3.25,1.9,-1.08,Free agent,,
+,Gabe Vincent,SAC,PG,1,-1.7,-2.46,1.444,,-1.7,3.2,-1.7,Free agent,,
+,Joshua Jefferson,BKN,PF/SF,1,-3.4,-4.91,1.444,,-3.4,3.6,-3.4,Free agent,,
